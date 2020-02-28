@@ -159,6 +159,7 @@ jcat_tool = executable(
   ],
   dependencies : [
     giounix,
+    libjsonglib,
   ],
   link_with : [
     libjcat,

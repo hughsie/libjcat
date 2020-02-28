@@ -6,9 +6,10 @@ services:
   - docker
 
 env:
-#  - OS=debian
+  - OS=debian
+  - OS=debian-s390x
   - OS=fedora
-#  - OS=fedora-w64
+  - OS=fedora-w64
 
 before_script:
   - docker build -t libjcat-${OS} -f contrib/ci/Dockerfile-${OS} .
