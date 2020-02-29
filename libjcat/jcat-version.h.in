@@ -1,0 +1,49 @@
+/*
+ * Copyright (C) 2015 Richard Hughes <richard@hughsie.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1+
+ */
+
+#pragma once
+
+/**
+ * JCAT_MAJOR_VERSION:
+ *
+ * The compile-time major version
+ */
+#ifndef JCAT_MAJOR_VERSION
+#define JCAT_MAJOR_VERSION				(@JCAT_MAJOR_VERSION@)
+#endif
+
+/**
+ * JCAT_MINOR_VERSION:
+ *
+ * The compile-time minor version
+ */
+#ifndef JCAT_MINOR_VERSION
+#define JCAT_MINOR_VERSION				(@JCAT_MINOR_VERSION@)
+#endif
+
+/**
+ * JCAT_MICRO_VERSION:
+ *
+ * The compile-time micro version
+ */
+#ifndef JCAT_MICRO_VERSION
+#define JCAT_MICRO_VERSION				(@JCAT_MICRO_VERSION@)
+#endif
+
+/**
+ * LIBJCAT_CHECK_VERSION:
+ * @major: Major version number
+ * @minor: Minor version number
+ * @micro: Micro version number
+ *
+ * Check whether a libjcat version equal to or greater than
+ * major.minor.micro.
+ */
+#define LIBJCAT_CHECK_VERSION(major,minor,micro)    \
+    (JCAT_MAJOR_VERSION > (major) || \
+     (JCAT_MAJOR_VERSION == (major) && JCAT_MINOR_VERSION > (minor)) || \
+     (JCAT_MAJOR_VERSION == (major) && JCAT_MINOR_VERSION == (minor) && \
+      JCAT_MICRO_VERSION >= (micro)))

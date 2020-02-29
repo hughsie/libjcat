@@ -1,0 +1,56 @@
+# generated automatically, do not edit!
+
+LIBJCAT_0.1.0 {
+  global:
+    jcat_blob_get_appstream_id;
+    jcat_blob_get_data;
+    jcat_blob_get_data_as_string;
+    jcat_blob_get_kind;
+    jcat_blob_get_timestamp;
+    jcat_blob_get_type;
+    jcat_blob_kind_from_string;
+    jcat_blob_kind_to_filename_ext;
+    jcat_blob_kind_to_string;
+    jcat_blob_new;
+    jcat_blob_new_full;
+    jcat_blob_new_utf8;
+    jcat_blob_set_appstream_id;
+    jcat_blob_set_timestamp;
+    jcat_context_add_public_keys;
+    jcat_context_get_engine;
+    jcat_context_get_type;
+    jcat_context_new;
+    jcat_context_set_localstatedir;
+    jcat_context_setup;
+    jcat_context_sign;
+    jcat_context_verify_blob;
+    jcat_context_verify_item;
+    jcat_engine_get_type;
+    jcat_engine_sign;
+    jcat_engine_verify;
+    jcat_file_add_item;
+    jcat_file_export_file;
+    jcat_file_export_json;
+    jcat_file_export_stream;
+    jcat_file_get_item_by_id;
+    jcat_file_get_item_default;
+    jcat_file_get_items;
+    jcat_file_get_type;
+    jcat_file_get_version_major;
+    jcat_file_get_version_minor;
+    jcat_file_import_file;
+    jcat_file_import_json;
+    jcat_file_import_stream;
+    jcat_file_new;
+    jcat_file_to_string;
+    jcat_item_add_blob;
+    jcat_item_get_blobs;
+    jcat_item_get_blobs_by_kind;
+    jcat_item_get_id;
+    jcat_item_get_type;
+    jcat_item_new;
+    jcat_result_get_authority;
+    jcat_result_get_timestamp;
+    jcat_result_get_type;
+  local: *;
+};

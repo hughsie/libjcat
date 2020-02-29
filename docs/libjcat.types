@@ -1,0 +1,6 @@
+jcat_blob_get_type
+jcat_context_get_type
+jcat_engine_get_type
+jcat_file_get_type
+jcat_item_get_type
+jcat_result_get_type

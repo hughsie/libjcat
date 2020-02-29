@@ -1,0 +1,22 @@
+FROM debian:testing
+RUN echo fubar > /etc/machine-id
+
+RUN apt-get update -qq
+RUN apt-get install -yq --no-install-recommends \
+	binutils-multiarch \
+	gcc-multilib-s390x-linux-gnu \
+	gnutls-bin \
+	gnutls-dev \
+	gobject-introspection \
+	gtk-doc-tools \
+	libgirepository1.0-dev \
+	libglib2.0-dev \
+	libglib2.0-dev-bin \
+	libgpgme11-dev \
+	libjson-glib-dev \
+	meson \
+	ninja-build \
+	pkg-config \
+	valac
+
+WORKDIR /build

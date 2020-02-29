@@ -1,0 +1,3 @@
+[Test]
+Type=session
+Exec=@installed_test_bindir@/jcat-self-test
