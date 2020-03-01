@@ -169,8 +169,6 @@ jcat_tool = executable(
 )
 
 if get_option('tests')
-  testdatadir_src = join_paths(meson.source_root(), 'data', 'tests')
-  testdatadir_dst = join_paths(meson.build_root(), 'data', 'tests')
   test_deps = []
   if get_option('pkcs7')
     test_deps += colorhug_pkcs7_signature

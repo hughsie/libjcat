@@ -15,3 +15,5 @@ pkcs7_privkey = custom_target('test-privkey.pem',
 subdir('pki')
 subdir('colorhug')
 
+testdatadir_src = meson.current_source_dir()
+testdatadir_dst = meson.current_build_dir()
