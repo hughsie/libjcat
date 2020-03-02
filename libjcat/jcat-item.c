@@ -55,7 +55,16 @@ jcat_item_add_string (JcatItem *self, guint idt, GString *str)
 	}
 }
 
-/* private */
+/**
+ * jcat_item_to_string:
+ * @self: #JcatItem
+ *
+ * Converts the #JcatItem to a string.
+ *
+ * Returns: string
+ *
+ * Since: 0.1.0
+ **/
 gchar *
 jcat_item_to_string (JcatItem *self)
 {

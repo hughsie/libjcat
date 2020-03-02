@@ -20,4 +20,3 @@ void		 jcat_item_export			(JcatItem 	*self,
 void		 jcat_item_add_string			(JcatItem	*self,
 							 guint		 idt,
 							 GString	*str);
-gchar		*jcat_item_to_string 			(JcatItem	*self);

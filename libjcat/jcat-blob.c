@@ -139,7 +139,16 @@ jcat_blob_add_string (JcatBlob *self, guint idt, GString *str)
 	}
 }
 
-/* private */
+/**
+ * jcat_blob_to_string:
+ * @self: #JcatBlob
+ *
+ * Converts the #JcatBlob to a string.
+ *
+ * Returns: string
+ *
+ * Since: 0.1.0
+ **/
 gchar *
 jcat_blob_to_string (JcatBlob *self)
 {

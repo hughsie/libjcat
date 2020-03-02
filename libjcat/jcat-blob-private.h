@@ -20,4 +20,3 @@ void		 jcat_blob_export			(JcatBlob 	*self,
 void		 jcat_blob_add_string			(JcatBlob	*self,
 							 guint		 idt,
 							 GString	*str);
-gchar		*jcat_blob_to_string 			(JcatBlob	*self);
