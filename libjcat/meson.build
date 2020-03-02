@@ -149,7 +149,7 @@ if get_option('introspection')
 endif
 
 jcat_tool = executable(
-  'jcatutil',
+  'jcat-tool',
   sources : [
     'jcat-common.c',
     'jcat-tool.c',
