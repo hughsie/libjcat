@@ -63,7 +63,7 @@ Executable and data files for installed tests.
 %files
 %doc README.md
 %license LICENSE
-%{_libexecdir}/jcatutil
+%{_libexecdir}/jcat-tool
 %dir %{_libdir}/girepository-1.0
 %{_libdir}/girepository-1.0/*.typelib
 %{_libdir}/libjcat.so.1*

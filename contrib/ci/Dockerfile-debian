@@ -3,8 +3,6 @@ RUN echo fubar > /etc/machine-id
 
 RUN apt-get update -qq
 RUN apt-get install -yq --no-install-recommends \
-	binutils-multiarch \
-	gcc-multilib-s390x-linux-gnu \
 	gnutls-bin \
 	gnutls-dev \
 	gobject-introspection \
