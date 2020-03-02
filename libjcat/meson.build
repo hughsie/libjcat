@@ -200,8 +200,7 @@ if get_option('tests')
       '-DTESTDATADIR_SRC="' + testdatadir_src + '"',
       '-DTESTDATADIR_DST="' + testdatadir_dst + '"',
     ],
-    install : true,
-    install_dir : installed_test_bindir
+    install : false,
   )
   test('jcat-self-test', e)
 endif
