@@ -61,6 +61,7 @@ JcatBlob	*jcat_blob_new_full			(JcatBlobKind	 kind,
 							 JcatBlobFlags	 flags);
 JcatBlob	*jcat_blob_new_utf8			(JcatBlobKind	 kind,
 							 const gchar	*data);
+gchar		*jcat_blob_to_string 			(JcatBlob	*self);
 GBytes		*jcat_blob_get_data			(JcatBlob	*self);
 gchar		*jcat_blob_get_data_as_string		(JcatBlob	*self);
 JcatBlobKind	 jcat_blob_get_kind			(JcatBlob	*self);

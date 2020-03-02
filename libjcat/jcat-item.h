@@ -21,6 +21,7 @@ struct _JcatItemClass
 };
 
 JcatItem	*jcat_item_new				(const gchar	*id);
+gchar		*jcat_item_to_string 			(JcatItem	*self);
 GPtrArray	*jcat_item_get_blobs			(JcatItem	*self);
 GPtrArray	*jcat_item_get_blobs_by_kind		(JcatItem	*self,
 							 JcatBlobKind	 kind);
