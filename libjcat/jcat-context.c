@@ -21,7 +21,7 @@
 
 typedef struct {
 	GPtrArray		*engines;
-	GPtrArray		*paths;
+	GPtrArray		*public_key_paths;
 	gchar			*keyring_path;
 } JcatContextPrivate;
 
@@ -35,7 +35,7 @@ jcat_context_finalize (GObject *obj)
 	JcatContextPrivate *priv = GET_PRIVATE (self);
 	g_free (priv->keyring_path);
 	g_ptr_array_unref (priv->engines);
-	g_ptr_array_unref (priv->paths);
+	g_ptr_array_unref (priv->public_key_paths);
 	G_OBJECT_CLASS (jcat_context_parent_class)->finalize (obj);
 }
 
@@ -52,7 +52,7 @@ jcat_context_init (JcatContext *self)
 	JcatContextPrivate *priv = GET_PRIVATE (self);
 	priv->keyring_path = g_build_filename (g_get_user_data_dir (), PACKAGE_NAME, NULL);
 	priv->engines = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
-	priv->paths = g_ptr_array_new_with_free_func (g_free);
+	priv->public_key_paths = g_ptr_array_new_with_free_func (g_free);
 
 	g_ptr_array_add (priv->engines, jcat_engine_sha256_new (self));
 #ifdef ENABLE_GPG
@@ -78,7 +78,7 @@ jcat_context_add_public_keys (JcatContext *self, const gchar *path)
 	JcatContextPrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (JCAT_IS_CONTEXT (self));
 	g_return_if_fail (path != NULL);
-	g_ptr_array_add (priv->paths, g_strdup (path));
+	g_ptr_array_add (priv->public_key_paths, g_strdup (path));
 }
 
 /* private */
@@ -86,7 +86,7 @@ GPtrArray *
 jcat_context_get_public_key_paths (JcatContext *self)
 {
 	JcatContextPrivate *priv = GET_PRIVATE (self);
-	return priv->paths;
+	return priv->public_key_paths;
 }
 
 /**
