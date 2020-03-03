@@ -12,5 +12,6 @@
 
 G_DECLARE_FINAL_TYPE (JcatResult, jcat_result, JCAT, RESULT, GObject)
 
+gchar		*jcat_result_to_string 		(JcatResult	*self);
 gint64		 jcat_result_get_timestamp	(JcatResult	*self);
 const gchar	*jcat_result_get_authority	(JcatResult	*self);

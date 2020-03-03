@@ -449,7 +449,7 @@ jcat_engine_pkcs7_self_signed_func (void)
 	g_assert (engine == engine2);
 
 	/* to string */
-	g_object_set (result, "timestamp", 12345, NULL);
+	g_object_set (result, "timestamp", (gint64) 12345, NULL);
 	str = jcat_result_to_string (result);
 	g_print ("%s", str);
 	g_assert_cmpstr (str, ==, str_perfect);
