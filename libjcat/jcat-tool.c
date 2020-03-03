@@ -525,8 +525,8 @@ main (int argc, char *argv[])
 	gboolean ret;
 	gboolean verbose = FALSE;
 	gboolean version = FALSE;
-	g_autofree gchar *prefix = NULL;
 	g_autofree gchar *cmd_descriptions = NULL;
+	g_autofree gchar *prefix = NULL;
 	g_autofree gchar *public_keys = NULL;
 	g_autoptr(JcatToolPrivate) priv = g_new0 (JcatToolPrivate, 1);
 	g_autoptr(GError) error = NULL;

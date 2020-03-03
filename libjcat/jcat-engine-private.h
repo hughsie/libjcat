@@ -17,7 +17,7 @@ typedef enum {
 
 JcatBlobKind	 jcat_engine_get_kind			(JcatEngine	*self);
 JcatEngineVerifyKind jcat_engine_get_verify_kind	(JcatEngine	*self);
-const gchar	*jcat_engine_get_localstatedir		(JcatEngine	*self);
+const gchar	*jcat_engine_get_keyring_path		(JcatEngine	*self);
 void		 jcat_engine_add_string			(JcatEngine	*self,
 							 guint		 idt,
 							 GString	*str);

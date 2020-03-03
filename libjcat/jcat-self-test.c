@@ -282,7 +282,7 @@ jcat_engine_gpg_func (void)
 	"-----END PGP SIGNATURE-----\n";
 
 	/* set up context */
-	jcat_context_set_localstatedir (context, "/tmp/libjcat-self-test/var");
+	jcat_context_set_keyring_path (context, "/tmp/libjcat-self-test/var");
 	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
 
@@ -348,7 +348,7 @@ jcat_engine_pkcs7_func (void)
 	g_autoptr(JcatResult) result_pass = NULL;
 
 	/* set up context */
-	jcat_context_set_localstatedir (context, "/tmp/libjcat-self-test/var");
+	jcat_context_set_keyring_path (context, "/tmp/libjcat-self-test/var");
 	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
 
@@ -423,7 +423,7 @@ jcat_engine_pkcs7_self_signed_func (void)
 		"    VerifyKind:          signature\n";
 
 	/* set up context */
-	jcat_context_set_localstatedir (context, "/tmp");
+	jcat_context_set_keyring_path (context, "/tmp");
 
 	/* get engine */
 	engine = jcat_context_get_engine (context, JCAT_BLOB_KIND_PKCS7, &error);
@@ -479,7 +479,7 @@ jcat_context_verify_blob_func (void)
 	g_autoptr(JcatResult) result = NULL;
 
 	/* set up context */
-	jcat_context_set_localstatedir (context, "/tmp");
+	jcat_context_set_keyring_path (context, "/tmp");
 	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
 
@@ -546,7 +546,7 @@ jcat_context_verify_item_sign_func (void)
 	g_autoptr(GPtrArray) results_pass = NULL;
 
 	/* set up context */
-	jcat_context_set_localstatedir (context, "/tmp");
+	jcat_context_set_keyring_path (context, "/tmp");
 	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
 
@@ -625,7 +625,7 @@ jcat_context_verify_item_csum_func (void)
 	const gchar *sig_actual = "a196504d09871da4f7d83b874b500f8ee6e0619ab799f074814b316d88f96f7f";
 
 	/* set up context */
-	jcat_context_set_localstatedir (context, "/tmp");
+	jcat_context_set_keyring_path (context, "/tmp");
 	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
 

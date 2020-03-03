@@ -120,7 +120,7 @@ jcat_engine_gpg_setup (JcatEngine *engine, GError **error)
 	}
 
 	/* set a custom home directory */
-	gpg_home = g_build_filename (jcat_engine_get_localstatedir (engine), "gnupg", NULL);
+	gpg_home = g_build_filename (jcat_engine_get_keyring_path (engine), "gnupg", NULL);
 	if (g_mkdir_with_parents (gpg_home, 0700) < 0) {
 		g_set_error (error,
 			     G_IO_ERROR,

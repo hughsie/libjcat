@@ -28,9 +28,9 @@ void		 jcat_context_add_public_keys		(JcatContext	*self,
 JcatEngine	*jcat_context_get_engine		(JcatContext	*self,
 							 JcatBlobKind	 kind,
 							 GError		**error);
-void		 jcat_context_set_localstatedir		(JcatContext	*self,
+void		 jcat_context_set_keyring_path		(JcatContext	*self,
 							 const gchar	*path);
-const gchar	*jcat_context_get_localstatedir		(JcatContext	*self);
+const gchar	*jcat_context_get_keyring_path		(JcatContext	*self);
 JcatResult	*jcat_context_verify_blob		(JcatContext	*self,
 							 GBytes		*data,
 							 JcatBlob	*blob,

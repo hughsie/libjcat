@@ -179,7 +179,7 @@ jcat_engine_pkcs7_load_privkey (JcatEnginePkcs7 *self, GError **error)
 			     gnutls_strerror (rc), rc);
 		return NULL;
 	}
-	fn = g_build_filename (jcat_engine_get_localstatedir (engine), "pki", "secret.key", NULL);
+	fn = g_build_filename (jcat_engine_get_keyring_path (engine), "pki", "secret.key", NULL);
 	if (!g_file_get_contents (fn, &buf, &bufsz, error))
 		return NULL;
 	d.size = bufsz;
@@ -201,7 +201,7 @@ jcat_engine_pkcs7_load_client_certificate (JcatEnginePkcs7 *self, GError **error
 {
 	JcatEngine *engine = JCAT_ENGINE (self);
 	g_autofree gchar *filename = NULL;
-	filename = g_build_filename (jcat_engine_get_localstatedir (engine),
+	filename = g_build_filename (jcat_engine_get_keyring_path (engine),
 				     "pki", "client.pem", NULL);
 	return jcat_engine_pkcs7_load_crt_from_filename (filename,
 							GNUTLS_X509_FMT_PEM,
@@ -255,7 +255,7 @@ jcat_engine_pkcs7_ensure_private_key (JcatEnginePkcs7 *self, GError **error)
 	g_autoptr(gnutls_data_t) d_payload = NULL;
 
 	/* check exists */
-	fn = g_build_filename (jcat_engine_get_localstatedir (engine),
+	fn = g_build_filename (jcat_engine_get_keyring_path (engine),
 			       "pki", "secret.key", NULL);
 	if (g_file_test (fn, G_FILE_TEST_EXISTS))
 		return TRUE;
@@ -341,7 +341,7 @@ jcat_engine_pkcs7_ensure_client_certificate (JcatEnginePkcs7 *self, GError **err
 	g_autoptr(gnutls_data_t) d_payload = NULL;
 
 	/* check exists */
-	fn = g_build_filename (jcat_engine_get_localstatedir (engine),
+	fn = g_build_filename (jcat_engine_get_keyring_path (engine),
 			       "pki", "client.pem", NULL);
 	if (g_file_test (fn, G_FILE_TEST_EXISTS))
 		return TRUE;

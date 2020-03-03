@@ -169,12 +169,12 @@ jcat_engine_get_verify_kind (JcatEngine *self)
 }
 
 const gchar *
-jcat_engine_get_localstatedir (JcatEngine *self)
+jcat_engine_get_keyring_path (JcatEngine *self)
 {
 	JcatEnginePrivate *priv = GET_PRIVATE (self);
 	if (priv->context == NULL)
 		return NULL;
-	return jcat_context_get_localstatedir (priv->context);
+	return jcat_context_get_keyring_path (priv->context);
 }
 
 static void

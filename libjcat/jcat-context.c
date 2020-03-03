@@ -22,7 +22,7 @@
 typedef struct {
 	GPtrArray		*engines;
 	GPtrArray		*paths;
-	gchar			*localstatedir;
+	gchar			*keyring_path;
 } JcatContextPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (JcatContext, jcat_context, G_TYPE_OBJECT)
@@ -33,7 +33,7 @@ jcat_context_finalize (GObject *obj)
 {
 	JcatContext *self = JCAT_CONTEXT (obj);
 	JcatContextPrivate *priv = GET_PRIVATE (self);
-	g_free (priv->localstatedir);
+	g_free (priv->keyring_path);
 	g_ptr_array_unref (priv->engines);
 	g_ptr_array_unref (priv->paths);
 	G_OBJECT_CLASS (jcat_context_parent_class)->finalize (obj);
@@ -50,7 +50,7 @@ static void
 jcat_context_init (JcatContext *self)
 {
 	JcatContextPrivate *priv = GET_PRIVATE (self);
-	priv->localstatedir = g_strdup (JCAT_LOCALSTATEDIR);
+	priv->keyring_path = g_build_filename (g_get_user_data_dir (), PACKAGE_NAME, NULL);
 	priv->engines = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	priv->paths = g_ptr_array_new_with_free_func (g_free);
 
@@ -90,7 +90,7 @@ jcat_context_get_public_key_paths (JcatContext *self)
 }
 
 /**
- * jcat_context_set_localstatedir:
+ * jcat_context_set_keyring_path:
  * @self: #JcatContext
  * @path: A directory
  *
@@ -99,17 +99,17 @@ jcat_context_get_public_key_paths (JcatContext *self)
  * Since: 0.1.0
  **/
 void
-jcat_context_set_localstatedir (JcatContext *self, const gchar *path)
+jcat_context_set_keyring_path (JcatContext *self, const gchar *path)
 {
 	JcatContextPrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (JCAT_IS_CONTEXT (self));
 	g_return_if_fail (path != NULL);
-	g_free (priv->localstatedir);
-	priv->localstatedir = g_strdup (path);
+	g_free (priv->keyring_path);
+	priv->keyring_path = g_strdup (path);
 }
 
 /**
- * jcat_context_get_localstatedir:
+ * jcat_context_get_keyring_path:
  * @self: #JcatContext
  *
  * Gets the local state directory the engines are using.
@@ -119,11 +119,11 @@ jcat_context_set_localstatedir (JcatContext *self, const gchar *path)
  * Since: 0.1.0
  **/
 const gchar *
-jcat_context_get_localstatedir (JcatContext *self)
+jcat_context_get_keyring_path (JcatContext *self)
 {
 	JcatContextPrivate *priv = GET_PRIVATE (self);
 	g_return_val_if_fail (JCAT_IS_CONTEXT (self), NULL);
-	return priv->localstatedir;
+	return priv->keyring_path;
 }
 
 /**
