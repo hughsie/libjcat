@@ -74,9 +74,11 @@ jcat_engine_sha256_init (JcatEngineSha256 *self)
 }
 
 JcatEngine *
-jcat_engine_sha256_new (void)
+jcat_engine_sha256_new (JcatContext *context)
 {
+	g_return_val_if_fail (JCAT_IS_CONTEXT (context), NULL);
 	return JCAT_ENGINE (g_object_new (JCAT_TYPE_ENGINE_SHA256,
+					  "context", context,
 					  "kind", JCAT_BLOB_KIND_SHA256,
 					  "verify-kind", JCAT_ENGINE_VERIFY_KIND_CHECKSUM,
 					  NULL));

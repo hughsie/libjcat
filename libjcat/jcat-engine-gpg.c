@@ -338,9 +338,11 @@ jcat_engine_gpg_init (JcatEngineGpg *self)
 }
 
 JcatEngine *
-jcat_engine_gpg_new (void)
+jcat_engine_gpg_new (JcatContext *context)
 {
+	g_return_val_if_fail (JCAT_IS_CONTEXT (context), NULL);
 	return JCAT_ENGINE (g_object_new (JCAT_TYPE_ENGINE_GPG,
+					  "context", context,
 					  "kind", JCAT_BLOB_KIND_GPG,
 					  "verify-kind", JCAT_ENGINE_VERIFY_KIND_SIGNATURE,
 					  NULL));

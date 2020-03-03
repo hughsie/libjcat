@@ -56,12 +56,12 @@ jcat_context_init (JcatContext *self)
 	priv->engines = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	priv->paths = g_ptr_array_new_with_free_func (g_free);
 
-	g_ptr_array_add (priv->engines, jcat_engine_sha256_new ());
+	g_ptr_array_add (priv->engines, jcat_engine_sha256_new (self));
 #ifdef ENABLE_GPG
-	g_ptr_array_add (priv->engines, jcat_engine_gpg_new ());
+	g_ptr_array_add (priv->engines, jcat_engine_gpg_new (self));
 #endif
 #ifdef ENABLE_PKCS7
-	g_ptr_array_add (priv->engines, jcat_engine_pkcs7_new ());
+	g_ptr_array_add (priv->engines, jcat_engine_pkcs7_new (self));
 #endif
 }
 

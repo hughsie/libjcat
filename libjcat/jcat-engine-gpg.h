@@ -6,10 +6,11 @@
 
 #pragma once
 
+#include "jcat-context.h"
 #include "jcat-engine.h"
 
 #define JCAT_TYPE_ENGINE_GPG (jcat_engine_gpg_get_type ())
 
 G_DECLARE_FINAL_TYPE (JcatEngineGpg, jcat_engine_gpg, JCAT, ENGINE_GPG, JcatEngine)
 
-JcatEngine	*jcat_engine_gpg_new		(void);
+JcatEngine	*jcat_engine_gpg_new		(JcatContext	*context);

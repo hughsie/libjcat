@@ -7,9 +7,11 @@
 #include "config.h"
 
 #include "jcat-common-private.h"
+#include "jcat-context.h"
 #include "jcat-engine-private.h"
 
 typedef struct {
+	JcatContext		*context;		/* weak */
 	JcatBlobKind		 kind;
 	JcatEngineVerifyKind	 verify_kind;
 	gchar			*localstatedir;
@@ -20,6 +22,7 @@ G_DEFINE_TYPE_WITH_PRIVATE (JcatEngine, jcat_engine, G_TYPE_OBJECT)
 
 enum {
 	PROP_0,
+	PROP_CONTEXT,
 	PROP_KIND,
 	PROP_VERIFY_KIND,
 	PROP_LAST
@@ -185,6 +188,9 @@ jcat_engine_get_property (GObject *object, guint prop_id,
 	JcatEngine *self = JCAT_ENGINE (object);
 	JcatEnginePrivate *priv = GET_PRIVATE (self);
 	switch (prop_id) {
+	case PROP_CONTEXT:
+		g_value_set_object (value, priv->context);
+		break;
 	case PROP_KIND:
 		g_value_set_uint (value, priv->kind);
 		break;
@@ -204,6 +210,10 @@ jcat_engine_set_property (GObject *object, guint prop_id,
 	JcatEngine *self = JCAT_ENGINE (object);
 	JcatEnginePrivate *priv = GET_PRIVATE (self);
 	switch (prop_id) {
+	case PROP_CONTEXT:
+		/* weak */
+		priv->context = g_value_get_object (value);
+		break;
 	case PROP_KIND:
 		priv->kind = g_value_get_uint (value);
 		break;
@@ -224,6 +234,13 @@ jcat_engine_class_init (JcatEngineClass *klass)
 
 	object_class->get_property = jcat_engine_get_property;
 	object_class->set_property = jcat_engine_set_property;
+
+	pspec = g_param_spec_object ("context", NULL, NULL,
+				     JCAT_TYPE_CONTEXT,
+				     G_PARAM_READWRITE |
+				     G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_NAME);
+	g_object_class_install_property (object_class, PROP_CONTEXT, pspec);
 
 	pspec = g_param_spec_uint ("kind", NULL, NULL,
 				   0, G_MAXUINT, 0,
