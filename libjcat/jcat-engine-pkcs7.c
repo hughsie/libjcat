@@ -34,6 +34,7 @@ G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_dn_t, gnutls_x509_dn_deinit, NULL)
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_privkey_t, gnutls_x509_privkey_deinit, NULL)
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_spki_t, gnutls_x509_spki_deinit, NULL)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_data_t, gnutls_free)
+G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_pkcs7_signature_info_st, gnutls_pkcs7_signature_info_deinit)
 #pragma clang diagnostic pop
 
 static gnutls_x509_crt_t
@@ -571,6 +572,7 @@ jcat_engine_pkcs7_verify_data (JcatEngine *engine,
 	JcatEnginePkcs7 *self = JCAT_ENGINE_PKCS7 (engine);
 	gnutls_datum_t datum = { 0 };
 	gint64 timestamp_newest = 0;
+	gnutls_pkcs7_signature_info_st info_tmp = { 0x0 };
 	int count;
 	int rc;
 	g_auto(gnutls_pkcs7_t) pkcs7 = NULL;
@@ -626,7 +628,7 @@ jcat_engine_pkcs7_verify_data (JcatEngine *engine,
 	}
 
 	for (gint i = 0; i < count; i++) {
-		gnutls_pkcs7_signature_info_st info;
+		g_autoptr(gnutls_pkcs7_signature_info_st) info = &info_tmp;
 		gint64 signing_time = 0;
 		gnutls_certificate_verify_flags verify_flags = 0;
 		g_autofree gchar *dn = NULL;
@@ -639,7 +641,7 @@ jcat_engine_pkcs7_verify_data (JcatEngine *engine,
 		}
 
 		/* always get issuer */
-		rc = gnutls_pkcs7_get_signature_info (pkcs7, i, &info);
+		rc = gnutls_pkcs7_get_signature_info (pkcs7, i, &info_tmp);
 		if (rc < 0) {
 			g_set_error (error,
 				     G_IO_ERROR,
@@ -661,7 +663,7 @@ jcat_engine_pkcs7_verify_data (JcatEngine *engine,
 						  verify_flags);
 		}
 		if (rc < 0) {
-			dn = jcat_engine_pkcs7_datum_to_dn_str (&info.issuer_dn);
+			dn = jcat_engine_pkcs7_datum_to_dn_str (&info->issuer_dn);
 			g_set_error (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_INVALID_DATA,
@@ -671,14 +673,13 @@ jcat_engine_pkcs7_verify_data (JcatEngine *engine,
 		}
 
 		/* save details about the key for the result */
-		signing_time = info.signing_time > 0 ? (gint64) info.signing_time : 1;
+		signing_time = info->signing_time > 0 ? (gint64) info->signing_time : 1;
 		if (signing_time > timestamp_newest) {
 			timestamp_newest = signing_time;
-			dn = jcat_engine_pkcs7_datum_to_dn_str (&info.issuer_dn);
+			dn = jcat_engine_pkcs7_datum_to_dn_str (&info->issuer_dn);
 			if (dn != NULL)
 				g_string_assign (authority_newest, dn);
 		}
-		gnutls_pkcs7_signature_info_deinit (&info);
 	}
 
 	/* success */
