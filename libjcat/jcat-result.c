@@ -91,7 +91,7 @@ jcat_result_add_string (JcatResult *self, guint idt, GString *str)
 #if GLIB_CHECK_VERSION(2,62,0)
 		g_autofree gchar *tmp = g_date_time_format_iso8601 (dt);
 #else
-		g_autofree gchar *tmp = g_date_time_format (dt, "%F %T");
+		g_autofree gchar *tmp = g_date_time_format (dt, "%FT%TZ");
 #endif
 		jcat_string_append_kv (str, idt + 1, "Timestamp", tmp);
 	}
