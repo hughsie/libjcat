@@ -120,7 +120,7 @@ jcat_engine_gpg_setup (JcatEngine *engine, GError **error)
 	}
 
 	/* set a custom home directory */
-	gpg_home = g_build_filename (jcat_engine_get_localstatedir (engine), "gnupg", NULL);
+	gpg_home = g_build_filename (jcat_engine_get_keyring_path (engine), "gnupg", NULL);
 	if (g_mkdir_with_parents (gpg_home, 0700) < 0) {
 		g_set_error (error,
 			     G_IO_ERROR,
@@ -338,9 +338,11 @@ jcat_engine_gpg_init (JcatEngineGpg *self)
 }
 
 JcatEngine *
-jcat_engine_gpg_new (void)
+jcat_engine_gpg_new (JcatContext *context)
 {
+	g_return_val_if_fail (JCAT_IS_CONTEXT (context), NULL);
 	return JCAT_ENGINE (g_object_new (JCAT_TYPE_ENGINE_GPG,
+					  "context", context,
 					  "kind", JCAT_BLOB_KIND_GPG,
 					  "verify-kind", JCAT_ENGINE_VERIFY_KIND_SIGNATURE,
 					  NULL));

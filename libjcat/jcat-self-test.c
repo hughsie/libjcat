@@ -10,17 +10,9 @@
 #include "jcat-common-private.h"
 #include "jcat-context.h"
 #include "jcat-engine-private.h"
-#include "jcat-engine-sha256.h"
 #include "jcat-file.h"
 #include "jcat-item-private.h"
 #include "jcat-result-private.h"
-
-#ifdef ENABLE_GPG
-#include "jcat-engine-gpg.h"
-#endif
-#ifdef ENABLE_PKCS7
-#include "jcat-engine-pkcs7.h"
-#endif
 
 static void
 jcat_blob_func (void)
@@ -210,13 +202,15 @@ jcat_engine_sha256_func (void)
 	g_autoptr(GBytes) data_fail = NULL;
 	g_autoptr(GBytes) data_fwbin = NULL;
 	g_autoptr(GError) error = NULL;
+	g_autoptr(JcatContext) context = jcat_context_new ();
 	g_autoptr(JcatEngine) engine = NULL;
 	g_autoptr(JcatResult) result_fail = NULL;
 	g_autoptr(JcatResult) result_pass = NULL;
 	const gchar *sig_actual = "a196504d09871da4f7d83b874b500f8ee6e0619ab799f074814b316d88f96f7f";
 
-	/* add keys to engine */
-	engine = jcat_engine_sha256_new ();
+	/* get engine */
+	engine = jcat_context_get_engine (context, JCAT_BLOB_KIND_SHA256, &error);
+	g_assert_no_error (error);
 	g_assert_nonnull (engine);
 	g_assert_cmpint (jcat_engine_get_kind (engine), ==, JCAT_BLOB_KIND_SHA256);
 	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_CHECKSUM);
@@ -259,7 +253,6 @@ static void
 jcat_engine_gpg_func (void)
 {
 #ifdef ENABLE_GPG
-	gboolean ret;
 	g_autofree gchar *fn_fail = NULL;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *pki_dir = NULL;
@@ -268,14 +261,14 @@ jcat_engine_gpg_func (void)
 	g_autoptr(GBytes) data_fwbin = NULL;
 	g_autoptr(GBytes) data_sig = NULL;
 	g_autoptr(GError) error = NULL;
+	g_autoptr(JcatContext) context = jcat_context_new ();
 	g_autoptr(JcatEngine) engine = NULL;
 	g_autoptr(JcatResult) result_fail = NULL;
 	g_autoptr(JcatResult) result_pass = NULL;
 	const gchar *str_perfect =
 		"JcatEngineGpg:\n"
 		"  Kind:                  gpg\n"
-		"  VerifyKind:            signature\n"
-		"  LocalStateDir:         /tmp/libjcat-self-test/var\n";
+		"  VerifyKind:            signature\n";
 	const gchar *sig_actual =
 	"-----BEGIN PGP SIGNATURE-----\n"
 	"Version: GnuPG v1\n\n"
@@ -288,18 +281,17 @@ jcat_engine_gpg_func (void)
 	"=fkit\n"
 	"-----END PGP SIGNATURE-----\n";
 
-	/* add keys to engine */
-	engine = jcat_engine_gpg_new ();
+	/* set up context */
+	jcat_context_set_keyring_path (context, "/tmp/libjcat-self-test/var");
+	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
+	jcat_context_add_public_keys (context, pki_dir);
+
+	/* get engine */
+	engine = jcat_context_get_engine (context, JCAT_BLOB_KIND_GPG, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (engine);
 	g_assert_cmpint (jcat_engine_get_kind (engine), ==, JCAT_BLOB_KIND_GPG);
 	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_SIGNATURE);
-	jcat_engine_set_localstatedir (engine, "/tmp/libjcat-self-test/var");
-	ret = jcat_engine_setup (engine, &error);
-	g_assert_no_error (error);
-	g_assert_true (ret);
-	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
-	ret = jcat_engine_add_public_keys (engine, pki_dir, &error);
-	g_assert_no_error (error);
-	g_assert_true (ret);
 
 	/* to string */
 	str = jcat_engine_to_string (engine);
@@ -340,7 +332,6 @@ static void
 jcat_engine_pkcs7_func (void)
 {
 #ifdef ENABLE_PKCS7
-	gboolean ret;
 	g_autofree gchar *fn_fail = NULL;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
@@ -351,22 +342,22 @@ jcat_engine_pkcs7_func (void)
 	g_autoptr(GBytes) data_fwbin = NULL;
 	g_autoptr(GBytes) data_sig = NULL;
 	g_autoptr(GError) error = NULL;
+	g_autoptr(JcatContext) context = jcat_context_new ();
 	g_autoptr(JcatEngine) engine = NULL;
 	g_autoptr(JcatResult) result_fail = NULL;
 	g_autoptr(JcatResult) result_pass = NULL;
 
-	/* add keys to engine */
-	engine = jcat_engine_pkcs7_new ();
+	/* set up context */
+	jcat_context_set_keyring_path (context, "/tmp/libjcat-self-test/var");
+	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
+	jcat_context_add_public_keys (context, pki_dir);
+
+	/* get engine */
+	engine = jcat_context_get_engine (context, JCAT_BLOB_KIND_PKCS7, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (engine);
 	g_assert_cmpint (jcat_engine_get_kind (engine), ==, JCAT_BLOB_KIND_PKCS7);
 	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_SIGNATURE);
-	jcat_engine_set_localstatedir (engine, "/tmp/libjcat-self-test/var");
-	ret = jcat_engine_setup (engine, &error);
-	g_assert_no_error (error);
-	g_assert_true (ret);
-	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
-	ret = jcat_engine_add_public_keys (engine, pki_dir, &error);
-	g_assert_no_error (error);
-	g_assert_true (ret);
 
 	/* verify with a signature from the old LVFS */
 	fn_pass = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin", NULL);
@@ -417,6 +408,7 @@ jcat_engine_pkcs7_self_signed_func (void)
 #ifdef ENABLE_PKCS7
 	gboolean ret;
 	g_autofree gchar *str = NULL;
+	g_autoptr(JcatContext) context = jcat_context_new ();
 	g_autoptr(JcatEngine) engine = NULL;
 	g_autoptr(JcatEngine) engine2 = NULL;
 	g_autoptr(JcatResult) result = NULL;
@@ -428,15 +420,16 @@ jcat_engine_pkcs7_self_signed_func (void)
 		"  Timestamp:             1970-01-01T03:25:45Z\n"
 		"  JcatEnginePkcs7:\n"
 		"    Kind:                pkcs7\n"
-		"    VerifyKind:          signature\n"
-		"    LocalStateDir:       /tmp\n";
+		"    VerifyKind:          signature\n";
 
-	/* create detached signature and verify */
-	engine = jcat_engine_pkcs7_new ();
-	jcat_engine_set_localstatedir (engine, "/tmp");
-	ret = jcat_engine_setup (engine, &error);
+	/* set up context */
+	jcat_context_set_keyring_path (context, "/tmp");
+
+	/* get engine */
+	engine = jcat_context_get_engine (context, JCAT_BLOB_KIND_PKCS7, &error);
 	g_assert_no_error (error);
-	g_assert_true (ret);
+	g_assert_nonnull (engine);
+
 	payload = jcat_get_contents_bytes ("/etc/machine-id", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (payload);
@@ -469,7 +462,6 @@ static void
 jcat_context_verify_blob_func (void)
 {
 #ifdef ENABLE_PKCS7
-	gboolean ret;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
 	g_autofree gchar *pki_dir;
@@ -486,12 +478,10 @@ jcat_context_verify_blob_func (void)
 	g_autoptr(JcatEngine) engine4 = NULL;
 	g_autoptr(JcatResult) result = NULL;
 
-	jcat_context_set_localstatedir (context, "/tmp");
+	/* set up context */
+	jcat_context_set_keyring_path (context, "/tmp");
 	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
-	ret = jcat_context_setup (context, &error);
-	g_assert_no_error (error);
-	g_assert_true (ret);
 
 	/* get all engines */
 	engine1 = jcat_context_get_engine (context, JCAT_BLOB_KIND_SHA256, &error);
@@ -536,7 +526,6 @@ static void
 jcat_context_verify_item_sign_func (void)
 {
 #ifdef ENABLE_PKCS7
-	gboolean ret;
 	JcatResult *result;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
@@ -556,12 +545,10 @@ jcat_context_verify_item_sign_func (void)
 	g_autoptr(GPtrArray) results_fail = NULL;
 	g_autoptr(GPtrArray) results_pass = NULL;
 
-	jcat_context_set_localstatedir (context, "/tmp");
+	/* set up context */
+	jcat_context_set_keyring_path (context, "/tmp");
 	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
-	ret = jcat_context_setup (context, &error);
-	g_assert_no_error (error);
-	g_assert_true (ret);
 
 	/* get all engines */
 	engine1 = jcat_context_get_engine (context, JCAT_BLOB_KIND_SHA256, &error);
@@ -619,7 +606,6 @@ static void
 jcat_context_verify_item_csum_func (void)
 {
 #ifdef ENABLE_PKCS7
-	gboolean ret;
 	JcatResult *result;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *pki_dir;
@@ -638,12 +624,10 @@ jcat_context_verify_item_csum_func (void)
 	g_autoptr(GPtrArray) results_pass = NULL;
 	const gchar *sig_actual = "a196504d09871da4f7d83b874b500f8ee6e0619ab799f074814b316d88f96f7f";
 
-	jcat_context_set_localstatedir (context, "/tmp");
+	/* set up context */
+	jcat_context_set_keyring_path (context, "/tmp");
 	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
-	ret = jcat_context_setup (context, &error);
-	g_assert_no_error (error);
-	g_assert_true (ret);
 
 	/* get all engines */
 	engine1 = jcat_context_get_engine (context, JCAT_BLOB_KIND_SHA256, &error);

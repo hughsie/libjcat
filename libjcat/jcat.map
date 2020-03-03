@@ -19,10 +19,10 @@ LIBJCAT_0.1.0 {
     jcat_blob_to_string;
     jcat_context_add_public_keys;
     jcat_context_get_engine;
+    jcat_context_get_keyring_path;
     jcat_context_get_type;
     jcat_context_new;
-    jcat_context_set_localstatedir;
-    jcat_context_setup;
+    jcat_context_set_keyring_path;
     jcat_context_sign;
     jcat_context_verify_blob;
     jcat_context_verify_item;

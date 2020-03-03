@@ -7,12 +7,14 @@
 #include "config.h"
 
 #include "jcat-common-private.h"
+#include "jcat-context-private.h"
 #include "jcat-engine-private.h"
 
 typedef struct {
+	JcatContext		*context;		/* weak */
 	JcatBlobKind		 kind;
 	JcatEngineVerifyKind	 verify_kind;
-	gchar			*localstatedir;
+	gboolean		 done_setup;
 } JcatEnginePrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (JcatEngine, jcat_engine, G_TYPE_OBJECT)
@@ -20,8 +22,9 @@ G_DEFINE_TYPE_WITH_PRIVATE (JcatEngine, jcat_engine, G_TYPE_OBJECT)
 
 enum {
 	PROP_0,
+	PROP_CONTEXT,
 	PROP_KIND,
-	VERIFY_KIND,
+	PROP_VERIFY_KIND,
 	PROP_LAST
 };
 
@@ -45,7 +48,6 @@ jcat_engine_add_string (JcatEngine *self, guint idt, GString *str)
 			       jcat_blob_kind_to_string (priv->kind));
 	jcat_string_append_kv (str, idt + 1, "VerifyKind",
 			       jcat_engine_verify_kind_to_string (priv->verify_kind));
-	jcat_string_append_kv (str, idt + 1, "LocalStateDir", priv->localstatedir);
 }
 
 /* private */
@@ -57,27 +59,35 @@ jcat_engine_to_string (JcatEngine *self)
 	return g_string_free (str, FALSE);
 }
 
-/* private */
-gboolean
+static gboolean
 jcat_engine_setup (JcatEngine *self, GError **error)
 {
 	JcatEngineClass *klass = JCAT_ENGINE_GET_CLASS (self);
-	g_return_val_if_fail (JCAT_IS_ENGINE (self), FALSE);
-	if (klass->setup == NULL)
-		return TRUE;
-	return klass->setup (self, error);
-}
+	JcatEnginePrivate *priv = GET_PRIVATE (self);
 
-/* private */
-gboolean
-jcat_engine_add_public_keys (JcatEngine *self, const gchar *path, GError **error)
-{
-	JcatEngineClass *klass = JCAT_ENGINE_GET_CLASS (self);
 	g_return_val_if_fail (JCAT_IS_ENGINE (self), FALSE);
-	g_return_val_if_fail (path != NULL, FALSE);
-	if (klass->add_public_keys == NULL)
+
+	/* already done */
+	if (priv->done_setup)
 		return TRUE;
-	return klass->add_public_keys (self, path, error);
+
+	/* optional */
+	if (klass->setup != NULL) {
+		if (!klass->setup (self, error))
+			return FALSE;
+	}
+	if (klass->add_public_keys != NULL) {
+		GPtrArray *paths = jcat_context_get_public_key_paths (priv->context);
+		for (guint i = 0; i < paths->len; i++) {
+			const gchar *path = g_ptr_array_index (paths, i);
+			if (!klass->add_public_keys (self, path, error))
+				return FALSE;
+		}
+	}
+
+	/* success */
+	priv->done_setup = TRUE;
+	return TRUE;
 }
 
 /**
@@ -105,6 +115,8 @@ jcat_engine_verify (JcatEngine *self,
 	g_return_val_if_fail (JCAT_IS_ENGINE (self), NULL);
 	g_return_val_if_fail (blob != NULL, NULL);
 	g_return_val_if_fail (blob_signature != NULL, NULL);
+	if (!jcat_engine_setup (self, error))
+		return NULL;
 	return klass->verify_data (self, blob, blob_signature, flags, error);
 }
 
@@ -137,6 +149,8 @@ jcat_engine_sign (JcatEngine *self,
 				     "signing data is not supported");
 		return NULL;
 	}
+	if (!jcat_engine_setup (self, error))
+		return FALSE;
 	return klass->sign_data (self, blob, flags, error);
 }
 
@@ -155,26 +169,17 @@ jcat_engine_get_verify_kind (JcatEngine *self)
 }
 
 const gchar *
-jcat_engine_get_localstatedir (JcatEngine *self)
+jcat_engine_get_keyring_path (JcatEngine *self)
 {
 	JcatEnginePrivate *priv = GET_PRIVATE (self);
-	return priv->localstatedir;
-}
-
-void
-jcat_engine_set_localstatedir (JcatEngine *self, const gchar *path)
-{
-	JcatEnginePrivate *priv = GET_PRIVATE (self);
-	g_free (priv->localstatedir);
-	priv->localstatedir = g_strdup (path);
+	if (priv->context == NULL)
+		return NULL;
+	return jcat_context_get_keyring_path (priv->context);
 }
 
 static void
 jcat_engine_finalize (GObject *object)
 {
-	JcatEngine *self = JCAT_ENGINE (object);
-	JcatEnginePrivate *priv = GET_PRIVATE (self);
-	g_free (priv->localstatedir);
 	G_OBJECT_CLASS (jcat_engine_parent_class)->finalize (object);
 }
 
@@ -185,10 +190,13 @@ jcat_engine_get_property (GObject *object, guint prop_id,
 	JcatEngine *self = JCAT_ENGINE (object);
 	JcatEnginePrivate *priv = GET_PRIVATE (self);
 	switch (prop_id) {
+	case PROP_CONTEXT:
+		g_value_set_object (value, priv->context);
+		break;
 	case PROP_KIND:
 		g_value_set_uint (value, priv->kind);
 		break;
-	case VERIFY_KIND:
+	case PROP_VERIFY_KIND:
 		g_value_set_uint (value, priv->verify_kind);
 		break;
 	default:
@@ -204,10 +212,14 @@ jcat_engine_set_property (GObject *object, guint prop_id,
 	JcatEngine *self = JCAT_ENGINE (object);
 	JcatEnginePrivate *priv = GET_PRIVATE (self);
 	switch (prop_id) {
+	case PROP_CONTEXT:
+		/* weak */
+		priv->context = g_value_get_object (value);
+		break;
 	case PROP_KIND:
 		priv->kind = g_value_get_uint (value);
 		break;
-	case VERIFY_KIND:
+	case PROP_VERIFY_KIND:
 		priv->verify_kind = g_value_get_uint (value);
 		break;
 	default:
@@ -225,6 +237,13 @@ jcat_engine_class_init (JcatEngineClass *klass)
 	object_class->get_property = jcat_engine_get_property;
 	object_class->set_property = jcat_engine_set_property;
 
+	pspec = g_param_spec_object ("context", NULL, NULL,
+				     JCAT_TYPE_CONTEXT,
+				     G_PARAM_READWRITE |
+				     G_PARAM_CONSTRUCT_ONLY |
+				     G_PARAM_STATIC_NAME);
+	g_object_class_install_property (object_class, PROP_CONTEXT, pspec);
+
 	pspec = g_param_spec_uint ("kind", NULL, NULL,
 				   0, G_MAXUINT, 0,
 				   G_PARAM_READWRITE |
@@ -239,13 +258,11 @@ jcat_engine_class_init (JcatEngineClass *klass)
 				   G_PARAM_READWRITE |
 				   G_PARAM_CONSTRUCT_ONLY |
 				   G_PARAM_STATIC_NAME);
-	g_object_class_install_property (object_class, VERIFY_KIND, pspec);
+	g_object_class_install_property (object_class, PROP_VERIFY_KIND, pspec);
 	object_class->finalize = jcat_engine_finalize;
 }
 
 static void
 jcat_engine_init (JcatEngine *self)
 {
-	JcatEnginePrivate *priv = GET_PRIVATE (self);
-	priv->localstatedir = g_strdup (JCAT_LOCALSTATEDIR);
 }

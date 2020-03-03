@@ -6,9 +6,8 @@
 
 #include "config.h"
 
-#include "jcat-context.h"
-
 #include "jcat-blob.h"
+#include "jcat-context-private.h"
 #include "jcat-engine-private.h"
 #include "jcat-engine-sha256.h"
 #include "jcat-result-private.h"
@@ -22,9 +21,8 @@
 
 typedef struct {
 	GPtrArray		*engines;
-	GPtrArray		*paths;
-	gchar			*localstatedir;
-	gboolean		 has_setup;
+	GPtrArray		*public_key_paths;
+	gchar			*keyring_path;
 } JcatContextPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (JcatContext, jcat_context, G_TYPE_OBJECT)
@@ -35,9 +33,9 @@ jcat_context_finalize (GObject *obj)
 {
 	JcatContext *self = JCAT_CONTEXT (obj);
 	JcatContextPrivate *priv = GET_PRIVATE (self);
-	g_free (priv->localstatedir);
+	g_free (priv->keyring_path);
 	g_ptr_array_unref (priv->engines);
-	g_ptr_array_unref (priv->paths);
+	g_ptr_array_unref (priv->public_key_paths);
 	G_OBJECT_CLASS (jcat_context_parent_class)->finalize (obj);
 }
 
@@ -52,16 +50,16 @@ static void
 jcat_context_init (JcatContext *self)
 {
 	JcatContextPrivate *priv = GET_PRIVATE (self);
-	priv->localstatedir = g_strdup (JCAT_LOCALSTATEDIR);
+	priv->keyring_path = g_build_filename (g_get_user_data_dir (), PACKAGE_NAME, NULL);
 	priv->engines = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
-	priv->paths = g_ptr_array_new_with_free_func (g_free);
+	priv->public_key_paths = g_ptr_array_new_with_free_func (g_free);
 
-	g_ptr_array_add (priv->engines, jcat_engine_sha256_new ());
+	g_ptr_array_add (priv->engines, jcat_engine_sha256_new (self));
 #ifdef ENABLE_GPG
-	g_ptr_array_add (priv->engines, jcat_engine_gpg_new ());
+	g_ptr_array_add (priv->engines, jcat_engine_gpg_new (self));
 #endif
 #ifdef ENABLE_PKCS7
-	g_ptr_array_add (priv->engines, jcat_engine_pkcs7_new ());
+	g_ptr_array_add (priv->engines, jcat_engine_pkcs7_new (self));
 #endif
 }
 
@@ -80,51 +78,19 @@ jcat_context_add_public_keys (JcatContext *self, const gchar *path)
 	JcatContextPrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (JCAT_IS_CONTEXT (self));
 	g_return_if_fail (path != NULL);
-	g_ptr_array_add (priv->paths, g_strdup (path));
+	g_ptr_array_add (priv->public_key_paths, g_strdup (path));
 }
 
-/**
- * jcat_context_setup:
- * @self: #JcatContext
- * @error: #GError, or %NULL
- *
- * Sets up the engines ready and adds any public keys.
- *
- * Returns: %TRUE for success
- *
- * Since: 0.1.0
- **/
-gboolean
-jcat_context_setup (JcatContext *self, GError**error)
+/* private */
+GPtrArray *
+jcat_context_get_public_key_paths (JcatContext *self)
 {
 	JcatContextPrivate *priv = GET_PRIVATE (self);
-
-	g_return_val_if_fail (JCAT_IS_CONTEXT (self), 0);
-
-	/* already done */
-	if (priv->has_setup)
-		return TRUE;
-
-	/* set up all known engines */
-	for (guint i = 0; i < priv->engines->len; i++) {
-		JcatEngine *engine = g_ptr_array_index (priv->engines, i);
-		jcat_engine_set_localstatedir (engine, priv->localstatedir);
-		if (!jcat_engine_setup (engine, error))
-			return FALSE;
-		for (guint j = 0; j < priv->paths->len; j++) {
-			const gchar *path = g_ptr_array_index (priv->paths, j);
-			if (!jcat_engine_add_public_keys (engine, path, error))
-				return FALSE;
-		}
-	}
-
-	/* success */
-	priv->has_setup = TRUE;
-	return TRUE;
+	return priv->public_key_paths;
 }
 
 /**
- * jcat_context_set_localstatedir:
+ * jcat_context_set_keyring_path:
  * @self: #JcatContext
  * @path: A directory
  *
@@ -133,13 +99,31 @@ jcat_context_setup (JcatContext *self, GError**error)
  * Since: 0.1.0
  **/
 void
-jcat_context_set_localstatedir (JcatContext *self, const gchar *path)
+jcat_context_set_keyring_path (JcatContext *self, const gchar *path)
 {
 	JcatContextPrivate *priv = GET_PRIVATE (self);
 	g_return_if_fail (JCAT_IS_CONTEXT (self));
 	g_return_if_fail (path != NULL);
-	g_free (priv->localstatedir);
-	priv->localstatedir = g_strdup (path);
+	g_free (priv->keyring_path);
+	priv->keyring_path = g_strdup (path);
+}
+
+/**
+ * jcat_context_get_keyring_path:
+ * @self: #JcatContext
+ *
+ * Gets the local state directory the engines are using.
+ *
+ * Returns: (nullable): path
+ *
+ * Since: 0.1.0
+ **/
+const gchar *
+jcat_context_get_keyring_path (JcatContext *self)
+{
+	JcatContextPrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (JCAT_IS_CONTEXT (self), NULL);
+	return priv->keyring_path;
 }
 
 /**
@@ -162,8 +146,6 @@ jcat_context_get_engine (JcatContext *self, JcatBlobKind kind, GError **error)
 
 	g_return_val_if_fail (JCAT_IS_CONTEXT (self), 0);
 
-	if (!jcat_context_setup (self, error))
-		return FALSE;
 	for (guint i = 0; i < priv->engines->len; i++) {
 		JcatEngine *engine = g_ptr_array_index (priv->engines, i);
 		if (jcat_engine_get_kind (engine) == kind)
