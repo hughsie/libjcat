@@ -6,9 +6,8 @@
 
 #include "config.h"
 
-#include "jcat-context.h"
-
 #include "jcat-blob.h"
+#include "jcat-context-private.h"
 #include "jcat-engine-private.h"
 #include "jcat-engine-sha256.h"
 #include "jcat-result-private.h"
@@ -24,7 +23,6 @@ typedef struct {
 	GPtrArray		*engines;
 	GPtrArray		*paths;
 	gchar			*localstatedir;
-	gboolean		 has_setup;
 } JcatContextPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE (JcatContext, jcat_context, G_TYPE_OBJECT)
@@ -83,44 +81,12 @@ jcat_context_add_public_keys (JcatContext *self, const gchar *path)
 	g_ptr_array_add (priv->paths, g_strdup (path));
 }
 
-/**
- * jcat_context_setup:
- * @self: #JcatContext
- * @error: #GError, or %NULL
- *
- * Sets up the engines ready and adds any public keys.
- *
- * Returns: %TRUE for success
- *
- * Since: 0.1.0
- **/
-gboolean
-jcat_context_setup (JcatContext *self, GError**error)
+/* private */
+GPtrArray *
+jcat_context_get_public_key_paths (JcatContext *self)
 {
 	JcatContextPrivate *priv = GET_PRIVATE (self);
-
-	g_return_val_if_fail (JCAT_IS_CONTEXT (self), 0);
-
-	/* already done */
-	if (priv->has_setup)
-		return TRUE;
-
-	/* set up all known engines */
-	for (guint i = 0; i < priv->engines->len; i++) {
-		JcatEngine *engine = g_ptr_array_index (priv->engines, i);
-		jcat_engine_set_localstatedir (engine, priv->localstatedir);
-		if (!jcat_engine_setup (engine, error))
-			return FALSE;
-		for (guint j = 0; j < priv->paths->len; j++) {
-			const gchar *path = g_ptr_array_index (priv->paths, j);
-			if (!jcat_engine_add_public_keys (engine, path, error))
-				return FALSE;
-		}
-	}
-
-	/* success */
-	priv->has_setup = TRUE;
-	return TRUE;
+	return priv->paths;
 }
 
 /**
@@ -180,8 +146,6 @@ jcat_context_get_engine (JcatContext *self, JcatBlobKind kind, GError **error)
 
 	g_return_val_if_fail (JCAT_IS_CONTEXT (self), 0);
 
-	if (!jcat_context_setup (self, error))
-		return FALSE;
 	for (guint i = 0; i < priv->engines->len; i++) {
 		JcatEngine *engine = g_ptr_array_index (priv->engines, i);
 		if (jcat_engine_get_kind (engine) == kind)

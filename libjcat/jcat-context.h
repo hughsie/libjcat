@@ -25,8 +25,6 @@ struct _JcatContextClass
 JcatContext	*jcat_context_new			(void);
 void		 jcat_context_add_public_keys		(JcatContext	*self,
 							 const gchar	*path);
-gboolean	 jcat_context_setup			(JcatContext	*self,
-							 GError		**error);
 JcatEngine	*jcat_context_get_engine		(JcatContext	*self,
 							 JcatBlobKind	 kind,
 							 GError		**error);

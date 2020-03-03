@@ -23,7 +23,6 @@ LIBJCAT_0.1.0 {
     jcat_context_get_type;
     jcat_context_new;
     jcat_context_set_localstatedir;
-    jcat_context_setup;
     jcat_context_sign;
     jcat_context_verify_blob;
     jcat_context_verify_item;
