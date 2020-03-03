@@ -143,6 +143,24 @@ jcat_context_set_localstatedir (JcatContext *self, const gchar *path)
 }
 
 /**
+ * jcat_context_get_localstatedir:
+ * @self: #JcatContext
+ *
+ * Gets the local state directory the engines are using.
+ *
+ * Returns: (nullable): path
+ *
+ * Since: 0.1.0
+ **/
+const gchar *
+jcat_context_get_localstatedir (JcatContext *self)
+{
+	JcatContextPrivate *priv = GET_PRIVATE (self);
+	g_return_val_if_fail (JCAT_IS_CONTEXT (self), NULL);
+	return priv->localstatedir;
+}
+
+/**
  * jcat_context_get_engine:
  * @self: #JcatContext
  * @kind: #JcatBlobKind, e.g. %JCAT_BLOB_KIND_GPG

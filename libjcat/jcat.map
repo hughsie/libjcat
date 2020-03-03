@@ -19,6 +19,7 @@ LIBJCAT_0.1.0 {
     jcat_blob_to_string;
     jcat_context_add_public_keys;
     jcat_context_get_engine;
+    jcat_context_get_localstatedir;
     jcat_context_get_type;
     jcat_context_new;
     jcat_context_set_localstatedir;

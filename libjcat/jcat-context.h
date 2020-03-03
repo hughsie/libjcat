@@ -32,6 +32,7 @@ JcatEngine	*jcat_context_get_engine		(JcatContext	*self,
 							 GError		**error);
 void		 jcat_context_set_localstatedir		(JcatContext	*self,
 							 const gchar	*path);
+const gchar	*jcat_context_get_localstatedir		(JcatContext	*self);
 JcatResult	*jcat_context_verify_blob		(JcatContext	*self,
 							 GBytes		*data,
 							 JcatBlob	*blob,
