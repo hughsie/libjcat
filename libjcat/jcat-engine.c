@@ -21,7 +21,7 @@ G_DEFINE_TYPE_WITH_PRIVATE (JcatEngine, jcat_engine, G_TYPE_OBJECT)
 enum {
 	PROP_0,
 	PROP_KIND,
-	VERIFY_KIND,
+	PROP_VERIFY_KIND,
 	PROP_LAST
 };
 
@@ -188,7 +188,7 @@ jcat_engine_get_property (GObject *object, guint prop_id,
 	case PROP_KIND:
 		g_value_set_uint (value, priv->kind);
 		break;
-	case VERIFY_KIND:
+	case PROP_VERIFY_KIND:
 		g_value_set_uint (value, priv->verify_kind);
 		break;
 	default:
@@ -207,7 +207,7 @@ jcat_engine_set_property (GObject *object, guint prop_id,
 	case PROP_KIND:
 		priv->kind = g_value_get_uint (value);
 		break;
-	case VERIFY_KIND:
+	case PROP_VERIFY_KIND:
 		priv->verify_kind = g_value_get_uint (value);
 		break;
 	default:
@@ -239,7 +239,7 @@ jcat_engine_class_init (JcatEngineClass *klass)
 				   G_PARAM_READWRITE |
 				   G_PARAM_CONSTRUCT_ONLY |
 				   G_PARAM_STATIC_NAME);
-	g_object_class_install_property (object_class, VERIFY_KIND, pspec);
+	g_object_class_install_property (object_class, PROP_VERIFY_KIND, pspec);
 	object_class->finalize = jcat_engine_finalize;
 }
 
