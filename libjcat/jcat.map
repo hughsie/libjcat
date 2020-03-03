@@ -54,5 +54,6 @@ LIBJCAT_0.1.0 {
     jcat_result_get_authority;
     jcat_result_get_timestamp;
     jcat_result_get_type;
+    jcat_result_to_string;
   local: *;
 };

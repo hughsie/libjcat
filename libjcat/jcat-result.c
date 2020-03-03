@@ -101,7 +101,16 @@ jcat_result_add_string (JcatResult *self, guint idt, GString *str)
 		jcat_engine_add_string (self->engine, idt + 1, str);
 }
 
-/* private */
+/**
+ * jcat_result_to_string:
+ * @self: #JcatResult
+ *
+ * Converts the #JcatResult to a string.
+ *
+ * Returns: string
+ *
+ * Since: 0.1.0
+ **/
 gchar *
 jcat_result_to_string (JcatResult *self)
 {
