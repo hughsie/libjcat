@@ -35,7 +35,7 @@ endif
 
 jcat_mapfile = 'jcat.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), jcat_mapfile)
-libjcat = shared_library(
+libjcat = library(
   'jcat',
   sources : [
     'jcat-blob.c',
