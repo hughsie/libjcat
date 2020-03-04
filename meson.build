@@ -127,6 +127,7 @@ libjsonglib = dependency('json-glib-1.0', version : '>= 1.1.1')
 
 libjcat_deps = [
   gio,
+  libjsonglib,
 ]
 
 if get_option('pkcs7')
@@ -156,8 +157,6 @@ configure_file(
   output : 'config.h',
   configuration : conf
 )
-
-root_incdir = include_directories('.')
 
 subdir('data')
 subdir('libjcat')

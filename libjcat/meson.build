@@ -35,7 +35,7 @@ endif
 
 jcat_mapfile = 'jcat.map'
 vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), jcat_mapfile)
-libjcat = shared_library(
+libjcat = library(
   'jcat',
   sources : [
     'jcat-blob.c',
@@ -50,12 +50,8 @@ libjcat = shared_library(
   ],
   soversion : lt_current,
   version : lt_version,
-  dependencies : [
-    gio,
-    libjsonglib,
-    libjcat_deps,
-  ],
-  include_directories : root_incdir,
+  include_directories : configinc,
+  dependencies : libjcat_deps,
   link_args : vflag,
   link_depends : jcat_mapfile,
   install : true
@@ -64,7 +60,10 @@ libjcat = shared_library(
 pkgg = import('pkgconfig')
 pkgg.generate(
   libraries : libjcat,
-  requires : [ 'gio-2.0' ],
+  requires : [
+    'gio-2.0',
+    'json-glib-1.0',
+  ],
   subdirs : 'libjcat-1',
   version : meson.project_version(),
   name : 'libjcat',
@@ -76,7 +75,7 @@ libjcat_dep = declare_dependency(
   link_with : libjcat,
   include_directories : [
     include_directories('.'),
-    root_incdir,
+    configinc,
   ],
   dependencies : libjcat_deps
 )
@@ -106,18 +105,25 @@ if get_option('introspection')
     export_packages : 'jcat',
     header : 'jcat.h',
     dependencies : [
-      giounix,
+      libjcat_deps,
     ],
     includes : [
       'Gio-2.0',
       'GObject-2.0',
+      'Json-1.0',
+    ],
+    link_with : [
+      libjcat,
     ],
     install : true
   )
 
   gnome.generate_vapi('jcat',
     sources : jcat_gir[0],
-    packages : ['gio-2.0'],
+    packages : [
+      'gio-2.0',
+      'json-glib-1.0'
+    ],
     install : true,
   )
 
@@ -155,7 +161,7 @@ jcat_tool = executable(
     'jcat-tool.c',
   ],
   include_directories : [
-    root_incdir,
+    configinc,
   ],
   dependencies : [
     giounix,
@@ -189,11 +195,9 @@ if get_option('tests')
       jcat_src,
     ],
     include_directories : [
-      root_incdir,
+      configinc,
     ],
     dependencies : [
-      gio,
-      libjsonglib,
       libjcat_deps,
     ],
     c_args : [
