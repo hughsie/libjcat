@@ -33,6 +33,7 @@ struct _JcatEngineClass
 							 GBytes		*payload,
 							 JcatSignFlags flags,
 							 GError		**error);
+	gpointer		 padding[11];
 };
 
 JcatResult	*jcat_engine_verify			(JcatEngine	*self,
