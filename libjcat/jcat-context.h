@@ -23,6 +23,8 @@ struct _JcatContextClass
 };
 
 JcatContext	*jcat_context_new			(void);
+void		 jcat_context_add_public_key		(JcatContext	*self,
+							 const gchar	*filename);
 void		 jcat_context_add_public_keys		(JcatContext	*self,
 							 const gchar	*path);
 JcatEngine	*jcat_context_get_engine		(JcatContext	*self,

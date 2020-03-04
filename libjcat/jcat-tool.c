@@ -527,6 +527,7 @@ main (int argc, char *argv[])
 	gboolean version = FALSE;
 	g_autofree gchar *cmd_descriptions = NULL;
 	g_autofree gchar *prefix = NULL;
+	g_autofree gchar *public_key = NULL;
 	g_autofree gchar *public_keys = NULL;
 	g_autoptr(JcatToolPrivate) priv = g_new0 (JcatToolPrivate, 1);
 	g_autoptr(GError) error = NULL;
@@ -538,8 +539,10 @@ main (int argc, char *argv[])
 			_("Print verbose debug statements"), NULL },
 		{ "basename", 'v', 0, G_OPTION_ARG_NONE, &basename,
 			_("Only consider the basename for the ID"), NULL },
+		{ "public-key", '\0', 0, G_OPTION_ARG_STRING, &public_key,
+			_("Location of public key used for verification"), NULL },
 		{ "public-keys", '\0', 0, G_OPTION_ARG_STRING, &public_keys,
-			_("Location of public keys for verification"), NULL },
+			_("Location of public key directories used for verification"), NULL },
 		{ "prefix", '\0', 0, G_OPTION_ARG_STRING, &prefix,
 			_("Prefix for import and output files"), NULL },
 		{ NULL}
@@ -612,6 +615,8 @@ main (int argc, char *argv[])
 	priv->basename = basename;
 	priv->prefix = g_strdup (prefix != NULL ? prefix : ".");
 	priv->context = jcat_context_new ();
+	if (public_key != NULL)
+		jcat_context_add_public_key (priv->context, public_key);
 	if (public_keys != NULL)
 		jcat_context_add_public_keys (priv->context, public_keys);
 

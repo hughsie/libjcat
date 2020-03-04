@@ -17,6 +17,7 @@ LIBJCAT_0.1.0 {
     jcat_blob_set_appstream_id;
     jcat_blob_set_timestamp;
     jcat_blob_to_string;
+    jcat_context_add_public_key;
     jcat_context_add_public_keys;
     jcat_context_get_engine;
     jcat_context_get_keyring_path;

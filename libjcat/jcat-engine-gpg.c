@@ -22,14 +22,22 @@ G_DEFINE_TYPE (JcatEngineGpg, jcat_engine_gpg, JCAT_TYPE_ENGINE)
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gpgme_data_t, gpgme_data_release, NULL)
 
 static gboolean
-jcat_engine_gpg_add_public_key (JcatEngineGpg *self,
-			       const gchar *filename,
-			       GError **error)
+jcat_engine_gpg_add_public_key (JcatEngine *engine,
+			        const gchar *filename,
+			        GError **error)
 {
+	JcatEngineGpg *self = JCAT_ENGINE_GPG (engine);
 	gpgme_error_t rc;
 	gpgme_import_result_t result;
 	gpgme_import_status_t s;
 	g_auto(gpgme_data_t) data = NULL;
+	g_autofree gchar *basename = g_path_get_basename (filename);
+
+	/* not us */
+	if (!g_str_has_prefix (basename, "GPG-KEY-")) {
+		g_debug ("ignoring %s as not GPG public key", basename);
+		return TRUE;
+	}
 
 	/* import public key */
 	g_debug ("Adding GnuPG public key %s", filename);
@@ -145,30 +153,6 @@ jcat_engine_gpg_setup (JcatEngine *engine, GError **error)
 
 	/* enable armor mode */
 	gpgme_set_armor (self->ctx, TRUE);
-	return TRUE;
-}
-
-static gboolean
-jcat_engine_gpg_add_public_keys (JcatEngine *engine,
-				const gchar *path,
-				GError **error)
-{
-	JcatEngineGpg *self = JCAT_ENGINE_GPG (engine);
-	const gchar *fn_tmp;
-	g_autoptr(GDir) dir = NULL;
-
-	/* search all the public key files */
-	dir = g_dir_open (path, 0, error);
-	if (dir == NULL)
-		return FALSE;
-	while ((fn_tmp = g_dir_read_name (dir)) != NULL) {
-		g_autofree gchar *path_tmp = NULL;
-		if (!g_str_has_prefix (fn_tmp, "GPG-KEY-"))
-			continue;
-		path_tmp = g_build_filename (path, fn_tmp, NULL);
-		if (!jcat_engine_gpg_add_public_key (self, path_tmp, error))
-			return FALSE;
-	}
 	return TRUE;
 }
 
@@ -327,7 +311,7 @@ jcat_engine_gpg_class_init (JcatEngineGpgClass *klass)
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS (klass);
 	klass_app->setup = jcat_engine_gpg_setup;
-	klass_app->add_public_keys = jcat_engine_gpg_add_public_keys;
+	klass_app->add_public_key = jcat_engine_gpg_add_public_key;
 	klass_app->verify_data = jcat_engine_gpg_verify_data;
 	object_class->finalize = jcat_engine_gpg_finalize;
 }

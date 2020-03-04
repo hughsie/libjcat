@@ -77,10 +77,10 @@ jcat_engine_pkcs7_load_crt_from_filename (const gchar *filename,
 }
 
 static gboolean
-jcat_engine_pkcs7_add_public_key (JcatEnginePkcs7 *self,
-				 const gchar *filename,
-				 gnutls_x509_crt_fmt_t format,
-				 GError **error)
+jcat_engine_pkcs7_add_pubkey (JcatEnginePkcs7 *self,
+			      const gchar *filename,
+			      gnutls_x509_crt_fmt_t format,
+			      GError **error)
 {
 	guint key_usage = 0;
 	int rc;
@@ -126,35 +126,28 @@ jcat_engine_pkcs7_add_public_key (JcatEnginePkcs7 *self,
 }
 
 static gboolean
-jcat_engine_pkcs7_add_public_keys (JcatEngine *engine,
-				  const gchar *path,
+jcat_engine_pkcs7_add_public_key (JcatEngine *engine,
+				  const gchar *filename,
 				  GError **error)
 {
 	JcatEnginePkcs7 *self = JCAT_ENGINE_PKCS7 (engine);
-	const gchar *fn_tmp;
-	g_autoptr(GDir) dir = NULL;
 
 	/* search all the public key files */
-	dir = g_dir_open (path, 0, error);
-	if (dir == NULL)
-		return FALSE;
-	while ((fn_tmp = g_dir_read_name (dir)) != NULL) {
-		g_autofree gchar *path_tmp = NULL;
-		path_tmp = g_build_filename (path, fn_tmp, NULL);
-		if (g_str_has_suffix (fn_tmp, ".pem")) {
-			if (!jcat_engine_pkcs7_add_public_key (self, path_tmp,
-							      GNUTLS_X509_FMT_PEM,
-							      error))
-				return FALSE;
-		}
-		if (g_str_has_suffix (fn_tmp, ".cer") ||
-		    g_str_has_suffix (fn_tmp, ".crt") ||
-		    g_str_has_suffix (fn_tmp, ".der")) {
-			if (!jcat_engine_pkcs7_add_public_key (self, path_tmp,
-							      GNUTLS_X509_FMT_DER,
-							      error))
-				return FALSE;
-		}
+	if (g_str_has_suffix (filename, ".pem")) {
+		if (!jcat_engine_pkcs7_add_pubkey (self, filename,
+						   GNUTLS_X509_FMT_PEM,
+						   error))
+			return FALSE;
+	} else if (g_str_has_suffix (filename, ".cer") ||
+		   g_str_has_suffix (filename, ".crt") ||
+		   g_str_has_suffix (filename, ".der")) {
+		if (!jcat_engine_pkcs7_add_pubkey (self, filename,
+						   GNUTLS_X509_FMT_DER,
+						   error))
+			return FALSE;
+	} else {
+		g_autofree gchar *basename = g_path_get_basename (filename);
+		g_debug ("ignoring %s as not PKCS-7 certificate", basename);
 	}
 	return TRUE;
 }
@@ -805,7 +798,7 @@ jcat_engine_pkcs7_class_init (JcatEnginePkcs7Class *klass)
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS (klass);
 	klass_app->setup = jcat_engine_pkcs7_setup;
-	klass_app->add_public_keys = jcat_engine_pkcs7_add_public_keys;
+	klass_app->add_public_key = jcat_engine_pkcs7_add_public_key;
 	klass_app->sign_data = jcat_engine_pkcs7_sign_data;
 	klass_app->verify_data = jcat_engine_pkcs7_verify_data;
 	object_class->finalize = jcat_engine_pkcs7_finalize;

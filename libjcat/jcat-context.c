@@ -21,7 +21,7 @@
 
 typedef struct {
 	GPtrArray		*engines;
-	GPtrArray		*public_key_paths;
+	GPtrArray		*public_keys;
 	gchar			*keyring_path;
 } JcatContextPrivate;
 
@@ -35,7 +35,7 @@ jcat_context_finalize (GObject *obj)
 	JcatContextPrivate *priv = GET_PRIVATE (self);
 	g_free (priv->keyring_path);
 	g_ptr_array_unref (priv->engines);
-	g_ptr_array_unref (priv->public_key_paths);
+	g_ptr_array_unref (priv->public_keys);
 	G_OBJECT_CLASS (jcat_context_parent_class)->finalize (obj);
 }
 
@@ -52,7 +52,7 @@ jcat_context_init (JcatContext *self)
 	JcatContextPrivate *priv = GET_PRIVATE (self);
 	priv->keyring_path = g_build_filename (g_get_user_data_dir (), PACKAGE_NAME, NULL);
 	priv->engines = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
-	priv->public_key_paths = g_ptr_array_new_with_free_func (g_free);
+	priv->public_keys = g_ptr_array_new_with_free_func (g_free);
 
 	g_ptr_array_add (priv->engines, jcat_engine_sha256_new (self));
 #ifdef ENABLE_GPG
@@ -61,6 +61,24 @@ jcat_context_init (JcatContext *self)
 #ifdef ENABLE_PKCS7
 	g_ptr_array_add (priv->engines, jcat_engine_pkcs7_new (self));
 #endif
+}
+
+/**
+ * jcat_context_add_public_key:
+ * @self: #JcatContext
+ * @filename: A filename
+ *
+ * Adds a single public key.
+ *
+ * Since: 0.1.0
+ **/
+void
+jcat_context_add_public_key (JcatContext *self, const gchar *filename)
+{
+	JcatContextPrivate *priv = GET_PRIVATE (self);
+	g_return_if_fail (JCAT_IS_CONTEXT (self));
+	g_return_if_fail (filename != NULL);
+	g_ptr_array_add (priv->public_keys, g_strdup (filename));
 }
 
 /**
@@ -76,17 +94,28 @@ void
 jcat_context_add_public_keys (JcatContext *self, const gchar *path)
 {
 	JcatContextPrivate *priv = GET_PRIVATE (self);
+	const gchar *fn_tmp;
+	g_autoptr(GDir) dir = NULL;
+
 	g_return_if_fail (JCAT_IS_CONTEXT (self));
 	g_return_if_fail (path != NULL);
-	g_ptr_array_add (priv->public_key_paths, g_strdup (path));
+
+	/* search all the public key files */
+	dir = g_dir_open (path, 0, NULL);
+	if (dir == NULL)
+		return;
+	while ((fn_tmp = g_dir_read_name (dir)) != NULL) {
+		g_ptr_array_add (priv->public_keys,
+				 g_build_filename (path, fn_tmp, NULL));
+	}
 }
 
 /* private */
 GPtrArray *
-jcat_context_get_public_key_paths (JcatContext *self)
+jcat_context_get_public_keys (JcatContext *self)
 {
 	JcatContextPrivate *priv = GET_PRIVATE (self);
-	return priv->public_key_paths;
+	return priv->public_keys;
 }
 
 /**
