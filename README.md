@@ -98,3 +98,24 @@ it again.
         PASSED sha256: OK
         PASSED gpg: 3FC6B804410ED0840D8F2F9748A6D80E4538BAC2
         PASSED pkcs7: O=Linux Vendor Firmware Project,CN=LVFS CA
+
+Security
+========
+
+Unlike Microsoft catalog files which are a signed manifest of hashes, a Jcat file
+is a manifest of signatures. This means it's possible (and positively encouraged)
+to modify the `.jcat` file to add new signatures or replace existing ones.
+
+This means Jcat does not verify that the set of file has not been modified, only
+that the individual files and signatures themselves have not been changed.
+
+If you require some trust in that file A was signed at the same time, or by the
+same person as file B then then best way to do this is to embed a checksum (e.g
+SHA-256) into one file and then verify it in the client software.
+
+For instance, when installing firmware we need to know if a metadata file was
+provided by the LVFS with the vendor firmware file. To do this, we add the
+SHA-256 checksum of the `firmware.bin` in the `firmware.metainfo.xml` file itself,
+and then add both files to a Jcat archive.
+The client software (e.g. fwupd) then needs to check the firmware checksum as
+an additional step of verifying the signatures in the Jcat file.
