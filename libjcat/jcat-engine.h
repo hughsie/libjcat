@@ -21,8 +21,8 @@ struct _JcatEngineClass
 	GObjectClass		 parent_class;
 	gboolean		 (*setup)		(JcatEngine	*self,
 							 GError		**error);
-	gboolean		 (*add_public_keys)	(JcatEngine	*self,
-							 const gchar	*path,
+	gboolean		 (*add_public_key)	(JcatEngine	*self,
+							 const gchar	*filename,
 							 GError		**error);
 	JcatResult		*(*verify_data)		(JcatEngine	*self,
 							 GBytes		*payload,

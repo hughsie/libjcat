@@ -76,11 +76,11 @@ jcat_engine_setup (JcatEngine *self, GError **error)
 		if (!klass->setup (self, error))
 			return FALSE;
 	}
-	if (klass->add_public_keys != NULL) {
-		GPtrArray *paths = jcat_context_get_public_key_paths (priv->context);
-		for (guint i = 0; i < paths->len; i++) {
-			const gchar *path = g_ptr_array_index (paths, i);
-			if (!klass->add_public_keys (self, path, error))
+	if (klass->add_public_key != NULL) {
+		GPtrArray *fns = jcat_context_get_public_keys (priv->context);
+		for (guint i = 0; i < fns->len; i++) {
+			const gchar *fn = g_ptr_array_index (fns, i);
+			if (!klass->add_public_key (self, fn, error))
 				return FALSE;
 		}
 	}
