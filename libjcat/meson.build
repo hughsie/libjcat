@@ -50,7 +50,7 @@ libjcat = library(
   ],
   soversion : lt_current,
   version : lt_version,
-  include_directories : root_incdir,
+  include_directories : configinc,
   dependencies : libjcat_deps,
   link_args : vflag,
   link_depends : jcat_mapfile,
@@ -75,7 +75,7 @@ libjcat_dep = declare_dependency(
   link_with : libjcat,
   include_directories : [
     include_directories('.'),
-    root_incdir,
+    configinc,
   ],
   dependencies : libjcat_deps
 )
@@ -161,7 +161,7 @@ jcat_tool = executable(
     'jcat-tool.c',
   ],
   include_directories : [
-    root_incdir,
+    configinc,
   ],
   dependencies : [
     giounix,
@@ -195,7 +195,7 @@ if get_option('tests')
       jcat_src,
     ],
     include_directories : [
-      root_incdir,
+      configinc,
     ],
     dependencies : [
       libjcat_deps,

@@ -158,8 +158,6 @@ configure_file(
   configuration : conf
 )
 
-root_incdir = include_directories('.')
-
 subdir('data')
 subdir('libjcat')
 if get_option('gtkdoc')
