@@ -40,22 +40,61 @@ validate the signatures are valid:
 
 Lets create a Jcat file with a single checksum:
 
-    $ jcat sign test.jcat firmware.bin sha256
-    $ jcat info test.jcat
-      Version:        0.1
-        ID:           firmware.bin
-          Kind:       sha256
-          Data:       bd598c9019baee65373da1963fbce7478d6e9e8963bd837d12896f53b03be83e
-          DataSz:     64
+    $ jcat-tool sign test.jcat firmware.bin sha256
+    $ jcat-tool info test.jcat
+    JcatFile:
+      Version:               0.1
+      JcatItem:
+        ID:                  firmware.bin
+        JcatBlob:
+          Kind:              sha256
+          Flags:             is-utf8
+          Timestamp:         2020-03-04T13:59:57Z
+          Size:              0x40
+          Data:              bd598c9019baee65373da1963fbce7478d6e9e8963bd837d12896f53b03be83e
 
 Now we can import both existing signatures into a Jcat file, and then validate
 it again.
 
-    $ jcat import test.jcat firmware.bin firmware.bin.asc gpg
-    $ jcat import test.jcat firmware.bin firmware.bin.p7b pkcs7
-    $ jcat info test.jcat
-    $ jcat verify test.jcat --public-keys /etc/pki/fwupd
-      firmware.bin:
+    $ jcat-tool import test.jcat firmware.bin firmware.bin.asc
+    $ jcat-tool import test.jcat firmware.bin firmware.bin.p7b
+    $ jcat-tool info test.jcat
+    JcatFile:
+      Version:               0.1
+      JcatItem:
+        ID:                  firmware.bin
+        JcatBlob:
+          Kind:              sha256
+          Flags:             is-utf8
+          Timestamp:         2020-03-04T13:59:57Z
+          Size:              0x40
+          Data:              bd598c9019baee65373da1963fbce7478d6e9e8963bd837d12896f53b03be83e
+        JcatBlob:
+          Kind:              gpg
+          Flags:             is-utf8
+          Timestamp:         2020-03-04T14:00:30Z
+          Size:              0x1ea
+          Data:              -----BEGIN PGP SIGNATURE-----
+                             Version: GnuPG v2.0.22 (GNU/Linux)
+
+                             iQEcBAABAgAGBQJeVoylAAoJEEim2A5FOLrCagQIAIb6uDCzwUBBoZRqRzekxf0E
+    ...
+                             =0GGy
+                             -----END PGP SIGNATURE-----
+
+        JcatBlob:
+          Kind:              pkcs7
+          Flags:             is-utf8
+          Timestamp:         2020-03-04T14:00:34Z
+          Size:              0x8c0
+          Data:              -----BEGIN PKCS7-----
+                             MIIGUgYJKoZIhvcNAQcCoIIGQzCCBj8CAQExDTALBglghkgBZQMEAgEwCwYJKoZI
+    ...
+                             EYOqoEV8PaVQZW3ndWEaQfyo6MgZ/WqpO6Gv2zTx1CXk0APIGG8=
+                             -----END PKCS7-----
+
+    $ jcat-tool verify test.jcat --public-keys /etc/pki/fwupd
+    firmware.bin:
+        PASSED sha256: OK
         PASSED gpg: 3FC6B804410ED0840D8F2F9748A6D80E4538BAC2
         PASSED pkcs7: O=Linux Vendor Firmware Project,CN=LVFS CA
-        PASSED sha256: OK
