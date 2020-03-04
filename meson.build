@@ -127,6 +127,7 @@ libjsonglib = dependency('json-glib-1.0', version : '>= 1.1.1')
 
 libjcat_deps = [
   gio,
+  libjsonglib,
 ]
 
 if get_option('pkcs7')
