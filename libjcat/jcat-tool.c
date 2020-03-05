@@ -292,7 +292,7 @@ jcat_tool_import (JcatToolPrivate *priv, gchar **values, GError **error)
 }
 
 static gboolean
-jcat_tool_sign (JcatToolPrivate *priv, gchar **values, GError **error)
+jcat_tool_self_sign (JcatToolPrivate *priv, gchar **values, GError **error)
 {
 	g_autoptr(GBytes) source = NULL;
 	g_autoptr(GFile) gfile = NULL;
@@ -339,7 +339,78 @@ jcat_tool_sign (JcatToolPrivate *priv, gchar **values, GError **error)
 	engine = jcat_context_get_engine (priv->context, priv->kind, error);
 	if (engine == NULL)
 		return FALSE;
-	blob = jcat_engine_sign (engine, source, JCAT_SIGN_FLAG_NONE, error);
+	blob = jcat_engine_self_sign (engine, source, JCAT_SIGN_FLAG_NONE, error);
+	if (blob == NULL)
+		return FALSE;
+	if (priv->appstream_id != NULL)
+		jcat_blob_set_appstream_id (blob, priv->appstream_id);
+	jcat_item_add_blob (item, blob);
+
+	/* export new file */
+	return jcat_file_export_file (file, gfile,
+				      JCAT_EXPORT_FLAG_NONE,
+				      priv->cancellable, error);
+}
+
+static gboolean
+jcat_tool_sign (JcatToolPrivate *priv, gchar **values, GError **error)
+{
+	g_autoptr(GBytes) cert = NULL;
+	g_autoptr(GBytes) privkey = NULL;
+	g_autoptr(GBytes) source = NULL;
+	g_autoptr(GFile) gfile = NULL;
+	g_autoptr(JcatBlob) blob = NULL;
+	g_autoptr(JcatFile) file = jcat_file_new ();
+	g_autoptr(JcatItem) item = NULL;
+	g_autoptr(JcatEngine) engine = NULL;
+	g_autofree gchar *id_safe = NULL;
+
+	/* check args */
+	if (g_strv_length (values) != 4) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_FAILED,
+				     "Invalid arguments, expected FILENAME "
+				     "SOURCE CERT PRIVKEY");
+		return FALSE;
+	}
+
+	/* import existing file */
+	gfile = g_file_new_for_path (values[0]);
+	if (g_file_query_exists (gfile, priv->cancellable)) {
+		if (!jcat_file_import_file (file, gfile,
+					    JCAT_IMPORT_FLAG_NONE,
+					    priv->cancellable, error))
+			return FALSE;
+	}
+
+	/* load source, certificate and privatekey */
+	source = jcat_get_contents_bytes (values[1], error);
+	if (source == NULL)
+		return FALSE;
+	cert = jcat_get_contents_bytes (values[2], error);
+	if (cert == NULL)
+		return FALSE;
+	privkey = jcat_get_contents_bytes (values[3], error);
+	if (privkey == NULL)
+		return FALSE;
+
+	/* sign the file using the engine */
+	id_safe = jcat_tool_import_convert_id_safe (priv, values[1]);
+	item = jcat_file_get_item_by_id (file, id_safe, NULL);
+	if (item == NULL) {
+		item = jcat_item_new (id_safe);
+		jcat_file_add_item (file, item);
+	}
+
+	/* sign with this kind */
+	if (priv->kind == JCAT_BLOB_KIND_UNKNOWN)
+		priv->kind = JCAT_BLOB_KIND_PKCS7;
+	engine = jcat_context_get_engine (priv->context, priv->kind, error);
+	if (engine == NULL)
+		return FALSE;
+	blob = jcat_engine_pubkey_sign (engine, source, cert, privkey,
+					JCAT_SIGN_FLAG_NONE, error);
 	if (blob == NULL)
 		return FALSE;
 	if (priv->appstream_id != NULL)
@@ -439,7 +510,7 @@ jcat_tool_export (JcatToolPrivate *priv, gchar **values, GError **error)
 		for (guint j = 0; j < blobs->len; j++) {
 			JcatBlob *blob = g_ptr_array_index (blobs, j);
 			g_autofree gchar *fn = NULL;
-			g_autofree gchar *basename = NULL;
+			g_autoptr(GString) str = NULL;
 
 			/* skip */
 			if (priv->kind != JCAT_BLOB_KIND_UNKNOWN &&
@@ -447,12 +518,14 @@ jcat_tool_export (JcatToolPrivate *priv, gchar **values, GError **error)
 				continue;
 
 			/* export */
-			basename = g_strdup_printf ("%s.%s",
-						    jcat_item_get_id (item),
-						    jcat_blob_kind_to_filename_ext (jcat_blob_get_kind (blob)));
-			fn = g_build_filename (priv->prefix, basename, NULL);
+			str = g_string_new (jcat_item_get_id (item));
+			if (jcat_blob_get_appstream_id (blob) != NULL)
+				g_string_append_printf (str, "-%s", jcat_blob_get_appstream_id (blob));
+			g_string_append_printf (str, ".%s", jcat_blob_kind_to_filename_ext (jcat_blob_get_kind (blob)));
+			fn = g_build_filename (priv->prefix, str->str, NULL);
 			if (!jcat_set_contents_bytes (fn, jcat_blob_get_data (blob), error))
 				return FALSE;
+			g_print ("Wrote %s\n", fn);
 		}
 	}
 
@@ -577,7 +650,12 @@ main (int argc, char *argv[])
 		       _("Show information about a file"),
 		       jcat_tool_info);
 	jcat_tool_add (priv->cmd_array,
-		       "sign", "FILENAME SOURCE",
+		       "self-sign", "FILENAME SOURCE",
+		       /* TRANSLATORS: command description */
+		       _("Add a self-signed signature to a file"),
+		       jcat_tool_self_sign);
+	jcat_tool_add (priv->cmd_array,
+		       "sign", "FILENAME SOURCE CERT PRIVKEY",
 		       /* TRANSLATORS: command description */
 		       _("Add a signature to a file"),
 		       jcat_tool_sign);

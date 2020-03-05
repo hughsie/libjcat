@@ -27,8 +27,10 @@ LIBJCAT_0.1.0 {
     jcat_context_verify_blob;
     jcat_context_verify_item;
     jcat_engine_get_type;
-    jcat_engine_sign;
-    jcat_engine_verify;
+    jcat_engine_pubkey_sign;
+    jcat_engine_pubkey_verify;
+    jcat_engine_self_sign;
+    jcat_engine_self_verify;
     jcat_file_add_item;
     jcat_file_export_file;
     jcat_file_export_json;

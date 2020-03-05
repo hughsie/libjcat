@@ -196,7 +196,7 @@ jcat_context_get_engine (JcatContext *self, JcatBlobKind kind, GError **error)
  * @flags: #JcatVerifyFlags, e.g. %JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS
  * @error: #GError, or %NULL
  *
- * Verifies a #JcatBlob.
+ * Verifies a #JcatBlob using the public keys added to the context.
  *
  * Returns: (transfer full): #JcatResult, or %NULL for failed
  *
@@ -221,7 +221,7 @@ jcat_context_verify_blob (JcatContext *self,
 	if (engine == NULL)
 		return NULL;
 	blob_signature = jcat_blob_get_data (blob);
-	return jcat_engine_verify (engine, data, blob_signature, flags, error);
+	return jcat_engine_pubkey_verify (engine, data, blob_signature, flags, error);
 }
 
 /**
@@ -232,8 +232,9 @@ jcat_context_verify_blob (JcatContext *self,
  * @flags: #JcatVerifyFlags, e.g. %JCAT_VERIFY_FLAG_REQUIRE_SIGNATURE
  * @error: #GError, or %NULL
  *
- * Verifies a #JcatItem. All verify_kind engines (e.g. %ss) must verify correctly,
- * but only one non-verify_kind signature has to verify.
+ * Verifies a #JcatItem using the public keys added to the context. All
+ * `verify_kind=CHECKSUM` engines (e.g. SHA256) must verify correctly,
+ * but only one non-checksum signature has to verify.
  *
  * Returns: (transfer container) (element-type JcatResult): array of #JcatResult, or %NULL for failed
  *
@@ -276,7 +277,7 @@ jcat_context_verify_item (JcatContext *self,
 			return NULL;
 		if (jcat_engine_get_verify_kind (engine) != JCAT_ENGINE_VERIFY_KIND_CHECKSUM)
 			continue;
-		result = jcat_engine_verify (engine, data, jcat_blob_get_data (blob), flags, error);
+		result = jcat_engine_self_verify (engine, data, jcat_blob_get_data (blob), flags, error);
 		if (result == NULL) {
 			g_prefix_error (error, "checksum failure: ");
 			return NULL;
@@ -304,7 +305,7 @@ jcat_context_verify_item (JcatContext *self,
 			return NULL;
 		if (jcat_engine_get_verify_kind (engine) != JCAT_ENGINE_VERIFY_KIND_SIGNATURE)
 			continue;
-		result = jcat_engine_verify (engine, data, jcat_blob_get_data (blob), flags, &error_local);
+		result = jcat_engine_pubkey_verify (engine, data, jcat_blob_get_data (blob), flags, &error_local);
 		if (result == NULL) {
 			g_debug ("signature failure: %s", error_local->message);
 			continue;

@@ -207,7 +207,7 @@ jcat_gpg_engine_check_signature (gpgme_signature_t signature, GError **error)
 }
 
 static JcatResult *
-jcat_gpg_engine_verify_data (JcatEngine *engine,
+jcat_gpg_engine_pubkey_verify (JcatEngine *engine,
 			     GBytes *blob,
 			     GBytes *blob_signature,
 			     JcatVerifyFlags flags,
@@ -221,15 +221,6 @@ jcat_gpg_engine_verify_data (JcatEngine *engine,
 	g_auto(gpgme_data_t) data = NULL;
 	g_auto(gpgme_data_t) sig = NULL;
 	g_autoptr(GString) authority_newest = g_string_new (NULL);
-
-	/* not supported */
-	if (flags & JCAT_VERIFY_FLAG_USE_CLIENT_CERT) {
-		g_set_error_literal (error,
-				     G_IO_ERROR,
-				     G_IO_ERROR_NOT_SUPPORTED,
-				     "no GPG client certificate support");
-		return NULL;
-	}
 
 	/* load file data */
 	rc = gpgme_data_new_from_mem (&data,
@@ -312,7 +303,7 @@ jcat_gpg_engine_class_init (JcatGpgEngineClass *klass)
 	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS (klass);
 	klass_app->setup = jcat_gpg_engine_setup;
 	klass_app->add_public_key = jcat_gpg_engine_add_public_key;
-	klass_app->verify_data = jcat_gpg_engine_verify_data;
+	klass_app->pubkey_verify = jcat_gpg_engine_pubkey_verify;
 	object_class->finalize = jcat_gpg_engine_finalize;
 }
 

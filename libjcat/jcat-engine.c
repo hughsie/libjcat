@@ -91,7 +91,7 @@ jcat_engine_setup (JcatEngine *self, GError **error)
 }
 
 /**
- * jcat_engine_verify:
+ * jcat_engine_pubkey_verify:
  * @self: #JcatEngine
  * @blob: #GBytes
  * @blob_signature: #GBytes
@@ -105,23 +105,107 @@ jcat_engine_setup (JcatEngine *self, GError **error)
  * Since: 0.1.0
  **/
 JcatResult *
-jcat_engine_verify (JcatEngine *self,
-		    GBytes *blob,
-		    GBytes *blob_signature,
-		    JcatVerifyFlags flags,
-		    GError **error)
+jcat_engine_pubkey_verify (JcatEngine *self,
+			   GBytes *blob,
+			   GBytes *blob_signature,
+			   JcatVerifyFlags flags,
+			   GError **error)
 {
 	JcatEngineClass *klass = JCAT_ENGINE_GET_CLASS (self);
 	g_return_val_if_fail (JCAT_IS_ENGINE (self), NULL);
 	g_return_val_if_fail (blob != NULL, NULL);
 	g_return_val_if_fail (blob_signature != NULL, NULL);
+	if (klass->pubkey_verify == NULL) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_NOT_SUPPORTED,
+				     "verifying data is not supported");
+		return NULL;
+	}
 	if (!jcat_engine_setup (self, error))
 		return NULL;
-	return klass->verify_data (self, blob, blob_signature, flags, error);
+	return klass->pubkey_verify (self, blob, blob_signature, flags, error);
 }
 
 /**
- * jcat_engine_sign:
+ * jcat_engine_pubkey_sign:
+ * @self: #JcatEngine
+ * @blob: #GBytes
+ * @cert: #GBytes
+ * @privkey: #GBytes
+ * @flags: #JcatSignFlags, e.g. %JCAT_SIGN_FLAG_ADD_TIMESTAMP
+ * @error: #GError, or %NULL
+ *
+ * Signs a chunk of data.
+ *
+ * Returns: (transfer full): #JcatBlob, or %NULL for failed
+ *
+ * Since: 0.1.0
+ **/
+JcatBlob *
+jcat_engine_pubkey_sign (JcatEngine *self,
+			 GBytes *blob,
+			 GBytes *cert,
+			 GBytes *privkey,
+			 JcatSignFlags flags,
+			 GError **error)
+{
+	JcatEngineClass *klass = JCAT_ENGINE_GET_CLASS (self);
+	g_return_val_if_fail (JCAT_IS_ENGINE (self), NULL);
+	g_return_val_if_fail (blob != NULL, NULL);
+	g_return_val_if_fail (cert != NULL, NULL);
+	g_return_val_if_fail (privkey != NULL, NULL);
+	if (klass->pubkey_sign == NULL) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_NOT_SUPPORTED,
+				     "signing data is not supported");
+		return NULL;
+	}
+	if (!jcat_engine_setup (self, error))
+		return FALSE;
+	return klass->pubkey_sign (self, blob, cert, privkey, flags, error);
+}
+
+/**
+ * jcat_engine_self_verify:
+ * @self: #JcatEngine
+ * @blob: #GBytes
+ * @blob_signature: #GBytes
+ * @flags: #JcatVerifyFlags, e.g. %JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS
+ * @error: #GError, or %NULL
+ *
+ * Verifies a chunk of data.
+ *
+ * Returns: (transfer full): #JcatResult, or %NULL for failed
+ *
+ * Since: 0.1.0
+ **/
+JcatResult *
+jcat_engine_self_verify (JcatEngine *self,
+			 GBytes *blob,
+			 GBytes *blob_signature,
+			 JcatVerifyFlags flags,
+			 GError **error)
+{
+	JcatEngineClass *klass = JCAT_ENGINE_GET_CLASS (self);
+	g_return_val_if_fail (JCAT_IS_ENGINE (self), NULL);
+	g_return_val_if_fail (blob != NULL, NULL);
+	g_return_val_if_fail (blob_signature != NULL, NULL);
+	if (klass->self_verify == NULL) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_NOT_SUPPORTED,
+				     "verifying data is not supported");
+		return NULL;
+	}
+	if (!jcat_engine_setup (self, error))
+		return NULL;
+	return klass->self_verify (self, blob, blob_signature, flags, error);
+}
+
+/**
+ * jcat_engine_self_sign:
  * @self: #JcatEngine
  * @blob: #GBytes
  * @flags: #JcatSignFlags, e.g. %JCAT_SIGN_FLAG_ADD_TIMESTAMP
@@ -134,15 +218,15 @@ jcat_engine_verify (JcatEngine *self,
  * Since: 0.1.0
  **/
 JcatBlob *
-jcat_engine_sign (JcatEngine *self,
-		  GBytes *blob,
-		  JcatSignFlags flags,
-		  GError **error)
+jcat_engine_self_sign (JcatEngine *self,
+		       GBytes *blob,
+		       JcatSignFlags flags,
+		       GError **error)
 {
 	JcatEngineClass *klass = JCAT_ENGINE_GET_CLASS (self);
 	g_return_val_if_fail (JCAT_IS_ENGINE (self), NULL);
 	g_return_val_if_fail (blob != NULL, NULL);
-	if (klass->sign_data == NULL) {
+	if (klass->self_sign == NULL) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_NOT_SUPPORTED,
@@ -151,7 +235,7 @@ jcat_engine_sign (JcatEngine *self,
 	}
 	if (!jcat_engine_setup (self, error))
 		return FALSE;
-	return klass->sign_data (self, blob, flags, error);
+	return klass->self_sign (self, blob, flags, error);
 }
 
 JcatBlobKind

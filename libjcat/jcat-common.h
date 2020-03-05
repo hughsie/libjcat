@@ -35,7 +35,6 @@ typedef enum {
 /**
  * JcatVerifyFlags:
  * @JCAT_VERIFY_FLAG_NONE:			No flags set
- * @JCAT_VERIFY_FLAG_USE_CLIENT_CERT:		Use client certificate to verify
  * @JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS:	Disable checking of validity periods
  * @JCAT_VERIFY_FLAG_REQUIRE_CHECKSUM:		Require that the #JcatItem contains at least one checksum
  * @JCAT_VERIFY_FLAG_REQUIRE_SIGNATURE:		Require that the #JcatItem contains at least one signature
@@ -44,7 +43,6 @@ typedef enum {
  **/
 typedef enum {
 	JCAT_VERIFY_FLAG_NONE			= 0,
-	JCAT_VERIFY_FLAG_USE_CLIENT_CERT	= 1 << 1,
 	JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS	= 1 << 2,
 	JCAT_VERIFY_FLAG_REQUIRE_CHECKSUM	= 1 << 3,
 	JCAT_VERIFY_FLAG_REQUIRE_SIGNATURE	= 1 << 4,
