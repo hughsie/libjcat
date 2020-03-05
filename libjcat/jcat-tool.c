@@ -660,7 +660,7 @@ main (int argc, char *argv[])
 		       _("Add a signature to a file"),
 		       jcat_tool_sign);
 	jcat_tool_add (priv->cmd_array,
-		       "import", "FILENAME DETACHED_KEY",
+		       "import", "FILENAME DATA DETACHED_KEY",
 		       /* TRANSLATORS: command description */
 		       _("Import an existing signature to a file"),
 		       jcat_tool_import);
