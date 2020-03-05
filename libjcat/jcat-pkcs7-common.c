@@ -103,7 +103,7 @@ jcat_pkcs7_load_pubkey_from_privkey (gnutls_privkey_t privkey, GError **error)
 }
 
 gchar *
-jcat_pkcs7_engine_datum_to_dn_str (const gnutls_datum_t *raw)
+jcat_pkcs7_datum_to_dn_str (const gnutls_datum_t *raw)
 {
 	g_auto(gnutls_x509_dn_t) dn = NULL;
 	g_autoptr(gnutls_datum_t) str = NULL;

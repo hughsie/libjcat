@@ -212,7 +212,7 @@ jcat_pkcs7_engine_verify (JcatEngine *engine,
 						  verify_flags);
 		}
 		if (rc < 0) {
-			dn = jcat_pkcs7_engine_datum_to_dn_str (&info->issuer_dn);
+			dn = jcat_pkcs7_datum_to_dn_str (&info->issuer_dn);
 			g_set_error (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_INVALID_DATA,
@@ -225,7 +225,7 @@ jcat_pkcs7_engine_verify (JcatEngine *engine,
 		signing_time = info->signing_time > 0 ? (gint64) info->signing_time : 1;
 		if (signing_time > timestamp_newest) {
 			timestamp_newest = signing_time;
-			dn = jcat_pkcs7_engine_datum_to_dn_str (&info->issuer_dn);
+			dn = jcat_pkcs7_datum_to_dn_str (&info->issuer_dn);
 			if (dn != NULL)
 				g_string_assign (authority_newest, dn);
 		}
