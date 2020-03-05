@@ -1,0 +1,12 @@
+extraction:
+  python:
+    python_setup:
+      version: "3"
+  cpp:
+    prepare:
+      packages:
+      - libssl-dev
+    index:
+      build_command:
+      - "meson setup build"
+      - "ninja -C build"
