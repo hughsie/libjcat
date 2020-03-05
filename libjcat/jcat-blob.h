@@ -18,6 +18,7 @@ G_DECLARE_DERIVABLE_TYPE(JcatBlob, jcat_blob, JCAT, BLOB, GObject)
  * @JCAT_BLOB_KIND_SHA256:		SHA-256 checksum
  * @JCAT_BLOB_KIND_GPG:			GPG detached signature
  * @JCAT_BLOB_KIND_PKCS7:		PKCS-7 detached signature
+ * @JCAT_BLOB_KIND_SHA1:		SHA-1 checksum
  *
  * The kind of blob stored as a signature on the item.
  **/
@@ -26,6 +27,7 @@ typedef enum {
 	JCAT_BLOB_KIND_SHA256,
 	JCAT_BLOB_KIND_GPG,
 	JCAT_BLOB_KIND_PKCS7,
+	JCAT_BLOB_KIND_SHA1,
 	/*< private >*/
 	JCAT_BLOB_KIND_LAST
 } JcatBlobKind;

@@ -10,6 +10,7 @@
 #include "jcat-context-private.h"
 #include "jcat-engine-private.h"
 #include "jcat-result-private.h"
+#include "jcat-sha1-engine.h"
 #include "jcat-sha256-engine.h"
 
 #ifdef ENABLE_GPG
@@ -54,6 +55,7 @@ jcat_context_init (JcatContext *self)
 	priv->engines = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	priv->public_keys = g_ptr_array_new_with_free_func (g_free);
 
+	g_ptr_array_add (priv->engines, jcat_sha1_engine_new (self));
 	g_ptr_array_add (priv->engines, jcat_sha256_engine_new (self));
 #ifdef ENABLE_GPG
 	g_ptr_array_add (priv->engines, jcat_gpg_engine_new (self));
