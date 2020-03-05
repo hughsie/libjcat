@@ -221,9 +221,9 @@ jcat_sha256_engine_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fwbin);
 	blob_sig1 = g_bytes_new_static (sig_actual, strlen (sig_actual));
-	result_pass = jcat_engine_verify (engine, data_fwbin, blob_sig1,
-					  JCAT_VERIFY_FLAG_NONE,
-					  &error);
+	result_pass = jcat_engine_self_verify (engine, data_fwbin, blob_sig1,
+					       JCAT_VERIFY_FLAG_NONE,
+					       &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (result_pass);
 	g_assert_cmpint (jcat_result_get_timestamp (result_pass), ==, 0);
@@ -234,14 +234,14 @@ jcat_sha256_engine_func (void)
 	data_fail = jcat_get_contents_bytes (fn_fail, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fail);
-	result_fail = jcat_engine_verify (engine, data_fail, blob_sig1,
-					  JCAT_VERIFY_FLAG_NONE, &error);
+	result_fail = jcat_engine_self_verify (engine, data_fail, blob_sig1,
+					       JCAT_VERIFY_FLAG_NONE, &error);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
 	g_assert_null (result_fail);
 	g_clear_error (&error);
 
 	/* verify signing */
-	blob_sig2 = jcat_engine_sign (engine, data_fwbin, JCAT_SIGN_FLAG_NONE, &error);
+	blob_sig2 = jcat_engine_self_sign (engine, data_fwbin, JCAT_SIGN_FLAG_NONE, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (blob_sig2);
 	sig = jcat_blob_get_data_as_string (blob_sig2);
@@ -303,7 +303,7 @@ jcat_gpg_engine_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fwbin);
 	data_sig = g_bytes_new_static (sig_actual, strlen (sig_actual));
-	result_pass = jcat_engine_verify (engine, data_fwbin, data_sig,
+	result_pass = jcat_engine_pubkey_verify (engine, data_fwbin, data_sig,
 					  JCAT_VERIFY_FLAG_NONE,
 					  &error);
 	g_assert_no_error (error);
@@ -317,8 +317,8 @@ jcat_gpg_engine_func (void)
 	data_fail = jcat_get_contents_bytes (fn_fail, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fail);
-	result_fail = jcat_engine_verify (engine, data_fail, data_sig,
-					  JCAT_VERIFY_FLAG_NONE, &error);
+	result_fail = jcat_engine_pubkey_verify (engine, data_fail, data_sig,
+						 JCAT_VERIFY_FLAG_NONE, &error);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
 	g_assert_null (result_fail);
 	g_clear_error (&error);
@@ -367,7 +367,7 @@ jcat_pkcs7_engine_func (void)
 	data_sig = jcat_get_contents_bytes (fn_sig, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_sig);
-	result_pass = jcat_engine_verify (engine, data_fwbin, data_sig,
+	result_pass = jcat_engine_pubkey_verify (engine, data_fwbin, data_sig,
 					  JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS,
 					  &error);
 	g_assert_no_error (error);
@@ -380,8 +380,8 @@ jcat_pkcs7_engine_func (void)
 	blob_sig2 = jcat_get_contents_bytes (sig_fn2, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (blob_sig2);
-	result_fail = jcat_engine_verify (engine, data_fwbin, blob_sig2,
-					  JCAT_VERIFY_FLAG_NONE, &error);
+	result_fail = jcat_engine_pubkey_verify (engine, data_fwbin, blob_sig2,
+						 JCAT_VERIFY_FLAG_NONE, &error);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
 	g_assert_null (result_fail);
 	g_clear_error (&error);
@@ -391,8 +391,8 @@ jcat_pkcs7_engine_func (void)
 	data_fail = jcat_get_contents_bytes (fn_fail, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fail);
-	result_fail = jcat_engine_verify (engine, data_fail, data_sig,
-					  JCAT_VERIFY_FLAG_NONE, &error);
+	result_fail = jcat_engine_pubkey_verify (engine, data_fail, data_sig,
+						 JCAT_VERIFY_FLAG_NONE, &error);
 	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
 	g_assert_null (result_fail);
 	g_clear_error (&error);
@@ -431,11 +431,11 @@ jcat_pkcs7_engine_self_signed_func (void)
 	payload = jcat_get_contents_bytes ("/etc/machine-id", &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (payload);
-	signature = jcat_engine_sign (engine, payload, JCAT_SIGN_FLAG_ADD_TIMESTAMP, &error);
+	signature = jcat_engine_self_sign (engine, payload, JCAT_SIGN_FLAG_ADD_TIMESTAMP, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (signature);
-	result = jcat_engine_verify (engine, payload, jcat_blob_get_data (signature),
-				     JCAT_VERIFY_FLAG_USE_CLIENT_CERT, &error);
+	result = jcat_engine_self_verify (engine, payload, jcat_blob_get_data (signature),
+					  JCAT_VERIFY_FLAG_NONE, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (result);
 

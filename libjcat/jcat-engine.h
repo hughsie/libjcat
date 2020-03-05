@@ -24,24 +24,46 @@ struct _JcatEngineClass
 	gboolean		 (*add_public_key)	(JcatEngine	*self,
 							 const gchar	*filename,
 							 GError		**error);
-	JcatResult		*(*verify_data)		(JcatEngine	*self,
-							 GBytes		*payload,
-							 GBytes		*payload_signature,
-							 JcatVerifyFlags flags,
-							 GError		**error);
-	JcatBlob		*(*sign_data)		(JcatEngine	*self,
-							 GBytes		*payload,
-							 JcatSignFlags flags,
-							 GError		**error);
-	gpointer		 padding[11];
-};
-
-JcatResult	*jcat_engine_verify			(JcatEngine	*self,
+	JcatResult		*(*pubkey_verify)	(JcatEngine	*self,
 							 GBytes		*blob,
 							 GBytes		*blob_signature,
 							 JcatVerifyFlags flags,
 							 GError		**error);
-JcatBlob	*jcat_engine_sign			(JcatEngine	*self,
+	JcatBlob		*(*pubkey_sign)		(JcatEngine	*self,
+							 GBytes		*blob,
+							 GBytes		*cert,
+							 GBytes		*privkey,
+							 JcatSignFlags flags,
+							 GError		**error);
+	JcatResult		*(*self_verify)		(JcatEngine	*self,
+							 GBytes		*blob,
+							 GBytes		*blob_signature,
+							 JcatVerifyFlags flags,
+							 GError		**error);
+	JcatBlob		*(*self_sign)		(JcatEngine	*self,
+							 GBytes		*blob,
+							 JcatSignFlags flags,
+							 GError		**error);
+	gpointer		 padding[9];
+};
+
+JcatResult	*jcat_engine_pubkey_verify		(JcatEngine	*self,
+							 GBytes		*blob,
+							 GBytes		*blob_signature,
+							 JcatVerifyFlags flags,
+							 GError		**error);
+JcatBlob	*jcat_engine_pubkey_sign		(JcatEngine	*self,
+							 GBytes		*blob,
+							 GBytes		*cert,
+							 GBytes		*privkey,
+							 JcatSignFlags flags,
+							 GError		**error);
+JcatResult	*jcat_engine_self_verify		(JcatEngine	*self,
+							 GBytes		*blob,
+							 GBytes		*blob_signature,
+							 JcatVerifyFlags flags,
+							 GError		**error);
+JcatBlob	*jcat_engine_self_sign			(JcatEngine	*self,
 							 GBytes		*blob,
 							 JcatSignFlags flags,
 							 GError		**error);

@@ -30,6 +30,7 @@ if get_option('gpg')
   jcat_src += 'jcat-gpg-engine.c'
 endif
 if get_option('pkcs7')
+  jcat_src += 'jcat-pkcs7-common.c'
   jcat_src += 'jcat-pkcs7-engine.c'
 endif
 

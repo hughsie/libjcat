@@ -17,7 +17,7 @@ struct _JcatSha256Engine
 G_DEFINE_TYPE (JcatSha256Engine, jcat_sha256_engine, JCAT_TYPE_ENGINE)
 
 static JcatBlob *
-jcat_sha256_engine_sign_data (JcatEngine *engine,
+jcat_sha256_engine_self_sign (JcatEngine *engine,
 			      GBytes *data,
 			      JcatSignFlags flags,
 			      GError **error)
@@ -28,7 +28,7 @@ jcat_sha256_engine_sign_data (JcatEngine *engine,
 }
 
 static JcatResult *
-jcat_sha256_engine_verify_data (JcatEngine *engine,
+jcat_sha256_engine_self_verify (JcatEngine *engine,
 				GBytes *data,
 				GBytes *blob_signature,
 				JcatVerifyFlags flags,
@@ -63,8 +63,8 @@ jcat_sha256_engine_class_init (JcatSha256EngineClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS (klass);
-	klass_app->sign_data = jcat_sha256_engine_sign_data;
-	klass_app->verify_data = jcat_sha256_engine_verify_data;
+	klass_app->self_sign = jcat_sha256_engine_self_sign;
+	klass_app->self_verify = jcat_sha256_engine_self_verify;
 	object_class->finalize = jcat_sha256_engine_finalize;
 }
 
