@@ -191,6 +191,64 @@ jcat_file_func (void)
 }
 
 static void
+jcat_sha1_engine_func (void)
+{
+	g_autofree gchar *fn_fail = NULL;
+	g_autofree gchar *fn_pass = NULL;
+	g_autofree gchar *pki_dir = NULL;
+	g_autofree gchar *sig = NULL;
+	g_autoptr(GBytes) blob_sig1 = NULL;
+	g_autoptr(GBytes) data_fail = NULL;
+	g_autoptr(GBytes) data_fwbin = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(JcatBlob) blob_sig2 = NULL;
+	g_autoptr(JcatContext) context = jcat_context_new ();
+	g_autoptr(JcatEngine) engine = NULL;
+	g_autoptr(JcatResult) result_fail = NULL;
+	g_autoptr(JcatResult) result_pass = NULL;
+	const gchar *sig_actual = "7c0ae84b191822bcadbdcbe2f74a011695d783c7";
+
+	/* get engine */
+	engine = jcat_context_get_engine (context, JCAT_BLOB_KIND_SHA1, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (engine);
+	g_assert_cmpint (jcat_engine_get_kind (engine), ==, JCAT_BLOB_KIND_SHA1);
+	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_CHECKSUM);
+
+	/* verify checksum */
+	fn_pass = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin", NULL);
+	data_fwbin = jcat_get_contents_bytes (fn_pass, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (data_fwbin);
+	blob_sig1 = g_bytes_new_static (sig_actual, strlen (sig_actual));
+	result_pass = jcat_engine_self_verify (engine, data_fwbin, blob_sig1,
+					       JCAT_VERIFY_FLAG_NONE,
+					       &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (result_pass);
+	g_assert_cmpint (jcat_result_get_timestamp (result_pass), ==, 0);
+	g_assert_cmpstr (jcat_result_get_authority (result_pass), ==, NULL);
+
+	/* verify will fail */
+	fn_fail = g_build_filename (TESTDATADIR_SRC, "meson.build",NULL);
+	data_fail = jcat_get_contents_bytes (fn_fail, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (data_fail);
+	result_fail = jcat_engine_self_verify (engine, data_fail, blob_sig1,
+					       JCAT_VERIFY_FLAG_NONE, &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+	g_assert_null (result_fail);
+	g_clear_error (&error);
+
+	/* verify signing */
+	blob_sig2 = jcat_engine_self_sign (engine, data_fwbin, JCAT_SIGN_FLAG_NONE, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (blob_sig2);
+	sig = jcat_blob_get_data_as_string (blob_sig2);
+	g_assert_cmpstr (sig, ==, sig_actual);
+}
+
+static void
 jcat_sha256_engine_func (void)
 {
 	g_autofree gchar *fn_fail = NULL;
@@ -684,6 +742,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/jcat/blob", jcat_blob_func);
 	g_test_add_func ("/jcat/item", jcat_item_func);
 	g_test_add_func ("/jcat/file", jcat_file_func);
+	g_test_add_func ("/jcat/engine{sha1}", jcat_sha1_engine_func);
 	g_test_add_func ("/jcat/engine{sha256}", jcat_sha256_engine_func);
 	g_test_add_func ("/jcat/engine{gpg}", jcat_gpg_engine_func);
 	g_test_add_func ("/jcat/engine{pkcs7}", jcat_pkcs7_engine_func);

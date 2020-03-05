@@ -63,6 +63,8 @@ jcat_blob_kind_from_string (const gchar *kind)
 		return JCAT_BLOB_KIND_PKCS7;
 	if (g_strcmp0 (kind, "sha256") == 0)
 		return JCAT_BLOB_KIND_SHA256;
+	if (g_strcmp0 (kind, "sha1") == 0)
+		return JCAT_BLOB_KIND_SHA1;
 	return JCAT_BLOB_KIND_UNKNOWN;
 }
 
@@ -85,6 +87,8 @@ jcat_blob_kind_to_string (JcatBlobKind kind)
 		return "pkcs7";
 	if (kind == JCAT_BLOB_KIND_SHA256)
 		return "sha256";
+	if (kind == JCAT_BLOB_KIND_SHA1)
+		return "sha1";
 	return NULL;
 }
 
@@ -107,6 +111,8 @@ jcat_blob_kind_to_filename_ext (JcatBlobKind kind)
 		return "p7b";
 	if (kind == JCAT_BLOB_KIND_SHA256)
 		return "sha256";
+	if (kind == JCAT_BLOB_KIND_SHA1)
+		return "sha1";
 	return NULL;
 }
 
