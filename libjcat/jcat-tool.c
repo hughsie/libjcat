@@ -609,6 +609,7 @@ main (int argc, char *argv[])
 	gboolean version = FALSE;
 	g_autofree gchar *appstream_id = NULL;
 	g_autofree gchar *cmd_descriptions = NULL;
+	g_autofree gchar *keyring_path = NULL;
 	g_autofree gchar *kind = NULL;
 	g_autofree gchar *prefix = NULL;
 	g_autofree gchar *public_key = NULL;
@@ -633,6 +634,8 @@ main (int argc, char *argv[])
 			_("Kind for blob, e.g. `gpg`"), NULL },
 		{ "appstream-id", '\0', 0, G_OPTION_ARG_STRING, &appstream_id,
 			_("Appstream ID for blob, e.g. `com.bbc`"), NULL },
+		{ "keyring", '\0', 0, G_OPTION_ARG_STRING, &keyring_path,
+			_("Keyring location, e.g. `/var/lib/fwupd`"), NULL },
 		{ NULL}
 	};
 
@@ -718,6 +721,8 @@ main (int argc, char *argv[])
 		jcat_context_add_public_key (priv->context, public_key);
 	if (public_keys != NULL)
 		jcat_context_add_public_keys (priv->context, public_keys);
+	if (keyring_path != NULL)
+		jcat_context_set_keyring_path (priv->context, keyring_path);
 	if (kind != NULL) {
 		priv->kind = jcat_blob_kind_from_string (kind);
 		if (priv->kind == JCAT_BLOB_KIND_UNKNOWN) {
