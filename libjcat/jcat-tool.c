@@ -293,6 +293,7 @@ jcat_tool_sign (JcatToolPrivate *priv, gchar **values, GError **error)
 	g_autoptr(GBytes) source = NULL;
 	g_autoptr(GFile) gfile = NULL;
 	g_autoptr(JcatBlob) blob = NULL;
+	g_autoptr(JcatEngine) engine = NULL;
 	g_autoptr(JcatFile) file = jcat_file_new ();
 	g_autoptr(JcatItem) item = NULL;
 	g_autofree gchar *id_safe = NULL;
@@ -344,7 +345,10 @@ jcat_tool_sign (JcatToolPrivate *priv, gchar **values, GError **error)
 	}
 
 	/* sign with this kind */
-	blob = jcat_context_sign (priv->context, kind, source, JCAT_SIGN_FLAG_NONE, error);
+	engine = jcat_context_get_engine (priv->context, JCAT_BLOB_KIND_PKCS7, error);
+	if (engine == NULL)
+		return FALSE;
+	blob = jcat_engine_sign (engine, source, JCAT_SIGN_FLAG_NONE, error);
 	if (blob == NULL)
 		return FALSE;
 	jcat_item_add_blob (item, blob);

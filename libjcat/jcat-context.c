@@ -327,43 +327,6 @@ jcat_context_verify_item (JcatContext *self,
 }
 
 /**
- * jcat_context_sign:
- * @self: #JcatContext
- * @kind: #JcatBlobKind, e.g. %JCAT_BLOB_KIND_GPG
- * @data: #GBytes to sign
- * @flags: #JcatSignFlags, e.g. %JCAT_SIGN_FLAG_ADD_TIMESTAMP
- * @error: #GError, or %NULL
- *
- * Signs some data using the correct engine.
- *
- * Returns: (transfer full): #JcatBlob, or %NULL for failed
- *
- * Since: 0.1.0
- **/
-JcatBlob *
-jcat_context_sign (JcatContext *self,
-		   JcatBlobKind kind,
-		   GBytes *data,
-		   JcatSignFlags flags,
-		   GError **error)
-{
-	g_autoptr(GBytes) data_sig = NULL;
-	g_autoptr(JcatEngine) engine = NULL;
-
-	g_return_val_if_fail (JCAT_IS_CONTEXT (self), NULL);
-	g_return_val_if_fail (data != NULL, NULL);
-
-	/* get correct engine */
-	engine = jcat_context_get_engine (self, kind, error);
-	if (engine == NULL)
-		return NULL;
-	data_sig = jcat_engine_sign (engine, data, flags, error);
-	if (data_sig == NULL)
-		return NULL;
-	return jcat_blob_new_full (kind, data_sig, JCAT_BLOB_FLAG_IS_UTF8);
-}
-
-/**
  * jcat_context_new:
  *
  * Creates a new context.

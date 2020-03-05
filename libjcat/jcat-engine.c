@@ -129,11 +129,11 @@ jcat_engine_verify (JcatEngine *self,
  *
  * Signs a chunk of data.
  *
- * Returns: (transfer full): #GBytes, or %NULL for failed
+ * Returns: (transfer full): #JcatBlob, or %NULL for failed
  *
  * Since: 0.1.0
  **/
-GBytes *
+JcatBlob *
 jcat_engine_sign (JcatEngine *self,
 		  GBytes *blob,
 		  JcatSignFlags flags,
