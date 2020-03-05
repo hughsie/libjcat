@@ -35,7 +35,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_pkcs7_signature_info_st, gnutls_pkcs7_signa
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_datum_t, _gnutls_datum_deinit)
 #pragma clang diagnostic pop
 
-gchar			*jcat_pkcs7_engine_datum_to_dn_str	(const gnutls_datum_t *raw);
+gchar			*jcat_pkcs7_datum_to_dn_str		(const gnutls_datum_t *raw);
 gnutls_x509_crt_t	 jcat_pkcs7_load_crt_from_blob		(GBytes		*blob,
 								 gnutls_x509_crt_fmt_t format,
 								 GError		**error);
