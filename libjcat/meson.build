@@ -27,10 +27,10 @@ install_headers(
 
 jcat_src = []
 if get_option('gpg')
-  jcat_src += 'jcat-engine-gpg.c'
+  jcat_src += 'jcat-gpg-engine.c'
 endif
 if get_option('pkcs7')
-  jcat_src += 'jcat-engine-pkcs7.c'
+  jcat_src += 'jcat-pkcs7-engine.c'
 endif
 
 jcat_mapfile = 'jcat.map'
@@ -42,7 +42,7 @@ libjcat = library(
     'jcat-context.c',
     'jcat-common.c',
     'jcat-engine.c',
-    'jcat-engine-sha256.c',
+    'jcat-sha256-engine.c',
     'jcat-result.c',
     'jcat-file.c',
     'jcat-item.c',
@@ -185,13 +185,13 @@ if get_option('tests')
     sources : [
       'jcat-self-test.c',
       'jcat-blob.c',
-      'jcat-context.c',
       'jcat-common.c',
+      'jcat-context.c',
       'jcat-engine.c',
-      'jcat-engine-sha256.c',
-      'jcat-result.c',
       'jcat-file.c',
       'jcat-item.c',
+      'jcat-result.c',
+      'jcat-sha256-engine.c',
       jcat_src,
     ],
     include_directories : [

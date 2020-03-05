@@ -191,7 +191,7 @@ jcat_file_func (void)
 }
 
 static void
-jcat_engine_sha256_func (void)
+jcat_sha256_engine_func (void)
 {
 	g_autofree gchar *fn_fail = NULL;
 	g_autofree gchar *fn_pass = NULL;
@@ -250,7 +250,7 @@ jcat_engine_sha256_func (void)
 }
 
 static void
-jcat_engine_gpg_func (void)
+jcat_gpg_engine_func (void)
 {
 #ifdef ENABLE_GPG
 	g_autofree gchar *fn_fail = NULL;
@@ -266,7 +266,7 @@ jcat_engine_gpg_func (void)
 	g_autoptr(JcatResult) result_fail = NULL;
 	g_autoptr(JcatResult) result_pass = NULL;
 	const gchar *str_perfect =
-		"JcatEngineGpg:\n"
+		"JcatGpgEngine:\n"
 		"  Kind:                  gpg\n"
 		"  VerifyKind:            signature\n";
 	const gchar *sig_actual =
@@ -329,7 +329,7 @@ jcat_engine_gpg_func (void)
 }
 
 static void
-jcat_engine_pkcs7_func (void)
+jcat_pkcs7_engine_func (void)
 {
 #ifdef ENABLE_PKCS7
 	g_autofree gchar *fn_fail = NULL;
@@ -403,7 +403,7 @@ jcat_engine_pkcs7_func (void)
 }
 
 static void
-jcat_engine_pkcs7_self_signed_func (void)
+jcat_pkcs7_engine_self_signed_func (void)
 {
 #ifdef ENABLE_PKCS7
 	gboolean ret;
@@ -418,7 +418,7 @@ jcat_engine_pkcs7_self_signed_func (void)
 	const gchar *str_perfect =
 		"JcatResult:\n"
 		"  Timestamp:             1970-01-01T03:25:45Z\n"
-		"  JcatEnginePkcs7:\n"
+		"  JcatPkcs7Engine:\n"
 		"    Kind:                pkcs7\n"
 		"    VerifyKind:          signature\n";
 
@@ -689,10 +689,10 @@ main (int argc, char **argv)
 	g_test_add_func ("/jcat/blob", jcat_blob_func);
 	g_test_add_func ("/jcat/item", jcat_item_func);
 	g_test_add_func ("/jcat/file", jcat_file_func);
-	g_test_add_func ("/jcat/engine{sha256}", jcat_engine_sha256_func);
-	g_test_add_func ("/jcat/engine{gpg}", jcat_engine_gpg_func);
-	g_test_add_func ("/jcat/engine{pkcs7}", jcat_engine_pkcs7_func);
-	g_test_add_func ("/jcat/engine{pkcs7-self-signed}", jcat_engine_pkcs7_self_signed_func);
+	g_test_add_func ("/jcat/engine{sha256}", jcat_sha256_engine_func);
+	g_test_add_func ("/jcat/engine{gpg}", jcat_gpg_engine_func);
+	g_test_add_func ("/jcat/engine{pkcs7}", jcat_pkcs7_engine_func);
+	g_test_add_func ("/jcat/engine{pkcs7-self-signed}", jcat_pkcs7_engine_self_signed_func);
 	g_test_add_func ("/jcat/context{verify-blob}", jcat_context_verify_blob_func);
 	g_test_add_func ("/jcat/context{verify-item-sign}", jcat_context_verify_item_sign_func);
 	g_test_add_func ("/jcat/context{verify-item-csum}", jcat_context_verify_item_csum_func);

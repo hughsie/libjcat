@@ -9,14 +9,14 @@
 #include "jcat-blob.h"
 #include "jcat-context-private.h"
 #include "jcat-engine-private.h"
-#include "jcat-engine-sha256.h"
 #include "jcat-result-private.h"
+#include "jcat-sha256-engine.h"
 
 #ifdef ENABLE_GPG
-#include "jcat-engine-gpg.h"
+#include "jcat-gpg-engine.h"
 #endif
 #ifdef ENABLE_PKCS7
-#include "jcat-engine-pkcs7.h"
+#include "jcat-pkcs7-engine.h"
 #endif
 
 typedef struct {
@@ -54,12 +54,12 @@ jcat_context_init (JcatContext *self)
 	priv->engines = g_ptr_array_new_with_free_func ((GDestroyNotify) g_object_unref);
 	priv->public_keys = g_ptr_array_new_with_free_func (g_free);
 
-	g_ptr_array_add (priv->engines, jcat_engine_sha256_new (self));
+	g_ptr_array_add (priv->engines, jcat_sha256_engine_new (self));
 #ifdef ENABLE_GPG
-	g_ptr_array_add (priv->engines, jcat_engine_gpg_new (self));
+	g_ptr_array_add (priv->engines, jcat_gpg_engine_new (self));
 #endif
 #ifdef ENABLE_PKCS7
-	g_ptr_array_add (priv->engines, jcat_engine_pkcs7_new (self));
+	g_ptr_array_add (priv->engines, jcat_pkcs7_engine_new (self));
 #endif
 }
 

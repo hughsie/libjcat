@@ -11,16 +11,16 @@
 #include <gnutls/pkcs7.h>
 
 #include "jcat-common-private.h"
-#include "jcat-engine-pkcs7.h"
+#include "jcat-pkcs7-engine.h"
 #include "jcat-engine-private.h"
 
-struct _JcatEnginePkcs7
+struct _JcatPkcs7Engine
 {
 	JcatEngine			 parent_instance;
 	gnutls_x509_trust_list_t	 tl;
 };
 
-G_DEFINE_TYPE (JcatEnginePkcs7, jcat_engine_pkcs7, JCAT_TYPE_ENGINE)
+G_DEFINE_TYPE (JcatPkcs7Engine, jcat_pkcs7_engine, JCAT_TYPE_ENGINE)
 
 typedef guchar gnutls_data_t;
 
@@ -38,7 +38,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_pkcs7_signature_info_st, gnutls_pkcs7_signa
 #pragma clang diagnostic pop
 
 static gnutls_x509_crt_t
-jcat_engine_pkcs7_load_crt_from_filename (const gchar *filename,
+jcat_pkcs7_engine_load_crt_from_filename (const gchar *filename,
 					 gnutls_x509_crt_fmt_t format,
 					 GError **error)
 {
@@ -77,7 +77,7 @@ jcat_engine_pkcs7_load_crt_from_filename (const gchar *filename,
 }
 
 static gboolean
-jcat_engine_pkcs7_add_pubkey (JcatEnginePkcs7 *self,
+jcat_pkcs7_engine_add_pubkey (JcatPkcs7Engine *self,
 			      const gchar *filename,
 			      gnutls_x509_crt_fmt_t format,
 			      GError **error)
@@ -88,7 +88,7 @@ jcat_engine_pkcs7_add_pubkey (JcatEnginePkcs7 *self,
 
 	/* load file and add to the trust list */
 	g_debug ("trying to load certificate from %s", filename);
-	crt = jcat_engine_pkcs7_load_crt_from_filename (filename, format, error);
+	crt = jcat_pkcs7_engine_load_crt_from_filename (filename, format, error);
 	if (crt == NULL)
 		return FALSE;
 	rc = gnutls_x509_crt_get_key_usage (crt, &key_usage, NULL);
@@ -126,22 +126,22 @@ jcat_engine_pkcs7_add_pubkey (JcatEnginePkcs7 *self,
 }
 
 static gboolean
-jcat_engine_pkcs7_add_public_key (JcatEngine *engine,
+jcat_pkcs7_engine_add_public_key (JcatEngine *engine,
 				  const gchar *filename,
 				  GError **error)
 {
-	JcatEnginePkcs7 *self = JCAT_ENGINE_PKCS7 (engine);
+	JcatPkcs7Engine *self = JCAT_PKCS7_ENGINE (engine);
 
 	/* search all the public key files */
 	if (g_str_has_suffix (filename, ".pem")) {
-		if (!jcat_engine_pkcs7_add_pubkey (self, filename,
+		if (!jcat_pkcs7_engine_add_pubkey (self, filename,
 						   GNUTLS_X509_FMT_PEM,
 						   error))
 			return FALSE;
 	} else if (g_str_has_suffix (filename, ".cer") ||
 		   g_str_has_suffix (filename, ".crt") ||
 		   g_str_has_suffix (filename, ".der")) {
-		if (!jcat_engine_pkcs7_add_pubkey (self, filename,
+		if (!jcat_pkcs7_engine_add_pubkey (self, filename,
 						   GNUTLS_X509_FMT_DER,
 						   error))
 			return FALSE;
@@ -153,7 +153,7 @@ jcat_engine_pkcs7_add_public_key (JcatEngine *engine,
 }
 
 static gnutls_privkey_t
-jcat_engine_pkcs7_load_privkey (JcatEnginePkcs7 *self, GError **error)
+jcat_pkcs7_engine_load_privkey (JcatPkcs7Engine *self, GError **error)
 {
 	JcatEngine *engine = JCAT_ENGINE (self);
 	int rc;
@@ -191,19 +191,19 @@ jcat_engine_pkcs7_load_privkey (JcatEnginePkcs7 *self, GError **error)
 }
 
 static gnutls_x509_crt_t
-jcat_engine_pkcs7_load_client_certificate (JcatEnginePkcs7 *self, GError **error)
+jcat_pkcs7_engine_load_client_certificate (JcatPkcs7Engine *self, GError **error)
 {
 	JcatEngine *engine = JCAT_ENGINE (self);
 	g_autofree gchar *filename = NULL;
 	filename = g_build_filename (jcat_engine_get_keyring_path (engine),
 				     "pki", "client.pem", NULL);
-	return jcat_engine_pkcs7_load_crt_from_filename (filename,
+	return jcat_pkcs7_engine_load_crt_from_filename (filename,
 							GNUTLS_X509_FMT_PEM,
 							error);
 }
 
 static gnutls_pubkey_t
-jcat_engine_pkcs7_load_pubkey_from_privkey (gnutls_privkey_t privkey, GError **error)
+jcat_pkcs7_engine_load_pubkey_from_privkey (gnutls_privkey_t privkey, GError **error)
 {
 	g_auto(gnutls_pubkey_t) pubkey = NULL;
 	int rc;
@@ -235,7 +235,7 @@ jcat_engine_pkcs7_load_pubkey_from_privkey (gnutls_privkey_t privkey, GError **e
 /* generates a private key just like:
  *  `certtool --generate-privkey` */
 static gboolean
-jcat_engine_pkcs7_ensure_private_key (JcatEnginePkcs7 *self, GError **error)
+jcat_pkcs7_engine_ensure_private_key (JcatPkcs7Engine *self, GError **error)
 {
 	JcatEngine *engine = JCAT_ENGINE (self);
 	gnutls_datum_t d = { 0 };
@@ -321,7 +321,7 @@ jcat_engine_pkcs7_ensure_private_key (JcatEnginePkcs7 *self, GError **error)
 /* generates a self signed certificate just like:
  *  `certtool --generate-self-signed --load-privkey priv.pem` */
 static gboolean
-jcat_engine_pkcs7_ensure_client_certificate (JcatEnginePkcs7 *self, GError **error)
+jcat_pkcs7_engine_ensure_client_certificate (JcatPkcs7Engine *self, GError **error)
 {
 	JcatEngine *engine = JCAT_ENGINE (self);
 	int rc;
@@ -341,18 +341,18 @@ jcat_engine_pkcs7_ensure_client_certificate (JcatEnginePkcs7 *self, GError **err
 		return TRUE;
 
 	/* ensure the private key exists */
-	if (!jcat_engine_pkcs7_ensure_private_key (self, error)) {
+	if (!jcat_pkcs7_engine_ensure_private_key (self, error)) {
 		g_prefix_error (error, "failed to generate private key: ");
 		return FALSE;
 	}
 
 	/* load private key */
-	key = jcat_engine_pkcs7_load_privkey (self, error);
+	key = jcat_pkcs7_engine_load_privkey (self, error);
 	if (key == NULL)
 		return FALSE;
 
 	/* load the public key from the private key */
-	pubkey = jcat_engine_pkcs7_load_pubkey_from_privkey (key, error);
+	pubkey = jcat_pkcs7_engine_load_pubkey_from_privkey (key, error);
 	if (pubkey == NULL)
 		return FALSE;
 
@@ -500,9 +500,9 @@ jcat_engine_pkcs7_ensure_client_certificate (JcatEnginePkcs7 *self, GError **err
 }
 
 static gboolean
-jcat_engine_pkcs7_setup (JcatEngine *engine, GError **error)
+jcat_pkcs7_engine_setup (JcatEngine *engine, GError **error)
 {
-	JcatEnginePkcs7 *self = JCAT_ENGINE_PKCS7 (engine);
+	JcatPkcs7Engine *self = JCAT_PKCS7_ENGINE (engine);
 	int rc;
 
 	if (self->tl != NULL)
@@ -534,7 +534,7 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_datum_t, _gnutls_datum_deinit)
 #pragma clang diagnostic pop
 
 static gchar *
-jcat_engine_pkcs7_datum_to_dn_str (const gnutls_datum_t *raw)
+jcat_pkcs7_engine_datum_to_dn_str (const gnutls_datum_t *raw)
 {
 	g_auto(gnutls_x509_dn_t) dn = NULL;
 	g_autoptr(gnutls_datum_t) str = NULL;
@@ -556,13 +556,13 @@ jcat_engine_pkcs7_datum_to_dn_str (const gnutls_datum_t *raw)
 /* verifies a detached signature just like:
  *  `certtool --p7-verify --load-certificate client.pem --infile=test.p7b` */
 static JcatResult *
-jcat_engine_pkcs7_verify_data (JcatEngine *engine,
+jcat_pkcs7_engine_verify_data (JcatEngine *engine,
 			     GBytes *blob,
 			     GBytes *blob_signature,
 			     JcatVerifyFlags flags,
 			     GError **error)
 {
-	JcatEnginePkcs7 *self = JCAT_ENGINE_PKCS7 (engine);
+	JcatPkcs7Engine *self = JCAT_PKCS7_ENGINE (engine);
 	gnutls_datum_t datum = { 0 };
 	gint64 timestamp_newest = 0;
 	gnutls_pkcs7_signature_info_st info_tmp = { 0x0 };
@@ -611,11 +611,11 @@ jcat_engine_pkcs7_verify_data (JcatEngine *engine,
 
 	/* use client certificate */
 	if (flags & JCAT_VERIFY_FLAG_USE_CLIENT_CERT) {
-		if (!jcat_engine_pkcs7_ensure_client_certificate (self, error)) {
+		if (!jcat_pkcs7_engine_ensure_client_certificate (self, error)) {
 			g_prefix_error (error, "failed to generate client certificate: ");
 			return NULL;
 		}
-		crt = jcat_engine_pkcs7_load_client_certificate (self, error);
+		crt = jcat_pkcs7_engine_load_client_certificate (self, error);
 		if (crt == NULL)
 			return NULL;
 	}
@@ -656,7 +656,7 @@ jcat_engine_pkcs7_verify_data (JcatEngine *engine,
 						  verify_flags);
 		}
 		if (rc < 0) {
-			dn = jcat_engine_pkcs7_datum_to_dn_str (&info->issuer_dn);
+			dn = jcat_pkcs7_engine_datum_to_dn_str (&info->issuer_dn);
 			g_set_error (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_INVALID_DATA,
@@ -669,7 +669,7 @@ jcat_engine_pkcs7_verify_data (JcatEngine *engine,
 		signing_time = info->signing_time > 0 ? (gint64) info->signing_time : 1;
 		if (signing_time > timestamp_newest) {
 			timestamp_newest = signing_time;
-			dn = jcat_engine_pkcs7_datum_to_dn_str (&info->issuer_dn);
+			dn = jcat_pkcs7_engine_datum_to_dn_str (&info->issuer_dn);
 			if (dn != NULL)
 				g_string_assign (authority_newest, dn);
 		}
@@ -687,12 +687,12 @@ jcat_engine_pkcs7_verify_data (JcatEngine *engine,
  *  `certtool --p7-detached-sign --load-certificate client.pem \
  *    --load-privkey secret.pem --outfile=test.p7b` */
 static GBytes *
-jcat_engine_pkcs7_sign_data (JcatEngine *engine,
+jcat_pkcs7_engine_sign_data (JcatEngine *engine,
 			    GBytes *blob,
 			    JcatSignFlags flags,
 			    GError **error)
 {
-	JcatEnginePkcs7 *self = JCAT_ENGINE_PKCS7 (engine);
+	JcatPkcs7Engine *self = JCAT_PKCS7_ENGINE (engine);
 	gnutls_datum_t d = { 0 };
 	gnutls_digest_algorithm_t dig = GNUTLS_DIG_NULL;
 	guint gnutls_flags = 0;
@@ -704,21 +704,21 @@ jcat_engine_pkcs7_sign_data (JcatEngine *engine,
 	g_autoptr(gnutls_data_t) d_payload = NULL;
 
 	/* ensure the client certificate exists */
-	if (!jcat_engine_pkcs7_ensure_client_certificate (self, error)) {
+	if (!jcat_pkcs7_engine_ensure_client_certificate (self, error)) {
 		g_prefix_error (error, "failed to generate client certificate: ");
 		return NULL;
 	}
 
 	/* import the keys */
-	crt = jcat_engine_pkcs7_load_client_certificate (self, error);
+	crt = jcat_pkcs7_engine_load_client_certificate (self, error);
 	if (crt == NULL)
 		return NULL;
-	key = jcat_engine_pkcs7_load_privkey (self, error);
+	key = jcat_pkcs7_engine_load_privkey (self, error);
 	if (key == NULL)
 		return NULL;
 
 	/* get the digest algorithm from the publix key */
-	pubkey = jcat_engine_pkcs7_load_pubkey_from_privkey (key, error);
+	pubkey = jcat_pkcs7_engine_load_pubkey_from_privkey (key, error);
 	if (pubkey == NULL)
 		return NULL;
 	rc = gnutls_pubkey_get_preferred_hash_algorithm (pubkey, &dig, NULL);
@@ -785,35 +785,35 @@ jcat_engine_pkcs7_sign_data (JcatEngine *engine,
 }
 
 static void
-jcat_engine_pkcs7_finalize (GObject *object)
+jcat_pkcs7_engine_finalize (GObject *object)
 {
-	JcatEnginePkcs7 *self = JCAT_ENGINE_PKCS7 (object);
+	JcatPkcs7Engine *self = JCAT_PKCS7_ENGINE (object);
 	gnutls_x509_trust_list_deinit (self->tl, 1);
-	G_OBJECT_CLASS (jcat_engine_pkcs7_parent_class)->finalize (object);
+	G_OBJECT_CLASS (jcat_pkcs7_engine_parent_class)->finalize (object);
 }
 
 static void
-jcat_engine_pkcs7_class_init (JcatEnginePkcs7Class *klass)
+jcat_pkcs7_engine_class_init (JcatPkcs7EngineClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS (klass);
-	klass_app->setup = jcat_engine_pkcs7_setup;
-	klass_app->add_public_key = jcat_engine_pkcs7_add_public_key;
-	klass_app->sign_data = jcat_engine_pkcs7_sign_data;
-	klass_app->verify_data = jcat_engine_pkcs7_verify_data;
-	object_class->finalize = jcat_engine_pkcs7_finalize;
+	klass_app->setup = jcat_pkcs7_engine_setup;
+	klass_app->add_public_key = jcat_pkcs7_engine_add_public_key;
+	klass_app->sign_data = jcat_pkcs7_engine_sign_data;
+	klass_app->verify_data = jcat_pkcs7_engine_verify_data;
+	object_class->finalize = jcat_pkcs7_engine_finalize;
 }
 
 static void
-jcat_engine_pkcs7_init (JcatEnginePkcs7 *self)
+jcat_pkcs7_engine_init (JcatPkcs7Engine *self)
 {
 }
 
 JcatEngine *
-jcat_engine_pkcs7_new (JcatContext *context)
+jcat_pkcs7_engine_new (JcatContext *context)
 {
 	g_return_val_if_fail (JCAT_IS_CONTEXT (context), NULL);
-	return JCAT_ENGINE (g_object_new (JCAT_TYPE_ENGINE_PKCS7,
+	return JCAT_ENGINE (g_object_new (JCAT_TYPE_PKCS7_ENGINE,
 					  "context", context,
 					  "kind", JCAT_BLOB_KIND_PKCS7,
 					  "verify-kind", JCAT_ENGINE_VERIFY_KIND_SIGNATURE,

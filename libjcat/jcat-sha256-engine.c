@@ -6,18 +6,18 @@
 
 #include "config.h"
 
-#include "jcat-engine-sha256.h"
+#include "jcat-sha256-engine.h"
 #include "jcat-engine-private.h"
 
-struct _JcatEngineSha256
+struct _JcatSha256Engine
 {
 	JcatEngine		 parent_instance;
 };
 
-G_DEFINE_TYPE (JcatEngineSha256, jcat_engine_sha256, JCAT_TYPE_ENGINE)
+G_DEFINE_TYPE (JcatSha256Engine, jcat_sha256_engine, JCAT_TYPE_ENGINE)
 
 static GBytes *
-jcat_engine_sha256_sign_data (JcatEngine *engine,
+jcat_sha256_engine_sign_data (JcatEngine *engine,
 			      GBytes *data,
 			      JcatSignFlags flags,
 			      GError **error)
@@ -28,7 +28,7 @@ jcat_engine_sha256_sign_data (JcatEngine *engine,
 }
 
 static JcatResult *
-jcat_engine_sha256_verify_data (JcatEngine *engine,
+jcat_sha256_engine_verify_data (JcatEngine *engine,
 				GBytes *data,
 				GBytes *blob_signature,
 				JcatVerifyFlags flags,
@@ -53,31 +53,31 @@ jcat_engine_sha256_verify_data (JcatEngine *engine,
 }
 
 static void
-jcat_engine_sha256_finalize (GObject *object)
+jcat_sha256_engine_finalize (GObject *object)
 {
-	G_OBJECT_CLASS (jcat_engine_sha256_parent_class)->finalize (object);
+	G_OBJECT_CLASS (jcat_sha256_engine_parent_class)->finalize (object);
 }
 
 static void
-jcat_engine_sha256_class_init (JcatEngineSha256Class *klass)
+jcat_sha256_engine_class_init (JcatSha256EngineClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS (klass);
-	klass_app->sign_data = jcat_engine_sha256_sign_data;
-	klass_app->verify_data = jcat_engine_sha256_verify_data;
-	object_class->finalize = jcat_engine_sha256_finalize;
+	klass_app->sign_data = jcat_sha256_engine_sign_data;
+	klass_app->verify_data = jcat_sha256_engine_verify_data;
+	object_class->finalize = jcat_sha256_engine_finalize;
 }
 
 static void
-jcat_engine_sha256_init (JcatEngineSha256 *self)
+jcat_sha256_engine_init (JcatSha256Engine *self)
 {
 }
 
 JcatEngine *
-jcat_engine_sha256_new (JcatContext *context)
+jcat_sha256_engine_new (JcatContext *context)
 {
 	g_return_val_if_fail (JCAT_IS_CONTEXT (context), NULL);
-	return JCAT_ENGINE (g_object_new (JCAT_TYPE_ENGINE_SHA256,
+	return JCAT_ENGINE (g_object_new (JCAT_TYPE_SHA256_ENGINE,
 					  "context", context,
 					  "kind", JCAT_BLOB_KIND_SHA256,
 					  "verify-kind", JCAT_ENGINE_VERIFY_KIND_CHECKSUM,

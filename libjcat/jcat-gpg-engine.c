@@ -8,25 +8,25 @@
 
 #include <gpgme.h>
 
-#include "jcat-engine-gpg.h"
+#include "jcat-gpg-engine.h"
 #include "jcat-engine-private.h"
 
-struct _JcatEngineGpg
+struct _JcatGpgEngine
 {
 	JcatEngine		 parent_instance;
 	gpgme_ctx_t		 ctx;
 };
 
-G_DEFINE_TYPE (JcatEngineGpg, jcat_engine_gpg, JCAT_TYPE_ENGINE)
+G_DEFINE_TYPE (JcatGpgEngine, jcat_gpg_engine, JCAT_TYPE_ENGINE)
 
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gpgme_data_t, gpgme_data_release, NULL)
 
 static gboolean
-jcat_engine_gpg_add_public_key (JcatEngine *engine,
+jcat_gpg_engine_add_public_key (JcatEngine *engine,
 			        const gchar *filename,
 			        GError **error)
 {
-	JcatEngineGpg *self = JCAT_ENGINE_GPG (engine);
+	JcatGpgEngine *self = JCAT_GPG_ENGINE (engine);
 	gpgme_error_t rc;
 	gpgme_import_result_t result;
 	gpgme_import_status_t s;
@@ -84,9 +84,9 @@ jcat_engine_gpg_add_public_key (JcatEngine *engine,
 }
 
 static gboolean
-jcat_engine_gpg_setup (JcatEngine *engine, GError **error)
+jcat_gpg_engine_setup (JcatEngine *engine, GError **error)
 {
-	JcatEngineGpg *self = JCAT_ENGINE_GPG (engine);
+	JcatGpgEngine *self = JCAT_GPG_ENGINE (engine);
 	gpgme_error_t rc;
 	g_autofree gchar *gpg_home = NULL;
 
@@ -157,7 +157,7 @@ jcat_engine_gpg_setup (JcatEngine *engine, GError **error)
 }
 
 static gboolean
-jcat_engine_gpg_check_signature (gpgme_signature_t signature, GError **error)
+jcat_gpg_engine_check_signature (gpgme_signature_t signature, GError **error)
 {
 	gboolean ret = FALSE;
 
@@ -207,13 +207,13 @@ jcat_engine_gpg_check_signature (gpgme_signature_t signature, GError **error)
 }
 
 static JcatResult *
-jcat_engine_gpg_verify_data (JcatEngine *engine,
+jcat_gpg_engine_verify_data (JcatEngine *engine,
 			     GBytes *blob,
 			     GBytes *blob_signature,
 			     JcatVerifyFlags flags,
 			     GError **error)
 {
-	JcatEngineGpg *self = JCAT_ENGINE_GPG (engine);
+	JcatGpgEngine *self = JCAT_GPG_ENGINE (engine);
 	gpgme_error_t rc;
 	gpgme_signature_t s;
 	gpgme_verify_result_t result;
@@ -280,7 +280,7 @@ jcat_engine_gpg_verify_data (JcatEngine *engine,
 	/* look at each signature */
 	for (s = result->signatures; s != NULL ; s = s->next ) {
 		g_debug ("returned signature fingerprint %s", s->fpr);
-		if (!jcat_engine_gpg_check_signature (s, error))
+		if (!jcat_gpg_engine_check_signature (s, error))
 			return NULL;
 
 		/* save details about the key for the result */
@@ -297,35 +297,35 @@ jcat_engine_gpg_verify_data (JcatEngine *engine,
 }
 
 static void
-jcat_engine_gpg_finalize (GObject *object)
+jcat_gpg_engine_finalize (GObject *object)
 {
-	JcatEngineGpg *self = JCAT_ENGINE_GPG (object);
+	JcatGpgEngine *self = JCAT_GPG_ENGINE (object);
 	if (self->ctx != NULL)
 		gpgme_release (self->ctx);
-	G_OBJECT_CLASS (jcat_engine_gpg_parent_class)->finalize (object);
+	G_OBJECT_CLASS (jcat_gpg_engine_parent_class)->finalize (object);
 }
 
 static void
-jcat_engine_gpg_class_init (JcatEngineGpgClass *klass)
+jcat_gpg_engine_class_init (JcatGpgEngineClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS (klass);
 	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS (klass);
-	klass_app->setup = jcat_engine_gpg_setup;
-	klass_app->add_public_key = jcat_engine_gpg_add_public_key;
-	klass_app->verify_data = jcat_engine_gpg_verify_data;
-	object_class->finalize = jcat_engine_gpg_finalize;
+	klass_app->setup = jcat_gpg_engine_setup;
+	klass_app->add_public_key = jcat_gpg_engine_add_public_key;
+	klass_app->verify_data = jcat_gpg_engine_verify_data;
+	object_class->finalize = jcat_gpg_engine_finalize;
 }
 
 static void
-jcat_engine_gpg_init (JcatEngineGpg *self)
+jcat_gpg_engine_init (JcatGpgEngine *self)
 {
 }
 
 JcatEngine *
-jcat_engine_gpg_new (JcatContext *context)
+jcat_gpg_engine_new (JcatContext *context)
 {
 	g_return_val_if_fail (JCAT_IS_CONTEXT (context), NULL);
-	return JCAT_ENGINE (g_object_new (JCAT_TYPE_ENGINE_GPG,
+	return JCAT_ENGINE (g_object_new (JCAT_TYPE_GPG_ENGINE,
 					  "context", context,
 					  "kind", JCAT_BLOB_KIND_GPG,
 					  "verify-kind", JCAT_ENGINE_VERIFY_KIND_SIGNATURE,
