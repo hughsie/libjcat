@@ -26,6 +26,7 @@ typedef struct {
 	JcatContext		*context;
 	gboolean		 basename;
 	gchar			*prefix;
+	gchar			*appstream_id;
 } JcatToolPrivate;
 
 static void
@@ -38,6 +39,7 @@ jcat_tool_private_free (JcatToolPrivate *priv)
 		g_object_unref (priv->context);
 	if (priv->cmd_array != NULL)
 		g_ptr_array_unref (priv->cmd_array);
+	g_free (priv->appstream_id);
 	g_free (priv->prefix);
 	g_free (priv);
 }
@@ -278,6 +280,8 @@ jcat_tool_import (JcatToolPrivate *priv, gchar **values, GError **error)
 	}
 
 	/* just import existing key */
+	if (priv->appstream_id != NULL)
+		jcat_blob_set_appstream_id (blob, priv->appstream_id);
 	jcat_item_add_blob (item, blob);
 
 	/* export new file */
@@ -351,6 +355,8 @@ jcat_tool_sign (JcatToolPrivate *priv, gchar **values, GError **error)
 	blob = jcat_engine_sign (engine, source, JCAT_SIGN_FLAG_NONE, error);
 	if (blob == NULL)
 		return FALSE;
+	if (priv->appstream_id != NULL)
+		jcat_blob_set_appstream_id (blob, priv->appstream_id);
 	jcat_item_add_blob (item, blob);
 
 	/* export new file */
@@ -529,6 +535,7 @@ main (int argc, char *argv[])
 	gboolean ret;
 	gboolean verbose = FALSE;
 	gboolean version = FALSE;
+	g_autofree gchar *appstream_id = NULL;
 	g_autofree gchar *cmd_descriptions = NULL;
 	g_autofree gchar *prefix = NULL;
 	g_autofree gchar *public_key = NULL;
@@ -549,6 +556,8 @@ main (int argc, char *argv[])
 			_("Location of public key directories used for verification"), NULL },
 		{ "prefix", '\0', 0, G_OPTION_ARG_STRING, &prefix,
 			_("Prefix for import and output files"), NULL },
+		{ "appstream-id", '\0', 0, G_OPTION_ARG_STRING, &appstream_id,
+			_("Appstream ID for blob, e.g. `com.bbc`"), NULL },
 		{ NULL}
 	};
 
@@ -617,6 +626,7 @@ main (int argc, char *argv[])
 
 	/* create context */
 	priv->basename = basename;
+	priv->appstream_id = g_strdup (appstream_id);
 	priv->prefix = g_strdup (prefix != NULL ? prefix : ".");
 	priv->context = jcat_context_new ();
 	if (public_key != NULL)
