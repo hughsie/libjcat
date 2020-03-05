@@ -63,56 +63,21 @@ instance the LVFS) it does mean it can verify your signatures.
 Public Key Signing
 ==================
 
-Jcat can of course sign the archive with proper keys too. here we will generate
-a private and public key ourselves, but you should probabluy talk to your IT
-department security team an ask them how to get a user certificate that's been
-signed by the corporate certificate.
+Jcat can of course sign the archive with proper keys too. Here we will generate
+a private and public key ourselves, but you should probably talk to your IT
+department security team and ask them how to get a user certificate that's been
+signed by the corporate CA certificate.
 
-Lets first generate a test private key. This should be kept secret at all times.
+Lets create our own certificate authority (CA) and issue a per-user key for
+local testing. Never use these in any kind of production system!
 
-    $ certtool --generate-privkey --outfile test-privkey.pem
-
-Now, lets create a public key. Change the details for your company and country.
-Hint: You can use a `.cfg` file to automate this if required.
-The public key can be shared freely, and can even be included in the signature.
-
-    $ certtool --generate-self-signed --load-privkey test-privkey.pem --outfile test.pem
-    Generating a self signed certificate...
-    Common name: Richard Hughes
-    UID: rhughes
-    Organizational unit name: Engineering
-    Organization name: Hughski Limited
-    Locality name:
-    State or province name:
-    Country name (2 chars): UK
-    Enter the subject's domain component (DC):
-    This field should not be used in new certificates.
-    E-mail:
-    Enter the certificate's serial number in decimal (123) or hex (0xabcd)
-    The certificate will expire in (days): 180
-    Does the certificate belong to an authority? (y/N): Y
-    Is this a TLS web client certificate? (y/N): N
-    Will the certificate be used for IPsec IKE operations? (y/N): N
-    Is this a TLS web server certificate? (y/N): N
-    Enter a dnsName of the subject of the certificate:
-    Enter an additional dnsName of the subject of the certificate:
-    Enter a URI of the subject of the certificate:
-    Enter the IP address of the subject of the certificate:
-    Enter the e-mail of the subject of the certificate: rhughes@hughski.com
-    Will the certificate be used for signing (required for TLS)? (Y/n): Y
-    Will the certificate be used for encryption (not required for TLS)? (Y/n): N
-    Will the certificate be used for data encryption? (y/N): N
-    Will the certificate be used to sign OCSP requests? (y/N): N
-    Will the certificate be used to sign code? (y/N): Y
-    Will the certificate be used for time stamping? (y/N): N
-    Will the certificate be used for email protection? (y/N): N
-    Will the certificate be used to sign other certificates? (Y/n): N
-    Will the certificate be used to sign CRLs? (y/N): N
-    Enter the URI of the CRL distribution point:
+    $ ../contrib/build-certs.py
+    $ ls ACME-CA.* rhughes*
+    ACME-CA.key  ACME-CA.pem  rhughes.csr  rhughes.key  rhughes.pem  rhughes_signed.pem
 
 Then we can actually use both files:
 
-    $ jcat-tool --appstream-id com.dell sign firmware.jcat firmware.bin test.pem test-privkey.pem
+    $ jcat-tool --appstream-id com.redhat.rhughes sign firmware.jcat firmware.bin rhughes_signed.pem rhughes.key
     JcatFile:
       Version:               0.1
       JcatItem:
@@ -120,7 +85,7 @@ Then we can actually use both files:
         JcatBlob:
           Kind:              pkcs7
           Flags:             is-utf8
-          AppstreamId:       com.dell
+          AppstreamId:       com.redhat.rhughes
           Timestamp:         2020-03-05T12:16:30Z
           Size:              0x373
           Data:              -----BEGIN PKCS7-----
@@ -131,26 +96,27 @@ Then we can actually use both files:
 
 Lets verify this new signature:
 
-    jcat-tool --appstream-id com.dell verify firmware.jcat
+    $ jcat-tool --appstream-id com.redhat.rhughes verify firmware.jcat
     firmware.bin:
-        FAILED pkcs7: failed to verify data for C=UK,...: Public key signature verification has failed. [-89]
+        FAILED pkcs7: failed to verify data for O=ACME Corp.,CN=ACME CA: Public key signature verification has failed. [-89]
         FAILED: Validation failed
     Validation failed
 
-Ahh, of course; we need to tell Jcat to load our generated certificate:
+Ahh, of course; we need to tell Jcat to load our generated CA certificate:
 
-    jcat-tool --appstream-id com.dell verify firmware.jcat --public-key test.pem
+    $ jcat-tool --appstream-id com.redhat.rhughes verify firmware.jcat --public-key ACME-CA.pem
     firmware.bin:
-        PASSED pkcs7: C=UK,O=Hughski Limited,OU=Engineering,UID=rhughes,CN=Richard Hughes
+        PASSED pkcs7: O=ACME Corp.,CN=ACME CA
 
 We can then check the result using
 
     $ jcat-tool export firmware.jcat
-    Wrote ./firmware.bin-com.dell.p7b
-    $ certtool --p7-verify --infile firmware.bin-com.dell.p7b --load-data firmware.bin --load-certificate=test.pem
+    Wrote ./firmware.bin-com.redhat.rhughes.p7b
+    $ certtool --p7-verify --infile firmware.bin-com.redhat.rhughes.p7b --load-data firmware.bin --load-ca-certificate=ACME-CA.pem
+    Loaded CAs (1 available)
     eContent Type: 1.2.840.113549.1.7.1
     Signers:
-        Signer's issuer DN: C=UK,O=Hughski Limited,OU=Engineering,UID=rhughes,CN=Richard Hughes
+        Signer's issuer DN: O=ACME Corp.,CN=ACME CA
         Signer's serial: 4df758978d0601c6500ab6f266963916d8b7ab33
         Signature Algorithm: RSA-SHA256
         Signature status: ok
