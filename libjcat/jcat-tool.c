@@ -410,7 +410,8 @@ jcat_tool_sign (JcatToolPrivate *priv, gchar **values, GError **error)
 	if (engine == NULL)
 		return FALSE;
 	blob = jcat_engine_pubkey_sign (engine, source, cert, privkey,
-					JCAT_SIGN_FLAG_NONE, error);
+					JCAT_SIGN_FLAG_ADD_TIMESTAMP |
+					JCAT_SIGN_FLAG_ADD_CERT, error);
 	if (blob == NULL)
 		return FALSE;
 	if (priv->appstream_id != NULL)
