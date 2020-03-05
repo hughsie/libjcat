@@ -24,7 +24,6 @@ LIBJCAT_0.1.0 {
     jcat_context_get_type;
     jcat_context_new;
     jcat_context_set_keyring_path;
-    jcat_context_sign;
     jcat_context_verify_blob;
     jcat_context_verify_item;
     jcat_engine_get_type;

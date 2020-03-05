@@ -43,8 +43,3 @@ GPtrArray	*jcat_context_verify_item		(JcatContext	*self,
 							 JcatItem	*item,
 							 JcatVerifyFlags flags,
 							 GError		**error);
-JcatBlob	*jcat_context_sign			(JcatContext	*self,
-							 JcatBlobKind	 kind,
-							 GBytes		*data,
-							 JcatSignFlags flags,
-							 GError		**error);

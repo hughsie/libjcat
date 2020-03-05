@@ -16,7 +16,7 @@ struct _JcatSha256Engine
 
 G_DEFINE_TYPE (JcatSha256Engine, jcat_sha256_engine, JCAT_TYPE_ENGINE)
 
-static GBytes *
+static JcatBlob *
 jcat_sha256_engine_sign_data (JcatEngine *engine,
 			      GBytes *data,
 			      JcatSignFlags flags,
@@ -24,7 +24,7 @@ jcat_sha256_engine_sign_data (JcatEngine *engine,
 {
 	g_autofree gchar *tmp = NULL;
 	tmp = g_compute_checksum_for_bytes (G_CHECKSUM_SHA256, data);
-	return g_bytes_new (tmp, strlen (tmp));
+	return jcat_blob_new_utf8 (JCAT_BLOB_KIND_SHA256, tmp);
 }
 
 static JcatResult *

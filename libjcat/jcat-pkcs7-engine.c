@@ -686,7 +686,7 @@ jcat_pkcs7_engine_verify_data (JcatEngine *engine,
 /* creates a detached signature just like:
  *  `certtool --p7-detached-sign --load-certificate client.pem \
  *    --load-privkey secret.pem --outfile=test.p7b` */
-static GBytes *
+static JcatBlob *
 jcat_pkcs7_engine_sign_data (JcatEngine *engine,
 			    GBytes *blob,
 			    JcatSignFlags flags,
@@ -697,6 +697,7 @@ jcat_pkcs7_engine_sign_data (JcatEngine *engine,
 	gnutls_digest_algorithm_t dig = GNUTLS_DIG_NULL;
 	guint gnutls_flags = 0;
 	int rc;
+	g_autofree gchar *str = NULL;
 	g_auto(gnutls_pkcs7_t) pkcs7 = NULL;
 	g_auto(gnutls_privkey_t) key = NULL;
 	g_auto(gnutls_pubkey_t) pubkey = NULL;
@@ -781,7 +782,8 @@ jcat_pkcs7_engine_sign_data (JcatEngine *engine,
 		return NULL;
 	}
 	d_payload = d.data;
-	return g_bytes_new (d_payload, d.size);
+	str = g_strndup ((const gchar *) d_payload, d.size);
+	return jcat_blob_new_utf8 (JCAT_BLOB_KIND_PKCS7, str);
 }
 
 static void

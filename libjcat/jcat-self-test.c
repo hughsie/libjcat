@@ -198,10 +198,10 @@ jcat_sha256_engine_func (void)
 	g_autofree gchar *pki_dir = NULL;
 	g_autofree gchar *sig = NULL;
 	g_autoptr(GBytes) blob_sig1 = NULL;
-	g_autoptr(GBytes) blob_sig2 = NULL;
 	g_autoptr(GBytes) data_fail = NULL;
 	g_autoptr(GBytes) data_fwbin = NULL;
 	g_autoptr(GError) error = NULL;
+	g_autoptr(JcatBlob) blob_sig2 = NULL;
 	g_autoptr(JcatContext) context = jcat_context_new ();
 	g_autoptr(JcatEngine) engine = NULL;
 	g_autoptr(JcatResult) result_fail = NULL;
@@ -244,8 +244,7 @@ jcat_sha256_engine_func (void)
 	blob_sig2 = jcat_engine_sign (engine, data_fwbin, JCAT_SIGN_FLAG_NONE, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (blob_sig2);
-	sig = g_strndup (g_bytes_get_data (blob_sig2, NULL),
-			 g_bytes_get_size (blob_sig2));
+	sig = jcat_blob_get_data_as_string (blob_sig2);
 	g_assert_cmpstr (sig, ==, sig_actual);
 }
 
@@ -407,12 +406,12 @@ jcat_pkcs7_engine_self_signed_func (void)
 {
 #ifdef ENABLE_PKCS7
 	g_autofree gchar *str = NULL;
+	g_autoptr(JcatBlob) signature = NULL;
 	g_autoptr(JcatContext) context = jcat_context_new ();
 	g_autoptr(JcatEngine) engine = NULL;
 	g_autoptr(JcatEngine) engine2 = NULL;
 	g_autoptr(JcatResult) result = NULL;
 	g_autoptr(GBytes) payload = NULL;
-	g_autoptr(GBytes) signature = NULL;
 	g_autoptr(GError) error = NULL;
 	const gchar *str_perfect =
 		"JcatResult:\n"
@@ -435,7 +434,7 @@ jcat_pkcs7_engine_self_signed_func (void)
 	signature = jcat_engine_sign (engine, payload, JCAT_SIGN_FLAG_ADD_TIMESTAMP, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (signature);
-	result = jcat_engine_verify (engine, payload, signature,
+	result = jcat_engine_verify (engine, payload, jcat_blob_get_data (signature),
 				     JCAT_VERIFY_FLAG_USE_CLIENT_CERT, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (result);

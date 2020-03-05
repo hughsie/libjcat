@@ -29,7 +29,7 @@ struct _JcatEngineClass
 							 GBytes		*payload_signature,
 							 JcatVerifyFlags flags,
 							 GError		**error);
-	GBytes			*(*sign_data)		(JcatEngine	*self,
+	JcatBlob		*(*sign_data)		(JcatEngine	*self,
 							 GBytes		*payload,
 							 JcatSignFlags flags,
 							 GError		**error);
@@ -41,7 +41,7 @@ JcatResult	*jcat_engine_verify			(JcatEngine	*self,
 							 GBytes		*blob_signature,
 							 JcatVerifyFlags flags,
 							 GError		**error);
-GBytes		*jcat_engine_sign			(JcatEngine	*self,
+JcatBlob	*jcat_engine_sign			(JcatEngine	*self,
 							 GBytes		*blob,
 							 JcatSignFlags flags,
 							 GError		**error);
