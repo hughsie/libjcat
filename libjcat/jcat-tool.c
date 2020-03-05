@@ -27,6 +27,7 @@ typedef struct {
 	gboolean		 basename;
 	gchar			*prefix;
 	gchar			*appstream_id;
+	JcatBlobKind		 kind;
 } JcatToolPrivate;
 
 static void
@@ -293,7 +294,6 @@ jcat_tool_import (JcatToolPrivate *priv, gchar **values, GError **error)
 static gboolean
 jcat_tool_sign (JcatToolPrivate *priv, gchar **values, GError **error)
 {
-	JcatBlobKind kind;
 	g_autoptr(GBytes) source = NULL;
 	g_autoptr(GFile) gfile = NULL;
 	g_autoptr(JcatBlob) blob = NULL;
@@ -303,11 +303,11 @@ jcat_tool_sign (JcatToolPrivate *priv, gchar **values, GError **error)
 	g_autofree gchar *id_safe = NULL;
 
 	/* check args */
-	if (g_strv_length (values) != 3) {
+	if (g_strv_length (values) != 2) {
 		g_set_error_literal (error,
 				     G_IO_ERROR,
 				     G_IO_ERROR_FAILED,
-				     "Invalid arguments, expected FILENAME SOURCE FORMAT");
+				     "Invalid arguments, expected FILENAME SOURCE");
 		return FALSE;
 	}
 
@@ -325,21 +325,6 @@ jcat_tool_sign (JcatToolPrivate *priv, gchar **values, GError **error)
 	if (source == NULL)
 		return FALSE;
 
-	/* parse format */
-	kind = jcat_blob_kind_from_string (values[2]);
-	if (kind == JCAT_BLOB_KIND_UNKNOWN) {
-		g_autoptr(GString) tmp = g_string_new (NULL);
-		for (guint i = 1; i < JCAT_BLOB_KIND_LAST; i++)
-			g_string_append_printf (tmp, "%s,", jcat_blob_kind_to_string (i));
-		if (tmp->len > 0)
-			g_string_truncate (tmp, tmp->len - 1);
-		g_set_error (error,
-			     G_IO_ERROR,
-			     G_IO_ERROR_FAILED,
-			     "Invalid arguments, expected %s", tmp->str);
-		return FALSE;
-	}
-
 	/* sign the file using the engine */
 	id_safe = jcat_tool_import_convert_id_safe (priv, values[1]);
 	item = jcat_file_get_item_by_id (file, id_safe, NULL);
@@ -349,7 +334,9 @@ jcat_tool_sign (JcatToolPrivate *priv, gchar **values, GError **error)
 	}
 
 	/* sign with this kind */
-	engine = jcat_context_get_engine (priv->context, JCAT_BLOB_KIND_PKCS7, error);
+	if (priv->kind == JCAT_BLOB_KIND_UNKNOWN)
+		priv->kind = JCAT_BLOB_KIND_PKCS7;
+	engine = jcat_context_get_engine (priv->context, priv->kind, error);
 	if (engine == NULL)
 		return FALSE;
 	blob = jcat_engine_sign (engine, source, JCAT_SIGN_FLAG_NONE, error);
@@ -386,6 +373,11 @@ jcat_tool_verify_item (JcatToolPrivate *priv, JcatItem *item, GError **error)
 		const gchar *authority;
 		g_autoptr(GError) error_verify = NULL;
 		g_autoptr(JcatResult) result = NULL;
+
+		/* skip */
+		if (priv->kind != JCAT_BLOB_KIND_UNKNOWN &&
+		    priv->kind != jcat_blob_get_kind (blob))
+			continue;
 
 		result = jcat_context_verify_blob (priv->context,
 						   source,
@@ -448,6 +440,13 @@ jcat_tool_export (JcatToolPrivate *priv, gchar **values, GError **error)
 			JcatBlob *blob = g_ptr_array_index (blobs, j);
 			g_autofree gchar *fn = NULL;
 			g_autofree gchar *basename = NULL;
+
+			/* skip */
+			if (priv->kind != JCAT_BLOB_KIND_UNKNOWN &&
+			    priv->kind != jcat_blob_get_kind (blob))
+				continue;
+
+			/* export */
 			basename = g_strdup_printf ("%s.%s",
 						    jcat_item_get_id (item),
 						    jcat_blob_kind_to_filename_ext (jcat_blob_get_kind (blob)));
@@ -537,6 +536,7 @@ main (int argc, char *argv[])
 	gboolean version = FALSE;
 	g_autofree gchar *appstream_id = NULL;
 	g_autofree gchar *cmd_descriptions = NULL;
+	g_autofree gchar *kind = NULL;
 	g_autofree gchar *prefix = NULL;
 	g_autofree gchar *public_key = NULL;
 	g_autofree gchar *public_keys = NULL;
@@ -556,6 +556,8 @@ main (int argc, char *argv[])
 			_("Location of public key directories used for verification"), NULL },
 		{ "prefix", '\0', 0, G_OPTION_ARG_STRING, &prefix,
 			_("Prefix for import and output files"), NULL },
+		{ "kind", '\0', 0, G_OPTION_ARG_STRING, &kind,
+			_("Kind for blob, e.g. `gpg`"), NULL },
 		{ "appstream-id", '\0', 0, G_OPTION_ARG_STRING, &appstream_id,
 			_("Appstream ID for blob, e.g. `com.bbc`"), NULL },
 		{ NULL}
@@ -575,7 +577,7 @@ main (int argc, char *argv[])
 		       _("Show information about a file"),
 		       jcat_tool_info);
 	jcat_tool_add (priv->cmd_array,
-		       "sign", "FILENAME SOURCE FORMAT",
+		       "sign", "FILENAME SOURCE",
 		       /* TRANSLATORS: command description */
 		       _("Add a signature to a file"),
 		       jcat_tool_sign);
@@ -633,6 +635,19 @@ main (int argc, char *argv[])
 		jcat_context_add_public_key (priv->context, public_key);
 	if (public_keys != NULL)
 		jcat_context_add_public_keys (priv->context, public_keys);
+	if (kind != NULL) {
+		priv->kind = jcat_blob_kind_from_string (kind);
+		if (priv->kind == JCAT_BLOB_KIND_UNKNOWN) {
+			g_autoptr(GString) tmp = g_string_new (NULL);
+			for (guint i = 1; i < JCAT_BLOB_KIND_LAST; i++)
+				g_string_append_printf (tmp, "%s,", jcat_blob_kind_to_string (i));
+			if (tmp->len > 0)
+				g_string_truncate (tmp, tmp->len - 1);
+			g_printerr ("Failed to parse '%s', expected %s", kind, tmp->str);
+			return EXIT_FAILURE;
+		}
+	}
+
 
 	/* set verbose? */
 	if (verbose)
