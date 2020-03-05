@@ -406,7 +406,6 @@ static void
 jcat_pkcs7_engine_self_signed_func (void)
 {
 #ifdef ENABLE_PKCS7
-	gboolean ret;
 	g_autofree gchar *str = NULL;
 	g_autoptr(JcatContext) context = jcat_context_new ();
 	g_autoptr(JcatEngine) engine = NULL;
@@ -436,9 +435,6 @@ jcat_pkcs7_engine_self_signed_func (void)
 	signature = jcat_engine_sign (engine, payload, JCAT_SIGN_FLAG_ADD_TIMESTAMP, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (signature);
-	ret = jcat_set_contents_bytes ("/tmp/test.p7b", signature, &error);
-	g_assert_no_error (error);
-	g_assert_true (ret);
 	result = jcat_engine_verify (engine, payload, signature,
 				     JCAT_VERIFY_FLAG_USE_CLIENT_CERT, &error);
 	g_assert_no_error (error);
