@@ -11,6 +11,7 @@ RUN dnf -y install \
 	gobject-introspection-devel \
 	gpgme-devel \
 	gtk-doc \
+	help2man \
 	json-glib-devel \
 	meson \
 	redhat-rpm-config \

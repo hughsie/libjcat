@@ -20,6 +20,7 @@ BuildRequires: gnutls-devel
 BuildRequires: gnutls-utils
 BuildRequires: gpgme-devel
 BuildRequires: vala
+BuildRequires: help2man
 
 Requires: glib2%{?_isa} >= %{glib2_version}
 
@@ -63,7 +64,8 @@ Executable and data files for installed tests.
 %files
 %doc README.md
 %license LICENSE
-%{_libexecdir}/jcat-tool
+%{_bindir}/jcat-tool
+%{_datadir}/man/man1/*.1.gz
 %dir %{_libdir}/girepository-1.0
 %{_libdir}/girepository-1.0/*.typelib
 %{_libdir}/libjcat.so.1*
