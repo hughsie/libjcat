@@ -12,6 +12,7 @@ rm * -rf
 meson .. \
     --cross-file=../contrib/s390x.cross \
     -Dintrospection=false \
+    -Dman=false \
     -Dgpg=false \
     -Dgtkdoc=false \
     -Dtests=true $@

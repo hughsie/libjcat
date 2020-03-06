@@ -104,17 +104,20 @@ add_project_link_arguments(
 
 prefix = get_option('prefix')
 if host_machine.system() == 'windows'
+  bindir = get_option('bindir')
   libexecdir = get_option('libexecdir')
   localstatedir = get_option('localstatedir')
   installed_test_bindir = get_option('libexecdir')
   installed_test_datadir = get_option('datadir')
 else
+  bindir = join_paths(prefix, get_option('bindir'))
   datadir = join_paths(prefix, get_option('datadir'))
   localstatedir = join_paths(prefix, get_option('localstatedir'))
   libexecdir = join_paths(prefix, get_option('libexecdir'))
   installed_test_bindir = join_paths(libexecdir, 'installed-tests', meson.project_name())
   installed_test_datadir = join_paths(datadir, 'installed-tests', meson.project_name())
 endif
+mandir = join_paths(prefix, get_option('mandir'))
 localedir = join_paths(prefix, get_option('localedir'))
 
 diffcmd = find_program('diff')

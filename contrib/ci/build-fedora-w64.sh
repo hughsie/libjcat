@@ -6,6 +6,7 @@ rm * -rf
 meson .. \
     --cross-file=../contrib/mingw64.cross \
     -Dintrospection=false \
+    -Dman=false \
     -Dgpg=false \
     -Dgtkdoc=false \
     -Dtests=true $@
