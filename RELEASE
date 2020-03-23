@@ -5,7 +5,7 @@ libjcat Release Notes
 git shortlog 0.1.0.. | grep -i -v trivial | grep -v Merge > NEWS.new
 
 Version 0.1.0
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
 Released: 2020-xx-xx
 
 New Features:
