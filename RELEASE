@@ -4,7 +4,7 @@ libjcat Release Notes
 
 git shortlog 0.1.0.. | grep -i -v trivial | grep -v Merge > NEWS.new
 
-Version 0.1.0
+Version 0.1.1
 ~~~~~~~~~~~~~
 Released: 2020-xx-xx
 
@@ -15,7 +15,7 @@ Bugfixes:
 Commit changes to git:
 
 # MAKE SURE THESE ARE CORRECT
-export release_ver="0.1.0"
+export release_ver="0.1.1"
 
 git commit -a -m "Release libjcat ${release_ver}"
 git tag -s -f -m "Release libjcat ${release_ver}" "${release_ver}"
@@ -38,4 +38,3 @@ Do post release version bump in meson.build
 
 git commit -a -m "trivial: post release version bump"
 git push
-
