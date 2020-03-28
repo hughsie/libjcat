@@ -481,6 +481,7 @@ static void
 jcat_pkcs7_engine_self_signed_func (void)
 {
 #ifdef ENABLE_PKCS7
+	static const char payload_str[] = "Hello, world!";
 	g_autofree gchar *str = NULL;
 	g_autoptr(JcatBlob) signature = NULL;
 	g_autoptr(JcatContext) context = jcat_context_new ();
@@ -504,8 +505,7 @@ jcat_pkcs7_engine_self_signed_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (engine);
 
-	payload = jcat_get_contents_bytes ("/etc/machine-id", &error);
-	g_assert_no_error (error);
+	payload = g_bytes_new_static (payload_str, sizeof (payload_str));
 	g_assert_nonnull (payload);
 	signature = jcat_engine_self_sign (engine, payload, JCAT_SIGN_FLAG_ADD_TIMESTAMP, &error);
 	g_assert_no_error (error);
