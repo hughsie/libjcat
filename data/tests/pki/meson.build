@@ -1,3 +1,10 @@
+install_data([
+    'GPG-KEY-Linux-Vendor-Firmware-Service',
+    'LVFS-CA.pem',
+  ],
+  install_dir: join_paths(installed_test_datadir, 'pki'),
+)
+
 # generate certificate
 pkcs7_config = join_paths(meson.current_source_dir(), 'test.cfg')
 pkcs7_certificate = custom_target('test.pem',
