@@ -14,6 +14,24 @@
 #include "jcat-item-private.h"
 #include "jcat-result-private.h"
 
+static const gchar *
+jcat_test_srcdir (void)
+{
+	const gchar *testdatadir = g_getenv ("TESTDATADIR_SRC");
+	if (testdatadir != NULL)
+		return testdatadir;
+	return INSTALLEDTESTDIR;
+}
+
+static const gchar *
+jcat_test_dstdir (void)
+{
+	const gchar *testdatadir = g_getenv ("TESTDATADIR_DST");
+	if (testdatadir != NULL)
+		return testdatadir;
+	return INSTALLEDTESTDIR;
+}
+
 static void
 jcat_blob_func (void)
 {
@@ -216,7 +234,7 @@ jcat_sha1_engine_func (void)
 	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_CHECKSUM);
 
 	/* verify checksum */
-	fn_pass = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin", NULL);
+	fn_pass = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin", NULL);
 	data_fwbin = jcat_get_contents_bytes (fn_pass, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fwbin);
@@ -230,7 +248,7 @@ jcat_sha1_engine_func (void)
 	g_assert_cmpstr (jcat_result_get_authority (result_pass), ==, NULL);
 
 	/* verify will fail */
-	fn_fail = g_build_filename (TESTDATADIR_SRC, "meson.build",NULL);
+	fn_fail = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin.asc", NULL);
 	data_fail = jcat_get_contents_bytes (fn_fail, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fail);
@@ -274,7 +292,7 @@ jcat_sha256_engine_func (void)
 	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_CHECKSUM);
 
 	/* verify checksum */
-	fn_pass = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin", NULL);
+	fn_pass = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin", NULL);
 	data_fwbin = jcat_get_contents_bytes (fn_pass, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fwbin);
@@ -288,7 +306,7 @@ jcat_sha256_engine_func (void)
 	g_assert_cmpstr (jcat_result_get_authority (result_pass), ==, NULL);
 
 	/* verify will fail */
-	fn_fail = g_build_filename (TESTDATADIR_SRC, "meson.build",NULL);
+	fn_fail = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin.asc", NULL);
 	data_fail = jcat_get_contents_bytes (fn_fail, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fail);
@@ -340,7 +358,7 @@ jcat_gpg_engine_func (void)
 
 	/* set up context */
 	jcat_context_set_keyring_path (context, "/tmp/libjcat-self-test/var");
-	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
+	pki_dir = g_build_filename (jcat_test_srcdir (), "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
 
 	/* get engine */
@@ -356,7 +374,7 @@ jcat_gpg_engine_func (void)
 	g_assert_cmpstr (str, ==, str_perfect);
 
 	/* verify with GnuPG */
-	fn_pass = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin", NULL);
+	fn_pass = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin", NULL);
 	data_fwbin = jcat_get_contents_bytes (fn_pass, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fwbin);
@@ -371,7 +389,7 @@ jcat_gpg_engine_func (void)
 			 "3FC6B804410ED0840D8F2F9748A6D80E4538BAC2");
 
 	/* verify will fail with GnuPG */
-	fn_fail = g_build_filename (TESTDATADIR_SRC, "meson.build",NULL);
+	fn_fail = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin.asc", NULL);
 	data_fail = jcat_get_contents_bytes (fn_fail, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fail);
@@ -406,7 +424,7 @@ jcat_pkcs7_engine_func (void)
 
 	/* set up context */
 	jcat_context_set_keyring_path (context, "/tmp/libjcat-self-test/var");
-	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
+	pki_dir = g_build_filename (jcat_test_srcdir (), "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
 
 	/* get engine */
@@ -417,11 +435,11 @@ jcat_pkcs7_engine_func (void)
 	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_SIGNATURE);
 
 	/* verify with a signature from the old LVFS */
-	fn_pass = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin", NULL);
+	fn_pass = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin", NULL);
 	data_fwbin = jcat_get_contents_bytes (fn_pass, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fwbin);
-	fn_sig = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin.p7b", NULL);
+	fn_sig = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin.p7b", NULL);
 	data_sig = jcat_get_contents_bytes (fn_sig, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_sig);
@@ -434,7 +452,7 @@ jcat_pkcs7_engine_func (void)
 	g_assert_cmpstr (jcat_result_get_authority (result_pass), == , "O=Linux Vendor Firmware Project,CN=LVFS CA");
 
 	/* verify will fail with a self-signed signature */
-	sig_fn2 = g_build_filename (TESTDATADIR_DST, "colorhug", "firmware.bin.p7c", NULL);
+	sig_fn2 = g_build_filename (jcat_test_dstdir (), "colorhug", "firmware.bin.p7c", NULL);
 	blob_sig2 = jcat_get_contents_bytes (sig_fn2, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (blob_sig2);
@@ -445,7 +463,7 @@ jcat_pkcs7_engine_func (void)
 	g_clear_error (&error);
 
 	/* verify will fail with valid signature and different data */
-	fn_fail = g_build_filename (TESTDATADIR_SRC, "meson.build",NULL);
+	fn_fail = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin.asc", NULL);
 	data_fail = jcat_get_contents_bytes (fn_fail, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fail);
@@ -533,7 +551,7 @@ jcat_context_verify_blob_func (void)
 
 	/* set up context */
 	jcat_context_set_keyring_path (context, "/tmp");
-	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
+	pki_dir = g_build_filename (jcat_test_srcdir (), "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
 
 	/* get all engines */
@@ -554,11 +572,11 @@ jcat_context_verify_blob_func (void)
 	g_clear_error (&error);
 
 	/* verify blob */
-	fn_pass = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin", NULL);
+	fn_pass = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin", NULL);
 	data_fwbin = jcat_get_contents_bytes (fn_pass, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fwbin);
-	fn_sig = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin.p7b", NULL);
+	fn_sig = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin.p7b", NULL);
 	data_sig = jcat_get_contents_bytes (fn_sig, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_sig);
@@ -600,7 +618,7 @@ jcat_context_verify_item_sign_func (void)
 
 	/* set up context */
 	jcat_context_set_keyring_path (context, "/tmp");
-	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
+	pki_dir = g_build_filename (jcat_test_srcdir (), "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
 
 	/* get all engines */
@@ -621,11 +639,11 @@ jcat_context_verify_item_sign_func (void)
 	g_clear_error (&error);
 
 	/* verify blob */
-	fn_pass = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin", NULL);
+	fn_pass = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin", NULL);
 	data_fwbin = jcat_get_contents_bytes (fn_pass, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fwbin);
-	fn_sig = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin.p7b", NULL);
+	fn_sig = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin.p7b", NULL);
 	data_sig = jcat_get_contents_bytes (fn_sig, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_sig);
@@ -679,7 +697,7 @@ jcat_context_verify_item_csum_func (void)
 
 	/* set up context */
 	jcat_context_set_keyring_path (context, "/tmp");
-	pki_dir = g_build_filename (TESTDATADIR_SRC, "pki", NULL);
+	pki_dir = g_build_filename (jcat_test_srcdir (), "pki", NULL);
 	jcat_context_add_public_keys (context, pki_dir);
 
 	/* get all engines */
@@ -700,7 +718,7 @@ jcat_context_verify_item_csum_func (void)
 	g_clear_error (&error);
 
 	/* verify blob */
-	fn_pass = g_build_filename (TESTDATADIR_SRC, "colorhug", "firmware.bin", NULL);
+	fn_pass = g_build_filename (jcat_test_srcdir (), "colorhug", "firmware.bin", NULL);
 	data_fwbin = jcat_get_contents_bytes (fn_pass, &error);
 	g_assert_no_error (error);
 	g_assert_nonnull (data_fwbin);

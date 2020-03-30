@@ -199,6 +199,12 @@ if get_option('tests')
   if get_option('pkcs7')
     test_deps += colorhug_pkcs7_signature
   endif
+  testdatadirs = environment(
+    {
+      'TESTDATADIR_SRC' : testdatadir_src,
+      'TESTDATADIR_DST' : testdatadir_dst,
+    }
+  )
   e = executable(
     'jcat-self-test',
     test_deps,
@@ -222,13 +228,12 @@ if get_option('tests')
       libjcat_deps,
     ],
     c_args : [
-      '-DTESTDATADIR_SRC="' + testdatadir_src + '"',
-      '-DTESTDATADIR_DST="' + testdatadir_dst + '"',
+      '-DINSTALLEDTESTDIR="' + installed_test_datadir + '"',
     ],
     install : true,
     install_dir : installed_test_bindir
   )
-  test('jcat-self-test', e)
+  test('jcat-self-test', e, env : testdatadirs)
 endif
 
 jcat_incdir = include_directories('.')
