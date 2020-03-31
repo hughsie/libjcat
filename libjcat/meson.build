@@ -129,6 +129,11 @@ if get_option('introspection')
     install : true,
   )
 
+  # Make sure generate-version-script.py is invoked by the same python as meson,
+  # as that one must already have both XML support and setuptools.
+  python = import('python')
+  python_interpreter = python.find_installation()
+
   # Verify the map file is correct -- note we can't actually use the generated
   # file for two reasons:
   #
@@ -141,6 +146,7 @@ if get_option('introspection')
     input: jcat_gir[0],
     output: 'jcat.map',
     command: [
+      python_interpreter,
       join_paths(meson.source_root(), 'contrib', 'generate-version-script.py'),
       'LIBJCAT',
       '@INPUT@',
