@@ -349,4 +349,5 @@ jcat_engine_class_init (JcatEngineClass *klass)
 static void
 jcat_engine_init (JcatEngine *self)
 {
+	g_debug ("hello");
 }
