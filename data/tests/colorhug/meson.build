@@ -3,7 +3,7 @@ install_data([
     'firmware.bin.asc',
     'firmware.bin.p7b',
   ],
-  install_dir: join_paths(installed_test_datadir, 'colorhug'),
+  install_dir: join_paths(installed_test_bindir, 'colorhug'),
 )
 
 if get_option('pkcs7')
@@ -18,6 +18,6 @@ if get_option('pkcs7')
                         '--infile', '@INPUT@',
                         '--outfile', '@OUTPUT@'],
     install: true,
-    install_dir: join_paths(installed_test_datadir, 'colorhug'),
+    install_dir: join_paths(installed_test_bindir, 'colorhug'),
   )
 endif
