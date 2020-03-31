@@ -2,7 +2,7 @@ install_data([
     'GPG-KEY-Linux-Vendor-Firmware-Service',
     'LVFS-CA.pem',
   ],
-  install_dir: join_paths(installed_test_datadir, 'pki'),
+  install_dir: join_paths(installed_test_bindir, 'pki'),
 )
 
 # generate certificate

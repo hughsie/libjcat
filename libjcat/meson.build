@@ -201,8 +201,8 @@ if get_option('tests')
   endif
   testdatadirs = environment(
     {
-      'TESTDATADIR_SRC' : testdatadir_src,
-      'TESTDATADIR_DST' : testdatadir_dst,
+      'G_TEST_SRCDIR' : testdatadir_src,
+      'G_TEST_BUILDDIR' : testdatadir_dst,
     }
   )
   e = executable(
@@ -226,9 +226,6 @@ if get_option('tests')
     ],
     dependencies : [
       libjcat_deps,
-    ],
-    c_args : [
-      '-DINSTALLEDTESTDIR="' + installed_test_datadir + '"',
     ],
     install : true,
     install_dir : installed_test_bindir

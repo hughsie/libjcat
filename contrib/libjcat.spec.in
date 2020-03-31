@@ -84,7 +84,7 @@ Executable and data files for installed tests.
 
 %files tests
 %doc README.md
-%{_libexecdir}/installed-tests/libjcat/jcat-self-test
+%{_libexecdir}/installed-tests/libjcat/*
 %{_datadir}/installed-tests/libjcat/*
 %dir %{_datadir}/installed-tests/libjcat
 
