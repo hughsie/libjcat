@@ -1,0 +1,10 @@
+extraction:
+  cpp:
+    prepare:
+      packages:
+        - python3-pip
+        - python3-setuptools
+        - python3-wheel
+    after_prepare:
+      - python3 -m pip install --user "meson >= 0.52.0"
+      - export PATH="$HOME/.local/bin:$PATH"
