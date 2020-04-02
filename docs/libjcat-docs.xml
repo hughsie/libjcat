@@ -26,6 +26,7 @@
       </para>
     </partintro>
     <xi:include href="xml/jcat-blob.xml"/>
+    <xi:include href="xml/jcat-common.xml"/>
     <xi:include href="xml/jcat-context.xml"/>
     <xi:include href="xml/jcat-engine.xml"/>
     <xi:include href="xml/jcat-file.xml"/>
