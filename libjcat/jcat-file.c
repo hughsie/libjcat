@@ -390,7 +390,7 @@ jcat_file_get_items (JcatFile *self)
  * @id: An ID, typically a filename basename
  * @error: #GError, or %NULL
  *
- * Finds the item with the specified ID.
+ * Finds the item with the specified ID, falling back to the ID alias if set.
  *
  * Returns: (transfer full): a #JcatItem, or %NULL if the filename was not found
  *
@@ -405,11 +405,25 @@ jcat_file_get_item_by_id (JcatFile *self, const gchar *id, GError **error)
 	g_return_val_if_fail (id != NULL, NULL);
 	g_return_val_if_fail (error == NULL || *error == NULL, NULL);
 
+	/* exact ID match */
 	for (guint i = 0; i < priv->items->len; i++) {
 		JcatItem *item = g_ptr_array_index (priv->items, i);
 		if (g_strcmp0 (jcat_item_get_id (item), id) == 0)
 			return g_object_ref (item);
 	}
+
+	/* try aliases this time */
+	for (guint i = 0; i < priv->items->len; i++) {
+		JcatItem *item = g_ptr_array_index (priv->items, i);
+		g_autoptr(GPtrArray) alias_ids = jcat_item_get_alias_ids (item);
+		for (guint j = 0; j < alias_ids->len; j++) {
+			const gchar *id_tmp = g_ptr_array_index (alias_ids, j);
+			if (g_strcmp0 (id_tmp, id) == 0)
+				return g_object_ref (item);
+		}
+	}
+
+	/* failed */
 	g_set_error (error,
 		     G_IO_ERROR,
 		     G_IO_ERROR_NOT_FOUND,

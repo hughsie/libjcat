@@ -59,3 +59,11 @@ LIBJCAT_0.1.0 {
     jcat_result_to_string;
   local: *;
 };
+
+LIBJCAT_0.1.1 {
+  global:
+    jcat_item_add_alias_id;
+    jcat_item_get_alias_ids;
+    jcat_item_remove_alias_id;
+  local: *;
+} LIBJCAT_0.1.0;

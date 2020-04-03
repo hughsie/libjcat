@@ -61,10 +61,14 @@ jcat_item_func (void)
 	g_autoptr(JcatItem) item = NULL;
 	const gchar *str_perfect =
 		"JcatItem:\n"
-		"  ID:                    filename.bin\n";
+		"  ID:                    filename.bin\n"
+		"  AliasId:               foo.bin\n";
 
 	/* sanity check */
 	item = jcat_item_new ("filename.bin");
+	jcat_item_add_alias_id (item, "foo.bin");
+	jcat_item_add_alias_id (item, "bar.bin");
+	jcat_item_remove_alias_id (item, "bar.bin");
 	g_assert_cmpstr (jcat_item_get_id (item), ==, "filename.bin");
 
 	/* to string */
@@ -103,6 +107,9 @@ jcat_file_func (void)
 		"  \"Items\" : [\n"
 		"    {\n"
 		"      \"Id\" : \"firmware.bin\",\n"
+		"      \"AliasIds\" : [\n"
+		"        \"foo.bin\"\n"
+		"      ],\n"
 		"      \"Blobs\" : [\n"
 		"        {\n"
 		"          \"Kind\" : 2,\n"
@@ -142,6 +149,7 @@ jcat_file_func (void)
 	jcat_item_add_blob (item, blob1);
 	jcat_item_add_blob (item, blob2);
 	jcat_item_add_blob (item, blob2);
+	jcat_item_add_alias_id (item, "foo.bin");
 	blobs1 = jcat_item_get_blobs (item);
 	g_assert_cmpint (blobs1->len, ==, 2);
 	blobs2 = jcat_item_get_blobs_by_kind (item, JCAT_BLOB_KIND_GPG);
