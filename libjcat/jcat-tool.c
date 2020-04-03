@@ -201,6 +201,80 @@ jcat_tool_info (JcatToolPrivate *priv, gchar **values, GError **error)
 	return TRUE;
 }
 
+static gboolean
+jcat_tool_add_alias (JcatToolPrivate *priv, gchar **values, GError **error)
+{
+	g_autoptr(GFile) gfile = NULL;
+	g_autoptr(GPtrArray) items = NULL;
+	g_autoptr(JcatFile) file = jcat_file_new ();
+	g_autoptr(JcatItem) item = NULL;
+	g_autofree gchar *str = NULL;
+
+	/* check args */
+	if (g_strv_length (values) != 3) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_FAILED,
+				     "Invalid arguments, expected FILENAME ID ALIAS_ID");
+		return FALSE;
+	}
+
+	/* import file */
+	gfile = g_file_new_for_path (values[0]);
+	if (!jcat_file_import_file (file, gfile,
+				    JCAT_IMPORT_FLAG_NONE,
+				    priv->cancellable, error))
+		return FALSE;
+
+	/* add alias */
+	item = jcat_file_get_item_by_id (file, values[1], error);
+	if (item == NULL)
+		return FALSE;
+	jcat_item_add_alias_id (item, values[2]);
+
+	/* export new file */
+	return jcat_file_export_file (file, gfile,
+				      JCAT_EXPORT_FLAG_NONE,
+				      priv->cancellable, error);
+}
+
+static gboolean
+jcat_tool_remove_alias (JcatToolPrivate *priv, gchar **values, GError **error)
+{
+	g_autoptr(GFile) gfile = NULL;
+	g_autoptr(GPtrArray) items = NULL;
+	g_autoptr(JcatFile) file = jcat_file_new ();
+	g_autoptr(JcatItem) item = NULL;
+	g_autofree gchar *str = NULL;
+
+	/* check args */
+	if (g_strv_length (values) != 3) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_FAILED,
+				     "Invalid arguments, expected FILENAME ID ALIAS_ID");
+		return FALSE;
+	}
+
+	/* import file */
+	gfile = g_file_new_for_path (values[0]);
+	if (!jcat_file_import_file (file, gfile,
+				    JCAT_IMPORT_FLAG_NONE,
+				    priv->cancellable, error))
+		return FALSE;
+
+	/* remove alias */
+	item = jcat_file_get_item_by_id (file, values[1], error);
+	if (item == NULL)
+		return FALSE;
+	jcat_item_remove_alias_id (item, values[2]);
+
+	/* export new file */
+	return jcat_file_export_file (file, gfile,
+				      JCAT_EXPORT_FLAG_NONE,
+				      priv->cancellable, error);
+}
+
 static gchar *
 jcat_tool_import_convert_id_safe (JcatToolPrivate *priv, const gchar *filename)
 {
@@ -683,6 +757,16 @@ main (int argc, char *argv[])
 		       /* TRANSLATORS: command description */
 		       _("Verify a signature from a file"),
 		       jcat_tool_verify);
+	jcat_tool_add (priv->cmd_array,
+		       "add-alias", "FILENAME ID ALIAS_ID",
+		       /* TRANSLATORS: command description */
+		       _("Add an alias for a specific item"),
+		       jcat_tool_add_alias);
+	jcat_tool_add (priv->cmd_array,
+		       "remove-alias", "FILENAME ID ALIAS_ID",
+		       /* TRANSLATORS: command description */
+		       _("Remove an alias for a specific item"),
+		       jcat_tool_remove_alias);
 
 	/* do stuff on ctrl+c */
 	priv->cancellable = g_cancellable_new ();

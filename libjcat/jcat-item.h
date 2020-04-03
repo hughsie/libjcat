@@ -28,3 +28,8 @@ GPtrArray	*jcat_item_get_blobs_by_kind		(JcatItem	*self,
 void		 jcat_item_add_blob			(JcatItem	*self,
 							 JcatBlob	*blob);
 const gchar	*jcat_item_get_id			(JcatItem	*self);
+void		 jcat_item_add_alias_id			(JcatItem	*self,
+							 const gchar	*id);
+void		 jcat_item_remove_alias_id		(JcatItem	*self,
+							 const gchar	*id);
+GPtrArray	*jcat_item_get_alias_ids		(JcatItem	*self);
