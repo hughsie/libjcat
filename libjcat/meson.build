@@ -35,7 +35,9 @@ if get_option('pkcs7')
 endif
 
 jcat_mapfile = 'jcat.map'
-vflag = '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), jcat_mapfile)
+libjcat_ldflags = cc.get_supported_link_arguments([
+  '-Wl,--version-script,@0@/@1@'.format(meson.current_source_dir(), jcat_mapfile)
+])
 libjcat = library(
   'jcat',
   sources : [
@@ -54,7 +56,7 @@ libjcat = library(
   version : lt_version,
   include_directories : configinc,
   dependencies : libjcat_deps,
-  link_args : vflag,
+  link_args : libjcat_ldflags,
   link_depends : jcat_mapfile,
   install : true
 )
