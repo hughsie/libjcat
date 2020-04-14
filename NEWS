@@ -1,3 +1,16 @@
+Version 0.1.1
+~~~~~~~~~~~~~
+Released: 2020-04-14
+
+New Features:
+ - Allow adding an item ID 'alias' (Richard Hughes)
+
+Bugfixes:
+ - Make the installed tests actually work (Richard Hughes)
+ - Run generate-version-script.py using the same Python as meson itself (Marek Szuba)
+ - Only pass --version-script to linker when supported (Jan Tojnar)
+ - Sign a simple string instead of /etc/machine-id (Simon McVittie)
+
 Version 0.1.0
 ~~~~~~~~~~~~~
 Released: 2020-03-23
