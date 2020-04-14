@@ -525,7 +525,7 @@ jcat_context_verify_blob_func (void)
 #ifdef ENABLE_PKCS7
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
-	g_autofree gchar *pki_dir;
+	g_autofree gchar *pki_dir = NULL;
 	g_autoptr(GBytes) data_fwbin = NULL;
 	g_autoptr(GBytes) data_sig = NULL;
 	g_autoptr(GError) error = NULL;
@@ -590,7 +590,7 @@ jcat_context_verify_item_sign_func (void)
 	JcatResult *result;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
-	g_autofree gchar *pki_dir;
+	g_autofree gchar *pki_dir = NULL;
 	g_autoptr(GBytes) data_fwbin = NULL;
 	g_autoptr(GBytes) data_sig = NULL;
 	g_autoptr(GError) error = NULL;
@@ -669,7 +669,7 @@ jcat_context_verify_item_csum_func (void)
 #ifdef ENABLE_PKCS7
 	JcatResult *result;
 	g_autofree gchar *fn_pass = NULL;
-	g_autofree gchar *pki_dir;
+	g_autofree gchar *pki_dir = NULL;
 	g_autoptr(GBytes) data_fwbin = NULL;
 	g_autoptr(GError) error = NULL;
 	g_autoptr(JcatBlob) blob = NULL;
