@@ -9,7 +9,7 @@ Version:   #VERSION#
 Release:   0.#BUILD#%{?alphatag}%{?dist}
 License:   LGPLv2+
 URL:       https://github.com/hughsie/libjcat
-Source0:   http://people.freedesktop.org/~hughsient/releases/%{name}-%{version}.tar.xz
+Source0:   https://people.freedesktop.org/~hughsient/releases/%{name}-%{version}.tar.xz
 
 BuildRequires: gtk-doc
 BuildRequires: meson
@@ -55,17 +55,17 @@ Executable and data files for installed tests.
 
 %meson_build
 
-%check
-%meson_test
-
 %install
 %meson_install
+
+%check
+%meson_test
 
 %files
 %doc README.md
 %license LICENSE
 %{_bindir}/jcat-tool
-%{_datadir}/man/man1/*.1.gz
+%{_datadir}/man/man1/*.1*
 %dir %{_libdir}/girepository-1.0
 %{_libdir}/girepository-1.0/*.typelib
 %{_libdir}/libjcat.so.1*
@@ -79,6 +79,8 @@ Executable and data files for installed tests.
 %{_includedir}/libjcat-1
 %{_libdir}/libjcat.so
 %{_libdir}/pkgconfig/jcat.pc
+%dir %{_datadir}/vala
+%dir %{_datadir}/vala/vapi
 %{_datadir}/vala/vapi/jcat.deps
 %{_datadir}/vala/vapi/jcat.vapi
 
