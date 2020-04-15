@@ -131,10 +131,13 @@ if get_option('introspection')
     install : true,
   )
 
-  # Make sure generate-version-script.py is invoked by the same python as meson,
-  # as that one must already have both XML support and setuptools.
   python = import('python')
-  python_interpreter = python.find_installation()
+  python_interpreter = python.find_installation('python3',
+    modules: [
+      'xml.etree.ElementTree',
+      'pkg_resources',
+    ],
+  )
 
   # Verify the map file is correct -- note we can't actually use the generated
   # file for two reasons:
