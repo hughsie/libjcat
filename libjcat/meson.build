@@ -210,12 +210,9 @@ if get_option('tests')
   if get_option('pkcs7')
     test_deps += colorhug_pkcs7_signature
   endif
-  testdatadirs = environment(
-    {
-      'G_TEST_SRCDIR' : testdatadir_src,
-      'G_TEST_BUILDDIR' : testdatadir_dst,
-    }
-  )
+  testdatadirs = environment()
+  testdatadirs.set('G_TEST_SRCDIR', testdatadir_src)
+  testdatadirs.set('G_TEST_BUILDDIR', testdatadir_dst)
   e = executable(
     'jcat-self-test',
     test_deps,
