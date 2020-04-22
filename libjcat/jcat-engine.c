@@ -163,7 +163,7 @@ jcat_engine_pubkey_sign (JcatEngine *self,
 		return NULL;
 	}
 	if (!jcat_engine_setup (self, error))
-		return FALSE;
+		return NULL;
 	return klass->pubkey_sign (self, blob, cert, privkey, flags, error);
 }
 
@@ -234,7 +234,7 @@ jcat_engine_self_sign (JcatEngine *self,
 		return NULL;
 	}
 	if (!jcat_engine_setup (self, error))
-		return FALSE;
+		return NULL;
 	return klass->self_sign (self, blob, flags, error);
 }
 
