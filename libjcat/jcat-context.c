@@ -175,7 +175,7 @@ jcat_context_get_engine (JcatContext *self, JcatBlobKind kind, GError **error)
 {
 	JcatContextPrivate *priv = GET_PRIVATE (self);
 
-	g_return_val_if_fail (JCAT_IS_CONTEXT (self), 0);
+	g_return_val_if_fail (JCAT_IS_CONTEXT (self), NULL);
 
 	for (guint i = 0; i < priv->engines->len; i++) {
 		JcatEngine *engine = g_ptr_array_index (priv->engines, i);
