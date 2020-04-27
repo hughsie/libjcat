@@ -1,3 +1,11 @@
+Version 0.1.2
+~~~~~~~~~~~~~
+Released: 2020-04-27
+
+Bugfixes:
+ - Lower the meson dep version for RHEL 8 (Richard Hughes)
+ - Check for Python modules explicitly during build (Jan Tojnar)
+
 Version 0.1.1
 ~~~~~~~~~~~~~
 Released: 2020-04-14
