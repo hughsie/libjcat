@@ -341,7 +341,6 @@ jcat_blob_get_data_as_string (JcatBlob *self)
 	g_return_val_if_fail (JCAT_IS_BLOB (self), NULL);
 
 	/* may be binary data or not NULL terminated */
-	buf = g_bytes_get_data (priv->data, &bufsz);
 	if ((priv->flags & JCAT_BLOB_FLAG_IS_UTF8) == 0)
 		return g_base64_encode (buf, bufsz);
 	return g_strndup ((const gchar *) buf, bufsz);
