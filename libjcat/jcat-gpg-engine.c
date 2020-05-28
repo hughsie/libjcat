@@ -267,6 +267,13 @@ jcat_gpg_engine_pubkey_verify (JcatEngine *engine,
 				     "no result record from libgpgme");
 		return NULL;
 	}
+	if (result->signatures == NULL) {
+		g_set_error_literal (error,
+				     G_IO_ERROR,
+				     G_IO_ERROR_FAILED,
+				     "no signatures from libgpgme");
+		return NULL;
+	}
 
 	/* look at each signature */
 	for (s = result->signatures; s != NULL ; s = s->next ) {

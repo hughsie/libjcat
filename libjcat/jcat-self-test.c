@@ -394,6 +394,60 @@ jcat_gpg_engine_func (void)
 }
 
 static void
+jcat_gpg_engine_msg_func (void)
+{
+#ifdef ENABLE_GPG
+	g_autofree gchar *fn = NULL;
+	g_autofree gchar *pki_dir = NULL;
+	g_autoptr(GBytes) data = NULL;
+	g_autoptr(GBytes) data_sig = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(JcatContext) context = jcat_context_new ();
+	g_autoptr(JcatEngine) engine = NULL;
+	g_autoptr(JcatResult) result = NULL;
+	const gchar *sig =
+	"-----BEGIN PGP MESSAGE-----\n"
+	"owGbwMvMwMEovmZX76/pfOKMp0WSGOLOX3/ikZqTk6+jUJ5flJOiyNXJaMzCwMjB\n"
+	"ICumyCJmt5VRUil28/1+z1cwbaxMID0MXJwCMJG4RxwMLUYXDkUad34I3vrT8+X2\n"
+	"m+ZyHyMWnTiQYaQb/eLJGqbiAJc5Jr4a/PPqHNi7auwzGsKsljebabjtnJRzpDr0\n"
+	"YvwrnmmWLJUnTzjM3MH5Kn+RzqXkywsYdk9yD2OUdLy736CiemFMdcuF02lOZvPU\n"
+	"HaTKl76wW62QH8Lr8yGMQ1Xgc6nC2ZwUhvctky7NOZtc1T477uBTL81p31ZmaIUJ\n"
+	"paS8uWZl8UzX5sFsqQi37G1TbDc8Cm+oU/yRkFj2pLBzw367ncsa4n7EqEWu1yrN\n"
+	"yD39LUeErePdqfKCG+xhL6WkWt5ZJ/6//XnjouXhl5Z4tWspT49MtNp5d3aDQ43c\n"
+	"mnbresn6A7KMZgdOiwIA\n"
+	"=a9ui\n"
+	"-----END PGP MESSAGE-----\n";
+
+	/* set up context */
+	jcat_context_set_keyring_path (context, "/tmp/libjcat-self-test/var");
+	pki_dir = g_test_build_filename (G_TEST_DIST, "pki", NULL);
+	jcat_context_add_public_keys (context, pki_dir);
+
+	/* get engine */
+	engine = jcat_context_get_engine (context, JCAT_BLOB_KIND_GPG, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (engine);
+	g_assert_cmpint (jcat_engine_get_kind (engine), ==, JCAT_BLOB_KIND_GPG);
+	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_SIGNATURE);
+
+	/* verify with GnuPG, which should fail as the signature is not a
+	 * detached signature at all, but gnupg stabs us in the back by returning
+	 * success from gpgme_op_verify() with an empty list of signatures */
+	fn = g_test_build_filename (G_TEST_DIST, "colorhug", "firmware.bin", NULL);
+	data = jcat_get_contents_bytes (fn, &error);
+	g_assert_no_error (error);
+	g_assert_nonnull (data);
+	data_sig = g_bytes_new_static (sig, strlen (sig));
+	result = jcat_engine_pubkey_verify (engine, data, data_sig,
+					    JCAT_VERIFY_FLAG_NONE, &error);
+	g_assert_error (error, G_IO_ERROR, G_IO_ERROR_FAILED);
+	g_assert_null (result);
+#else
+	g_test_skip ("no GnuPG support enabled");
+#endif
+}
+
+static void
 jcat_pkcs7_engine_func (void)
 {
 #ifdef ENABLE_PKCS7
@@ -753,6 +807,7 @@ main (int argc, char **argv)
 	g_test_add_func ("/jcat/engine{sha1}", jcat_sha1_engine_func);
 	g_test_add_func ("/jcat/engine{sha256}", jcat_sha256_engine_func);
 	g_test_add_func ("/jcat/engine{gpg}", jcat_gpg_engine_func);
+	g_test_add_func ("/jcat/engine{gpg-msg}", jcat_gpg_engine_msg_func);
 	g_test_add_func ("/jcat/engine{pkcs7}", jcat_pkcs7_engine_func);
 	g_test_add_func ("/jcat/engine{pkcs7-self-signed}", jcat_pkcs7_engine_self_signed_func);
 	g_test_add_func ("/jcat/context{verify-blob}", jcat_context_verify_blob_func);
