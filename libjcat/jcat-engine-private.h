@@ -8,15 +8,6 @@
 
 #include "jcat-engine.h"
 
-typedef enum {
-	JCAT_ENGINE_VERIFY_KIND_UNKNOWN,
-	JCAT_ENGINE_VERIFY_KIND_CHECKSUM,
-	JCAT_ENGINE_VERIFY_KIND_SIGNATURE,
-	JCAT_ENGINE_VERIFY_KIND_LAST
-} JcatEngineVerifyKind;
-
-JcatBlobKind	 jcat_engine_get_kind			(JcatEngine	*self);
-JcatEngineVerifyKind jcat_engine_get_verify_kind	(JcatEngine	*self);
 const gchar	*jcat_engine_get_keyring_path		(JcatEngine	*self);
 void		 jcat_engine_add_string			(JcatEngine	*self,
 							 guint		 idt,

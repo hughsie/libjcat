@@ -47,6 +47,8 @@ struct _JcatEngineClass
 	gpointer		 padding[9];
 };
 
+JcatBlobKind	 jcat_engine_get_kind			(JcatEngine	*self);
+JcatBlobMethod	 jcat_engine_get_method			(JcatEngine	*self);
 JcatResult	*jcat_engine_pubkey_verify		(JcatEngine	*self,
 							 GBytes		*blob,
 							 GBytes		*blob_signature,

@@ -235,7 +235,7 @@ jcat_context_verify_blob (JcatContext *self,
  * @error: #GError, or %NULL
  *
  * Verifies a #JcatItem using the public keys added to the context. All
- * `verify_kind=CHECKSUM` engines (e.g. SHA256) must verify correctly,
+ * `verify=CHECKSUM` engines (e.g. SHA256) must verify correctly,
  * but only one non-checksum signature has to verify.
  *
  * Returns: (transfer container) (element-type JcatResult): array of #JcatResult, or %NULL for failed
@@ -267,7 +267,7 @@ jcat_context_verify_item (JcatContext *self,
 		return NULL;
 	}
 
-	/* all verify_kind engines must verify */
+	/* all checksum engines must verify */
 	for (guint i = 0; i < blobs->len; i++) {
 		JcatBlob *blob = g_ptr_array_index (blobs, i);
 		g_autoptr(JcatEngine) engine = NULL;
@@ -277,7 +277,7 @@ jcat_context_verify_item (JcatContext *self,
 		engine = jcat_context_get_engine (self, jcat_blob_get_kind (blob), error);
 		if (engine == NULL)
 			return NULL;
-		if (jcat_engine_get_verify_kind (engine) != JCAT_ENGINE_VERIFY_KIND_CHECKSUM)
+		if (jcat_engine_get_method (engine) != JCAT_BLOB_METHOD_CHECKSUM)
 			continue;
 		result = jcat_engine_self_verify (engine, data, jcat_blob_get_data (blob), flags, error);
 		if (result == NULL) {
@@ -294,7 +294,7 @@ jcat_context_verify_item (JcatContext *self,
 		return NULL;
 	}
 
-	/* we only have to have one non-verify_kind engine to verify */
+	/* we only have to have one non-checksum method to verify */
 	for (guint i = 0; i < blobs->len; i++) {
 		JcatBlob *blob = g_ptr_array_index (blobs, i);
 		g_autofree gchar *result_str = NULL;
@@ -305,7 +305,7 @@ jcat_context_verify_item (JcatContext *self,
 		engine = jcat_context_get_engine (self, jcat_blob_get_kind (blob), error);
 		if (engine == NULL)
 			return NULL;
-		if (jcat_engine_get_verify_kind (engine) != JCAT_ENGINE_VERIFY_KIND_SIGNATURE)
+		if (jcat_engine_get_method (engine) != JCAT_BLOB_METHOD_SIGNATURE)
 			continue;
 		result = jcat_engine_pubkey_verify (engine, data, jcat_blob_get_data (blob), flags, &error_local);
 		if (result == NULL) {

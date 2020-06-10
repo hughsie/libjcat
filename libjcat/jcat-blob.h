@@ -33,6 +33,22 @@ typedef enum {
 } JcatBlobKind;
 
 /**
+ * JcatBlobMethod:
+ * @JCAT_BLOB_METHOD_UNKNOWN:		Unknown
+ * @JCAT_BLOB_METHOD_CHECKSUM:		Checksum
+ * @JCAT_BLOB_METHOD_SIGNATURE:		Signature
+ *
+ * The blob verification method.
+ **/
+typedef enum {
+	JCAT_BLOB_METHOD_UNKNOWN,
+	JCAT_BLOB_METHOD_CHECKSUM,
+	JCAT_BLOB_METHOD_SIGNATURE,
+	/*< private >*/
+	JCAT_BLOB_METHOD_LAST
+} JcatBlobMethod;
+
+/**
  * JcatBlobFlags:
  * @JCAT_BLOB_FLAG_NONE:		Generic binary data
  * @JCAT_BLOB_FLAG_IS_UTF8:		ASCII text

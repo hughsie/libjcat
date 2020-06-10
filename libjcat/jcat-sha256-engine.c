@@ -80,6 +80,6 @@ jcat_sha256_engine_new (JcatContext *context)
 	return JCAT_ENGINE (g_object_new (JCAT_TYPE_SHA256_ENGINE,
 					  "context", context,
 					  "kind", JCAT_BLOB_KIND_SHA256,
-					  "verify-kind", JCAT_ENGINE_VERIFY_KIND_CHECKSUM,
+					  "method", JCAT_BLOB_METHOD_CHECKSUM,
 					  NULL));
 }
