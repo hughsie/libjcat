@@ -464,6 +464,6 @@ jcat_pkcs7_engine_new (JcatContext *context)
 	return JCAT_ENGINE (g_object_new (JCAT_TYPE_PKCS7_ENGINE,
 					  "context", context,
 					  "kind", JCAT_BLOB_KIND_PKCS7,
-					  "verify-kind", JCAT_ENGINE_VERIFY_KIND_SIGNATURE,
+					  "method", JCAT_BLOB_METHOD_SIGNATURE,
 					  NULL));
 }

@@ -221,7 +221,7 @@ jcat_sha1_engine_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (engine);
 	g_assert_cmpint (jcat_engine_get_kind (engine), ==, JCAT_BLOB_KIND_SHA1);
-	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_CHECKSUM);
+	g_assert_cmpint (jcat_engine_get_method (engine), ==, JCAT_BLOB_METHOD_CHECKSUM);
 
 	/* verify checksum */
 	fn_pass = g_test_build_filename (G_TEST_DIST, "colorhug", "firmware.bin", NULL);
@@ -279,7 +279,7 @@ jcat_sha256_engine_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (engine);
 	g_assert_cmpint (jcat_engine_get_kind (engine), ==, JCAT_BLOB_KIND_SHA256);
-	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_CHECKSUM);
+	g_assert_cmpint (jcat_engine_get_method (engine), ==, JCAT_BLOB_METHOD_CHECKSUM);
 
 	/* verify checksum */
 	fn_pass = g_test_build_filename (G_TEST_DIST, "colorhug", "firmware.bin", NULL);
@@ -356,7 +356,7 @@ jcat_gpg_engine_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (engine);
 	g_assert_cmpint (jcat_engine_get_kind (engine), ==, JCAT_BLOB_KIND_GPG);
-	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_SIGNATURE);
+	g_assert_cmpint (jcat_engine_get_method (engine), ==, JCAT_BLOB_METHOD_SIGNATURE);
 
 	/* to string */
 	str = jcat_engine_to_string (engine);
@@ -428,7 +428,7 @@ jcat_gpg_engine_msg_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (engine);
 	g_assert_cmpint (jcat_engine_get_kind (engine), ==, JCAT_BLOB_KIND_GPG);
-	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_SIGNATURE);
+	g_assert_cmpint (jcat_engine_get_method (engine), ==, JCAT_BLOB_METHOD_SIGNATURE);
 
 	/* verify with GnuPG, which should fail as the signature is not a
 	 * detached signature at all, but gnupg stabs us in the back by returning
@@ -476,7 +476,7 @@ jcat_pkcs7_engine_func (void)
 	g_assert_no_error (error);
 	g_assert_nonnull (engine);
 	g_assert_cmpint (jcat_engine_get_kind (engine), ==, JCAT_BLOB_KIND_PKCS7);
-	g_assert_cmpint (jcat_engine_get_verify_kind (engine), ==, JCAT_ENGINE_VERIFY_KIND_SIGNATURE);
+	g_assert_cmpint (jcat_engine_get_method (engine), ==, JCAT_BLOB_METHOD_SIGNATURE);
 
 	/* verify with a signature from the old LVFS */
 	fn_pass = g_test_build_filename (G_TEST_DIST, "colorhug", "firmware.bin", NULL);

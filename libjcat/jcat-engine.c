@@ -13,7 +13,7 @@
 typedef struct {
 	JcatContext		*context;		/* weak */
 	JcatBlobKind		 kind;
-	JcatEngineVerifyKind	 verify_kind;
+	JcatBlobMethod		 method;
 	gboolean		 done_setup;
 } JcatEnginePrivate;
 
@@ -24,16 +24,16 @@ enum {
 	PROP_0,
 	PROP_CONTEXT,
 	PROP_KIND,
-	PROP_VERIFY_KIND,
+	PROP_METHOD,
 	PROP_LAST
 };
 
 static const gchar *
-jcat_engine_verify_kind_to_string (JcatEngineVerifyKind verify_kind)
+jcat_engine_method_to_string (JcatBlobMethod method)
 {
-	if (verify_kind == JCAT_ENGINE_VERIFY_KIND_CHECKSUM)
+	if (method == JCAT_BLOB_METHOD_CHECKSUM)
 		return "checksum";
-	if (verify_kind == JCAT_ENGINE_VERIFY_KIND_SIGNATURE)
+	if (method == JCAT_BLOB_METHOD_SIGNATURE)
 		return "signature";
 	return NULL;
 }
@@ -47,7 +47,7 @@ jcat_engine_add_string (JcatEngine *self, guint idt, GString *str)
 	jcat_string_append_kv (str, idt + 1, "Kind",
 			       jcat_blob_kind_to_string (priv->kind));
 	jcat_string_append_kv (str, idt + 1, "VerifyKind",
-			       jcat_engine_verify_kind_to_string (priv->verify_kind));
+			       jcat_engine_method_to_string (priv->method));
 }
 
 /* private */
@@ -238,6 +238,16 @@ jcat_engine_self_sign (JcatEngine *self,
 	return klass->self_sign (self, blob, flags, error);
 }
 
+/**
+ * jcat_engine_get_kind:
+ * @self: #JcatEngine
+ *
+ * Gets the blob kind.
+ *
+ * Returns: #JcatBlobKind, e.g. %JCAT_BLOB_KIND_SHA256
+ *
+ * Since: 0.1.3
+ **/
 JcatBlobKind
 jcat_engine_get_kind (JcatEngine *self)
 {
@@ -245,11 +255,21 @@ jcat_engine_get_kind (JcatEngine *self)
 	return priv->kind;
 }
 
-JcatEngineVerifyKind
-jcat_engine_get_verify_kind (JcatEngine *self)
+/**
+ * jcat_engine_get_method:
+ * @self: #JcatEngine
+ *
+ * Gets the verification method.
+ *
+ * Returns: #JcatBlobMethod, e.g. %JCAT_BLOB_METHOD_SIGNATURE
+ *
+ * Since: 0.1.3
+ **/
+JcatBlobMethod
+jcat_engine_get_method (JcatEngine *self)
 {
 	JcatEnginePrivate *priv = GET_PRIVATE (self);
-	return priv->verify_kind;
+	return priv->method;
 }
 
 const gchar *
@@ -280,8 +300,8 @@ jcat_engine_get_property (GObject *object, guint prop_id,
 	case PROP_KIND:
 		g_value_set_uint (value, priv->kind);
 		break;
-	case PROP_VERIFY_KIND:
-		g_value_set_uint (value, priv->verify_kind);
+	case PROP_METHOD:
+		g_value_set_uint (value, priv->method);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -303,8 +323,8 @@ jcat_engine_set_property (GObject *object, guint prop_id,
 	case PROP_KIND:
 		priv->kind = g_value_get_uint (value);
 		break;
-	case PROP_VERIFY_KIND:
-		priv->verify_kind = g_value_get_uint (value);
+	case PROP_METHOD:
+		priv->method = g_value_get_uint (value);
 		break;
 	default:
 		G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -335,14 +355,14 @@ jcat_engine_class_init (JcatEngineClass *klass)
 				   G_PARAM_STATIC_NAME);
 	g_object_class_install_property (object_class, PROP_KIND, pspec);
 
-	pspec = g_param_spec_uint ("verify-kind", NULL, NULL,
-				   JCAT_ENGINE_VERIFY_KIND_UNKNOWN,
-				   JCAT_ENGINE_VERIFY_KIND_LAST,
-				   JCAT_ENGINE_VERIFY_KIND_UNKNOWN,
+	pspec = g_param_spec_uint ("method", NULL, NULL,
+				   JCAT_BLOB_METHOD_UNKNOWN,
+				   JCAT_BLOB_METHOD_LAST,
+				   JCAT_BLOB_METHOD_UNKNOWN,
 				   G_PARAM_READWRITE |
 				   G_PARAM_CONSTRUCT_ONLY |
 				   G_PARAM_STATIC_NAME);
-	g_object_class_install_property (object_class, PROP_VERIFY_KIND, pspec);
+	g_object_class_install_property (object_class, PROP_METHOD, pspec);
 	object_class->finalize = jcat_engine_finalize;
 }
 

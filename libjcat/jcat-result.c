@@ -81,6 +81,43 @@ jcat_result_get_authority (JcatResult *self)
 	return self->authority;
 }
 
+
+/**
+ * jcat_result_get_kind:
+ * @self: #JcatResult
+ *
+ * Gets the blob kind.
+ *
+ * Returns: #JcatBlobKind, e.g. %JCAT_BLOB_KIND_SHA256
+ *
+ * Since: 0.1.3
+ **/
+JcatBlobKind
+jcat_result_get_kind (JcatResult *self)
+{
+	if (self->engine == NULL)
+		return JCAT_BLOB_KIND_UNKNOWN;
+	return jcat_engine_get_kind (self->engine);
+}
+
+/**
+ * jcat_result_get_method:
+ * @self: #JcatResult
+ *
+ * Gets the verification kind.
+ *
+ * Returns: #JcatBlobMethod, e.g. %JCAT_BLOB_METHOD_SIGNATURE
+ *
+ * Since: 0.1.3
+ **/
+JcatBlobMethod
+jcat_result_get_method (JcatResult *self)
+{
+	if (self->engine == NULL)
+		return JCAT_BLOB_METHOD_UNKNOWN;
+	return jcat_engine_get_method (self->engine);
+}
+
 /* private */
 void
 jcat_result_add_string (JcatResult *self, guint idt, GString *str)
