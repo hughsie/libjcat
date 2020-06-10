@@ -15,5 +15,6 @@
 #include <libjcat/jcat-file.h>
 #include <libjcat/jcat-item.h>
 #include <libjcat/jcat-result.h>
+#include <libjcat/jcat-version.h>
 
 #undef __LIBJCAT_H_INSIDE__
