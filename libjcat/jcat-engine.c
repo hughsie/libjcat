@@ -25,6 +25,7 @@ enum {
 	PROP_CONTEXT,
 	PROP_KIND,
 	PROP_METHOD,
+	PROP_VERIFY_KIND,
 	PROP_LAST
 };
 
@@ -301,6 +302,7 @@ jcat_engine_get_property (GObject *object, guint prop_id,
 		g_value_set_uint (value, priv->kind);
 		break;
 	case PROP_METHOD:
+	case PROP_VERIFY_KIND:
 		g_value_set_uint (value, priv->method);
 		break;
 	default:
@@ -324,6 +326,7 @@ jcat_engine_set_property (GObject *object, guint prop_id,
 		priv->kind = g_value_get_uint (value);
 		break;
 	case PROP_METHOD:
+	case PROP_VERIFY_KIND:
 		priv->method = g_value_get_uint (value);
 		break;
 	default:
@@ -363,6 +366,16 @@ jcat_engine_class_init (JcatEngineClass *klass)
 				   G_PARAM_CONSTRUCT_ONLY |
 				   G_PARAM_STATIC_NAME);
 	g_object_class_install_property (object_class, PROP_METHOD, pspec);
+
+	/* this is the old name to preserve GObject ABI */
+	pspec = g_param_spec_uint ("verify-kind", NULL, NULL,
+				   JCAT_BLOB_METHOD_UNKNOWN,
+				   JCAT_BLOB_METHOD_LAST,
+				   JCAT_BLOB_METHOD_UNKNOWN,
+				   G_PARAM_READABLE |
+				   G_PARAM_DEPRECATED |
+				   G_PARAM_STATIC_NAME);
+	g_object_class_install_property (object_class, PROP_VERIFY_KIND, pspec);
 	object_class->finalize = jcat_engine_finalize;
 }
 
