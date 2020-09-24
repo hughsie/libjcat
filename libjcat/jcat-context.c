@@ -164,7 +164,7 @@ jcat_context_get_keyring_path (JcatContext *self)
  * @error: #GError, or %NULL
  *
  * Gets the engine for a specific engine kind, setting up the context
- * automartically if requried.
+ * automatically if required.
  *
  * Returns: (transfer full): #JcatEngine, or %NULL for unavailable
  *
