@@ -302,9 +302,11 @@ jcat_context_verify_item (JcatContext *self,
 		g_autoptr(JcatEngine) engine = NULL;
 		g_autoptr(JcatResult) result = NULL;
 
-		engine = jcat_context_get_engine (self, jcat_blob_get_kind (blob), error);
-		if (engine == NULL)
-			return NULL;
+		engine = jcat_context_get_engine (self, jcat_blob_get_kind (blob), &error_local);
+		if (engine == NULL) {
+			g_debug ("%s", error_local->message);
+			continue;
+		}
 		if (jcat_engine_get_method (engine) != JCAT_BLOB_METHOD_SIGNATURE)
 			continue;
 		result = jcat_engine_pubkey_verify (engine, data, jcat_blob_get_data (blob), flags, &error_local);
