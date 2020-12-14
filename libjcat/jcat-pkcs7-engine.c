@@ -293,8 +293,6 @@ jcat_pkcs7_engine_pubkey_sign (JcatEngine *engine,
 	g_auto(gnutls_privkey_t) key = NULL;
 	g_auto(gnutls_pubkey_t) pubkey = NULL;
 	g_auto(gnutls_x509_crt_t) crt = NULL;
-	g_autoptr(GBytes) cert_new = NULL;
-	g_autoptr(GBytes) privkey_new = NULL;
 	g_autoptr(gnutls_data_t) d_payload = NULL;
 
 	/* load keys */

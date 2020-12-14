@@ -205,7 +205,6 @@ jcat_sha1_engine_func (void)
 {
 	g_autofree gchar *fn_fail = NULL;
 	g_autofree gchar *fn_pass = NULL;
-	g_autofree gchar *pki_dir = NULL;
 	g_autofree gchar *sig = NULL;
 	g_autoptr(GBytes) blob_sig1 = NULL;
 	g_autoptr(GBytes) data_fail = NULL;
@@ -263,7 +262,6 @@ jcat_sha256_engine_func (void)
 {
 	g_autofree gchar *fn_fail = NULL;
 	g_autofree gchar *fn_pass = NULL;
-	g_autofree gchar *pki_dir = NULL;
 	g_autofree gchar *sig = NULL;
 	g_autoptr(GBytes) blob_sig1 = NULL;
 	g_autoptr(GBytes) data_fail = NULL;

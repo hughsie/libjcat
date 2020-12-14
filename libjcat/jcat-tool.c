@@ -205,10 +205,8 @@ static gboolean
 jcat_tool_add_alias (JcatToolPrivate *priv, gchar **values, GError **error)
 {
 	g_autoptr(GFile) gfile = NULL;
-	g_autoptr(GPtrArray) items = NULL;
 	g_autoptr(JcatFile) file = jcat_file_new ();
 	g_autoptr(JcatItem) item = NULL;
-	g_autofree gchar *str = NULL;
 
 	/* check args */
 	if (g_strv_length (values) != 3) {
@@ -242,10 +240,8 @@ static gboolean
 jcat_tool_remove_alias (JcatToolPrivate *priv, gchar **values, GError **error)
 {
 	g_autoptr(GFile) gfile = NULL;
-	g_autoptr(GPtrArray) items = NULL;
 	g_autoptr(JcatFile) file = jcat_file_new ();
 	g_autoptr(JcatItem) item = NULL;
-	g_autofree gchar *str = NULL;
 
 	/* check args */
 	if (g_strv_length (values) != 3) {

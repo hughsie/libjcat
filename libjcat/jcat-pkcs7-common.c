@@ -201,7 +201,6 @@ jcat_pkcs7_create_client_certificate (gnutls_privkey_t privkey, GError **error)
 	gnutls_datum_t d = { 0 };
 	guchar sha1buf[20];
 	gsize sha1bufsz = sizeof(sha1buf);
-	g_autofree gchar *fn = NULL;
 	g_auto(gnutls_pubkey_t) pubkey = NULL;
 	g_auto(gnutls_x509_crt_t) crt = NULL;
 	g_autoptr(gnutls_data_t) d_payload = NULL;
