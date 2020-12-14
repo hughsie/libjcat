@@ -174,7 +174,6 @@ static gboolean
 jcat_tool_info (JcatToolPrivate *priv, gchar **values, GError **error)
 {
 	g_autoptr(GFile) gfile = NULL;
-	g_autoptr(GPtrArray) items = NULL;
 	g_autoptr(JcatFile) file = jcat_file_new ();
 	g_autofree gchar *str = NULL;
 
