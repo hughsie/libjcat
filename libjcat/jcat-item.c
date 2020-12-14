@@ -322,7 +322,7 @@ jcat_item_remove_alias_id (JcatItem *self, const gchar *id)
 	for (guint i = 0; i < priv->alias_ids->len; i++) {
 		const gchar *id_tmp = g_ptr_array_index (priv->alias_ids, i);
 		if (g_strcmp0 (id, id_tmp) == 0) {
-			g_ptr_array_remove (priv->alias_ids, id_tmp);
+			g_ptr_array_remove (priv->alias_ids, (gpointer) id_tmp);
 			return;
 		}
 	}
