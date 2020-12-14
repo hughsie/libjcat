@@ -11,6 +11,7 @@
 #include <libintl.h>
 #include <locale.h>
 #include <stdlib.h>
+#include <string.h>
 #include <glib/gi18n.h>
 #ifdef HAVE_GIO_UNIX
 #include <glib-unix.h>

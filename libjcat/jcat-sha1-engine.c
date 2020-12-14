@@ -6,6 +6,8 @@
 
 #include "config.h"
 
+#include <string.h>
+
 #include "jcat-sha1-engine.h"
 #include "jcat-engine-private.h"
 

@@ -6,6 +6,8 @@
 
 #include "config.h"
 
+#include <string.h>
+
 #include "jcat-common-private.h"
 #include "jcat-blob-private.h"
 
