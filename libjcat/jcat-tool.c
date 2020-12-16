@@ -26,6 +26,7 @@ typedef struct {
 	GPtrArray		*cmd_array;
 	JcatContext		*context;
 	gboolean		 basename;
+	gboolean		 disable_time_checks;
 	gchar			*prefix;
 	gchar			*appstream_id;
 	JcatBlobKind		 kind;
@@ -512,6 +513,7 @@ jcat_tool_verify_item (JcatToolPrivate *priv, JcatItem *item, GError **error)
 	/* verify blob */
 	for (guint j = 0; j < blobs->len; j++) {
 		JcatBlob *blob = g_ptr_array_index (blobs, j);
+		JcatVerifyFlags flags = JCAT_VERIFY_FLAG_NONE;
 		const gchar *authority;
 		g_autoptr(GError) error_verify = NULL;
 		g_autoptr(JcatResult) result = NULL;
@@ -521,10 +523,12 @@ jcat_tool_verify_item (JcatToolPrivate *priv, JcatItem *item, GError **error)
 		    priv->kind != jcat_blob_get_kind (blob))
 			continue;
 
+		if (priv->disable_time_checks)
+			flags |= JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS;
 		result = jcat_context_verify_blob (priv->context,
 						   source,
 						   blob,
-						   JCAT_VERIFY_FLAG_NONE,
+						   flags,
 						   &error_verify);
 		if (result == NULL) {
 			g_print ("    FAILED %s: %s\n",
@@ -695,6 +699,8 @@ main (int argc, char *argv[])
 			_("Print verbose debug statements"), NULL },
 		{ "basename", 'v', 0, G_OPTION_ARG_NONE, &basename,
 			_("Only consider the basename for the ID"), NULL },
+		{ "disable-time-checks", 'v', 0, G_OPTION_ARG_NONE, &priv->disable_time_checks,
+			_("Disable time checks when verifying"), NULL },
 		{ "public-key", '\0', 0, G_OPTION_ARG_STRING, &public_key,
 			_("Location of public key used for verification"), NULL },
 		{ "public-keys", '\0', 0, G_OPTION_ARG_STRING, &public_keys,
