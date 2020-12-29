@@ -6,7 +6,8 @@
 
 #include <config.h>
 
-#include <errno.h>
+#include <glib/gstdio.h>
+#include <gio/gio.h>
 
 #include "jcat-common-private.h"
 
@@ -14,19 +15,11 @@
 gboolean
 jcat_mkdir_parent (const gchar *filename, GError **error)
 {
-	g_autofree gchar *parent = NULL;
-
-	parent = g_path_get_dirname (filename);
-	g_debug ("creating path %s", parent);
-	if (g_mkdir_with_parents (parent, 0755) == -1) {
-		g_set_error (error,
-			     G_IO_ERROR,
-			     G_IO_ERROR_FAILED,
-			     "Failed to create '%s': %s",
-			     parent, g_strerror (errno));
-		return FALSE;
-	}
-	return TRUE;
+	g_autoptr(GFile) file = g_file_new_for_path (filename);
+	g_autoptr(GFile) file_parent = g_file_get_parent (file);
+	if (g_file_query_exists (file_parent, NULL))
+		return TRUE;
+	return g_file_make_directory_with_parents (file_parent, NULL, error);
 }
 
 /* private */
