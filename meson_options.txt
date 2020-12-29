@@ -1,5 +1,6 @@
 option('gtkdoc', type : 'boolean', value : false, description : 'enable developer documentation')
 option('introspection', type : 'boolean', value : true, description : 'generate GObject Introspection data')
+option('vapi', type : 'boolean', value : true, description : 'enable VAPI')
 option('tests', type : 'boolean', value : true, description : 'enable tests')
 option('gpg', type : 'boolean', value : true, description : 'enable the GPG verification support')
 option('pkcs7', type : 'boolean', value : true, description : 'enable the PKCS7 verification support')

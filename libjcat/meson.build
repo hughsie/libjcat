@@ -85,6 +85,11 @@ libjcat_dep = declare_dependency(
 )
 
 if get_option('introspection')
+  if libjsonglib.type_name() == 'internal'
+    json_glib_girtarget = subproject('json-glib').get_variable('json_glib_gir')[0]
+  else
+    json_glib_girtarget = 'Json-1.0'
+  endif
   jcat_gir = gnome.generate_gir(libjcat,
     sources : [
       'jcat-blob.c',
@@ -114,7 +119,7 @@ if get_option('introspection')
     includes : [
       'Gio-2.0',
       'GObject-2.0',
-      'Json-1.0',
+      json_glib_girtarget,
     ],
     link_with : [
       libjcat,
@@ -122,14 +127,16 @@ if get_option('introspection')
     install : true
   )
 
-  gnome.generate_vapi('jcat',
-    sources : jcat_gir[0],
-    packages : [
-      'gio-2.0',
-      'json-glib-1.0'
-    ],
-    install : true,
-  )
+  if get_option('vapi')
+    gnome.generate_vapi('jcat',
+      sources : jcat_gir[0],
+      packages : [
+        'gio-2.0',
+        'json-glib-1.0'
+      ],
+      install : true,
+    )
+  endif
 
   python = import('python')
   python_interpreter = python.find_installation('python3',

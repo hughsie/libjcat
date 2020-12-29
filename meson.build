@@ -127,7 +127,7 @@ giounix = dependency('gio-unix-2.0', version : '>= 2.45.8', required: false)
 if giounix.found()
   conf.set('HAVE_GIO_UNIX', '1')
 endif
-libjsonglib = dependency('json-glib-1.0', version : '>= 1.1.1')
+libjsonglib = dependency('json-glib-1.0', version : '>= 1.1.1', fallback : ['json-glib', 'json_glib_dep'])
 
 libjcat_deps = [
   gio,

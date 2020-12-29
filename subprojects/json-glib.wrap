@@ -1,0 +1,6 @@
+[wrap-git]
+directory=json-glib
+url=https://gitlab.gnome.org/GNOME/json-glib.git
+# tactically chosen to use a super old GLib version,
+# but also new enough to support being used as a subproject
+revision=c30c988ac3b0d9e7c332232e3c3969818749b239
