@@ -7,7 +7,6 @@ services:
 
 env:
   - OS=debian
-  - OS=debian-s390x
   - OS=fedora
   - OS=fedora-w64
 
