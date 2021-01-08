@@ -1,3 +1,11 @@
+Version 0.1.5
+~~~~~~~~~~~~~
+Released: 2021-01-08
+
+New Features:
+ - Allow verifying expired certificates with an additional argument (Richard Hughes)
+ - Allow compiling json-glib as a subproject (Richard Hughes)
+
 Version 0.1.4
 ~~~~~~~~~~~~~
 Released: 2020-10-23
