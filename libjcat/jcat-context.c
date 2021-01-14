@@ -223,6 +223,8 @@ jcat_context_verify_blob (JcatContext *self,
 	if (engine == NULL)
 		return NULL;
 	blob_signature = jcat_blob_get_data (blob);
+	if (jcat_engine_get_method (engine) == JCAT_BLOB_METHOD_CHECKSUM)
+		return jcat_engine_self_verify (engine, data, blob_signature, flags, error);
 	return jcat_engine_pubkey_verify (engine, data, blob_signature, flags, error);
 }
 
