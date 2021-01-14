@@ -500,12 +500,41 @@ jcat_tool_verify_item (JcatToolPrivate *priv, JcatItem *item, GError **error)
 {
 	gboolean ret = TRUE;
 	g_autoptr(GBytes) source = NULL;
+	g_autoptr(GPtrArray) alias_ids = jcat_item_get_alias_ids (item);
 	g_autoptr(GPtrArray) blobs = jcat_item_get_blobs (item);
+	g_autoptr(GPtrArray) fns_possible = g_ptr_array_new_with_free_func (g_free);
 	g_autofree gchar *fn_safe = NULL;
 
 	/* load source */
 	g_print ("%s:\n", jcat_item_get_id (item));
-	fn_safe = g_build_filename (priv->prefix, jcat_item_get_id (item), NULL);
+
+	/* find the source */
+	g_ptr_array_add (fns_possible,
+			 g_build_filename (priv->prefix, jcat_item_get_id (item), NULL));
+	for (guint i = 0; i < alias_ids->len; i++) {
+		const gchar *alias_id = g_ptr_array_index (alias_ids, i);
+		g_ptr_array_add (fns_possible,
+				 g_build_filename (priv->prefix, alias_id, NULL));
+	}
+	for (guint i = 0; i < fns_possible->len; i++) {
+		const gchar *fn = g_ptr_array_index (fns_possible, i);
+		if (g_file_test (fn, G_FILE_TEST_EXISTS)) {
+			fn_safe = g_strdup (fn);
+			break;
+		}
+	}
+	if (fn_safe == NULL) {
+		g_autofree gchar *str = NULL;
+		g_autofree gchar **strv = g_new0 (gchar *, fns_possible->len);
+		for (guint i = 0; i < fns_possible->len; i++)
+			strv[i] = g_ptr_array_index (fns_possible, i);
+		str = g_strjoinv (" or ", strv);
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_NOT_FOUND,
+			     "Could not find %s", str);
+		return FALSE;
+	}
 	source = jcat_get_contents_bytes (fn_safe, error);
 	if (source == NULL)
 		return FALSE;
