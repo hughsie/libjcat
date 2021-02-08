@@ -1,3 +1,13 @@
+Version 0.1.6
+~~~~~~~~~~~~~
+Released: 2021-02-08
+
+New Features:
+ - Fall back to the AliasId for validation (Richard Hughes)
+
+Bugfixes:
+ - Fix jcat_context_verify_blob() to use self verify for checksums (Richard Hughes)
+
 Version 0.1.5
 ~~~~~~~~~~~~~
 Released: 2021-01-08
