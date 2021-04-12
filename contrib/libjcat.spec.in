@@ -20,7 +20,6 @@ BuildRequires: gnutls-devel
 BuildRequires: gnutls-utils
 BuildRequires: gpgme-devel
 BuildRequires: vala
-BuildRequires: help2man
 
 Requires: glib2%{?_isa} >= %{glib2_version}
 

@@ -20,7 +20,6 @@ jobs:
         gnutls-bin \
         gobject-introspection \
         gtk-doc-tools \
-        help2man \
         libgirepository1.0-dev \
         libglib2.0-dev \
         libglib2.0-dev-bin \
