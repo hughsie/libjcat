@@ -195,20 +195,12 @@ jcat_tool = executable(
 )
 
 if get_option('man')
-  help2man = find_program('help2man')
-  custom_target('jcat-tool-man',
-    input : jcat_tool,
+  configure_file(
+    input : 'jcat-tool.1',
     output : 'jcat-tool.1',
-    command : [
-      help2man, '@INPUT@',
-      '--no-info',
-      '--output', '@OUTPUT@',
-      '--name', 'Standalone detached signature utility',
-      '--manual', 'User Commands',
-      '--version-string', libjcat_version,
-    ],
-    install : true,
-    install_dir : join_paths(mandir, 'man1'),
+    configuration : conf,
+    install: true,
+    install_dir: join_paths(mandir, 'man1'),
   )
 endif
 
