@@ -1,3 +1,10 @@
+Version 0.1.7
+~~~~~~~~~~~~~
+Released: 2021-05-06
+
+New Features:
+ - Do not use help2man to build manual pages (Richard Hughes)
+
 Version 0.1.6
 ~~~~~~~~~~~~~
 Released: 2021-02-08
