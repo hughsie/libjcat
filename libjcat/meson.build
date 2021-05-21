@@ -139,7 +139,7 @@ if get_option('introspection')
   endif
 
   python = import('python')
-  python_interpreter = python.find_installation('python3',
+  python_interpreter = python.find_installation(
     modules: [
       'xml.etree.ElementTree',
       'pkg_resources',
