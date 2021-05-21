@@ -37,3 +37,20 @@ jobs:
         setup-options: -Db_coverage=false
         options: --verbose
         meson-version: 0.52.1
+
+  build-freebsd:
+    runs-on: macos-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Build
+      id: test
+      uses: vmactions/freebsd-vm@v0.1.4
+      with:
+        usesh: true
+        mem: 8192
+        prepare: |
+          pkg install -y git python3 glib meson pkgconf gobject-introspection \
+            json-glib gnutls gtk-doc vala
+        sync: rsync
+        run: ./contrib/ci/build-debian.sh -Dgpg=false
