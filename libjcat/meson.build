@@ -62,8 +62,7 @@ libjcat = library(
 )
 
 pkgg = import('pkgconfig')
-pkgg.generate(
-  libraries : libjcat,
+pkgg.generate(libjcat,
   requires : [
     'gio-2.0',
     'json-glib-1.0',
