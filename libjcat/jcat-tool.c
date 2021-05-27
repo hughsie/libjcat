@@ -560,6 +560,14 @@ jcat_tool_verify_item (JcatToolPrivate *priv, JcatItem *item, GError **error)
 						   flags,
 						   &error_verify);
 		if (result == NULL) {
+			if (g_error_matches (error_verify,
+					     G_IO_ERROR,
+					     G_IO_ERROR_NOT_FOUND)) {
+				g_print ("    SKIPPED %s: %s\n",
+					 jcat_blob_kind_to_string (jcat_blob_get_kind (blob)),
+					 error_verify->message);
+				continue;
+			}
 			g_print ("    FAILED %s: %s\n",
 				 jcat_blob_kind_to_string (jcat_blob_get_kind (blob)),
 				 error_verify->message);
