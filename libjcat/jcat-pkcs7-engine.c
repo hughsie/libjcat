@@ -295,6 +295,15 @@ jcat_pkcs7_engine_pubkey_sign (JcatEngine *engine,
 	g_auto(gnutls_x509_crt_t) crt = NULL;
 	g_autoptr(gnutls_data_t) d_payload = NULL;
 
+	/* nothing to do */
+	if (g_bytes_get_size(blob) == 0) {
+		g_set_error (error,
+			     G_IO_ERROR,
+			     G_IO_ERROR_INVALID_ARGUMENT,
+			     "nothing to do");
+		return NULL;
+	}
+
 	/* load keys */
 	key = jcat_pkcs7_load_privkey_from_blob (privkey, error);
 	if (key == NULL)
