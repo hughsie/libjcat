@@ -61,6 +61,14 @@ libjcat = library(
   install : true
 )
 
+pkgg_variables = []
+if get_option('gpg')
+  pkgg_variables += 'supported_gpg=1'
+endif
+if get_option('pkcs7')
+  pkgg_variables += 'supported_pkcs7=1'
+endif
+
 pkgg = import('pkgconfig')
 pkgg.generate(libjcat,
   requires : [
@@ -72,6 +80,7 @@ pkgg.generate(libjcat,
   name : 'libjcat',
   filebase : 'jcat',
   description : 'libjcat is a library to read Jcat files',
+  variables : pkgg_variables,
 )
 
 libjcat_dep = declare_dependency(
