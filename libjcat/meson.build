@@ -182,6 +182,7 @@ if get_option('introspection')
       )
 endif
 
+if get_option('cli')
 jcat_tool = executable(
   'jcat-tool',
   sources : [
@@ -210,6 +211,7 @@ if get_option('man')
     install: true,
     install_dir: join_paths(mandir, 'man1'),
   )
+endif
 endif
 
 if get_option('tests')
