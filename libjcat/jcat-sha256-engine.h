@@ -9,8 +9,9 @@
 #include "jcat-context.h"
 #include "jcat-engine.h"
 
-#define JCAT_TYPE_SHA256_ENGINE (jcat_sha256_engine_get_type ())
+#define JCAT_TYPE_SHA256_ENGINE (jcat_sha256_engine_get_type())
 
-G_DECLARE_FINAL_TYPE (JcatSha256Engine, jcat_sha256_engine, JCAT, SHA256_ENGINE, JcatEngine)
+G_DECLARE_FINAL_TYPE(JcatSha256Engine, jcat_sha256_engine, JCAT, SHA256_ENGINE, JcatEngine)
 
-JcatEngine	*jcat_sha256_engine_new		(JcatContext	*context);
+JcatEngine *
+jcat_sha256_engine_new(JcatContext *context);

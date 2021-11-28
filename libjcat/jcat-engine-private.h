@@ -8,8 +8,9 @@
 
 #include "jcat-engine.h"
 
-const gchar	*jcat_engine_get_keyring_path		(JcatEngine	*self);
-void		 jcat_engine_add_string			(JcatEngine	*self,
-							 guint		 idt,
-							 GString	*str);
-gchar		*jcat_engine_to_string 			(JcatEngine	*self);
+const gchar *
+jcat_engine_get_keyring_path(JcatEngine *self);
+void
+jcat_engine_add_string(JcatEngine *self, guint idt, GString *str);
+gchar *
+jcat_engine_to_string(JcatEngine *self);

@@ -9,8 +9,9 @@
 #include "jcat-context.h"
 #include "jcat-engine.h"
 
-#define JCAT_TYPE_GPG_ENGINE (jcat_gpg_engine_get_type ())
+#define JCAT_TYPE_GPG_ENGINE (jcat_gpg_engine_get_type())
 
-G_DECLARE_FINAL_TYPE (JcatGpgEngine, jcat_gpg_engine, JCAT, GPG_ENGINE, JcatEngine)
+G_DECLARE_FINAL_TYPE(JcatGpgEngine, jcat_gpg_engine, JCAT, GPG_ENGINE, JcatEngine)
 
-JcatEngine	*jcat_gpg_engine_new		(JcatContext	*context);
+JcatEngine *
+jcat_gpg_engine_new(JcatContext *context);
