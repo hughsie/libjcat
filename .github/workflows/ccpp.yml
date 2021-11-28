@@ -39,13 +39,13 @@ jobs:
         meson-version: 0.52.1
 
   build-freebsd:
-    runs-on: macos-latest
+    runs-on: macos-10.15
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Build
       id: test
-      uses: vmactions/freebsd-vm@v0.1.4
+      uses: vmactions/freebsd-vm@v0.1.5
       with:
         usesh: true
         mem: 8192
