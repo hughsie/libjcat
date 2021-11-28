@@ -1,3 +1,15 @@
+Version 0.1.9
+~~~~~~~~~~~~~
+Released: 2021-11-28
+
+New Features:
+ - Set which backends are supported in the pkgconfig file (Richard Hughes)
+ - Use -Dcli=false to reduce the install size (Richard Hughes)
+
+Bugfixes:
+ - Return an error if we try to self-sign no bytes of data (Richard Hughes)
+ - Show a more accurate output when not all engines are enabled (Richard Hughes)
+
 Version 0.1.8
 ~~~~~~~~~~~~~
 Released: 2021-05-24
