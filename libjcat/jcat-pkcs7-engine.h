@@ -9,8 +9,9 @@
 #include "jcat-context.h"
 #include "jcat-engine.h"
 
-#define JCAT_TYPE_PKCS7_ENGINE (jcat_pkcs7_engine_get_type ())
+#define JCAT_TYPE_PKCS7_ENGINE (jcat_pkcs7_engine_get_type())
 
-G_DECLARE_FINAL_TYPE (JcatPkcs7Engine, jcat_pkcs7_engine, JCAT, PKCS7_ENGINE, JcatEngine)
+G_DECLARE_FINAL_TYPE(JcatPkcs7Engine, jcat_pkcs7_engine, JCAT, PKCS7_ENGINE, JcatEngine)
 
-JcatEngine	*jcat_pkcs7_engine_new		(JcatContext	*context);
+JcatEngine *
+jcat_pkcs7_engine_new(JcatContext *context);

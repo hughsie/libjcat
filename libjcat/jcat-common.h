@@ -13,7 +13,7 @@
  * Flags used for importing.
  **/
 typedef enum {
-	JCAT_IMPORT_FLAG_NONE		= 0,
+	JCAT_IMPORT_FLAG_NONE = 0,
 	/*< private >*/
 	JCAT_IMPORT_FLAG_LAST
 } JcatImportFlags;
@@ -26,8 +26,8 @@ typedef enum {
  * Flags used for exporting.
  **/
 typedef enum {
-	JCAT_EXPORT_FLAG_NONE		= 0,
-	JCAT_EXPORT_FLAG_NO_TIMESTAMP	= 1 << 1,
+	JCAT_EXPORT_FLAG_NONE = 0,
+	JCAT_EXPORT_FLAG_NO_TIMESTAMP = 1 << 1,
 	/*< private >*/
 	JCAT_EXPORT_FLAG_LAST
 } JcatExportFlags;
@@ -36,16 +36,16 @@ typedef enum {
  * JcatVerifyFlags:
  * @JCAT_VERIFY_FLAG_NONE:			No flags set
  * @JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS:	Disable checking of validity periods
- * @JCAT_VERIFY_FLAG_REQUIRE_CHECKSUM:		Require that the #JcatItem contains at least one checksum
- * @JCAT_VERIFY_FLAG_REQUIRE_SIGNATURE:		Require that the #JcatItem contains at least one signature
+ * @JCAT_VERIFY_FLAG_REQUIRE_CHECKSUM:		Require the item contains at least one checksum
+ * @JCAT_VERIFY_FLAG_REQUIRE_SIGNATURE:		Require the item contains at least one signature
  *
  * The flags to use when interacting with a keyring
  **/
 typedef enum {
-	JCAT_VERIFY_FLAG_NONE			= 0,
-	JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS	= 1 << 2,
-	JCAT_VERIFY_FLAG_REQUIRE_CHECKSUM	= 1 << 3,
-	JCAT_VERIFY_FLAG_REQUIRE_SIGNATURE	= 1 << 4,
+	JCAT_VERIFY_FLAG_NONE = 0,
+	JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS = 1 << 2,
+	JCAT_VERIFY_FLAG_REQUIRE_CHECKSUM = 1 << 3,
+	JCAT_VERIFY_FLAG_REQUIRE_SIGNATURE = 1 << 4,
 	/*< private >*/
 	JCAT_VERIFY_FLAG_LAST
 } JcatVerifyFlags;
@@ -59,9 +59,9 @@ typedef enum {
  * The flags to when signing a binary
  **/
 typedef enum {
-	JCAT_SIGN_FLAG_NONE			= 0,
-	JCAT_SIGN_FLAG_ADD_TIMESTAMP		= 1 << 0,
-	JCAT_SIGN_FLAG_ADD_CERT			= 1 << 1,
+	JCAT_SIGN_FLAG_NONE = 0,
+	JCAT_SIGN_FLAG_ADD_TIMESTAMP = 1 << 0,
+	JCAT_SIGN_FLAG_ADD_CERT = 1 << 1,
 	/*< private >*/
 	JCAT_SIGN_FLAG_LAST
 } JcatSignFlags;

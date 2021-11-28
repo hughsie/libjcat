@@ -8,4 +8,5 @@
 
 #include "jcat-context.h"
 
-GPtrArray	*jcat_context_get_public_keys		(JcatContext	*self);
+GPtrArray *
+jcat_context_get_public_keys(JcatContext *self);

@@ -8,6 +8,5 @@
 
 #include "jcat-file.h"
 
-void		 jcat_file_add_string			(JcatFile	*self,
-							 guint		 idt,
-							 GString	*str);
+void
+jcat_file_add_string(JcatFile *self, guint idt, GString *str);
