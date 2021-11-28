@@ -77,4 +77,4 @@ Released: 2020-03-23
 Notes:
  - This is the first release of libjcat, a library for creating a modifying
    detached signature collections, a.k.a. Jcat files.
- - See https://github.com/hughsie/libjcat/blob/master/README.md for information.
+ - See https://github.com/hughsie/libjcat/blob/main/README.md for information.
