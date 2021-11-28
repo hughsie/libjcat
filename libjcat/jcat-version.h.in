@@ -12,7 +12,7 @@
  * The compile-time major version
  */
 #ifndef JCAT_MAJOR_VERSION
-#define JCAT_MAJOR_VERSION (@JCAT_MAJOR_VERSION @)
+#define JCAT_MAJOR_VERSION (@JCAT_MAJOR_VERSION@)
 #endif
 
 /**
@@ -21,7 +21,7 @@
  * The compile-time minor version
  */
 #ifndef JCAT_MINOR_VERSION
-#define JCAT_MINOR_VERSION (@JCAT_MINOR_VERSION @)
+#define JCAT_MINOR_VERSION (@JCAT_MINOR_VERSION@)
 #endif
 
 /**
@@ -30,7 +30,7 @@
  * The compile-time micro version
  */
 #ifndef JCAT_MICRO_VERSION
-#define JCAT_MICRO_VERSION (@JCAT_MICRO_VERSION @)
+#define JCAT_MICRO_VERSION (@JCAT_MICRO_VERSION@)
 #endif
 
 /**
