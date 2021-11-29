@@ -89,6 +89,7 @@ libjcat_dep = declare_dependency(
     include_directories('.'),
     configinc,
   ],
+  variables : pkgg_variables,
   dependencies : libjcat_deps
 )
 
