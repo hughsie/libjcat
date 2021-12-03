@@ -67,6 +67,12 @@ jcat_blob_kind_from_string(const gchar *kind)
 		return JCAT_BLOB_KIND_SHA256;
 	if (g_strcmp0(kind, "sha1") == 0)
 		return JCAT_BLOB_KIND_SHA1;
+	if (g_strcmp0(kind, "bt-manifest") == 0)
+		return JCAT_BLOB_KIND_BT_MANIFEST;
+	if (g_strcmp0(kind, "bt-checkpoint") == 0)
+		return JCAT_BLOB_KIND_BT_CHECKPOINT;
+	if (g_strcmp0(kind, "bt-inclusion-proof") == 0)
+		return JCAT_BLOB_KIND_BT_INCLUSION_PROOF;
 	return JCAT_BLOB_KIND_UNKNOWN;
 }
 
@@ -91,6 +97,12 @@ jcat_blob_kind_to_string(JcatBlobKind kind)
 		return "sha256";
 	if (kind == JCAT_BLOB_KIND_SHA1)
 		return "sha1";
+	if (kind == JCAT_BLOB_KIND_BT_MANIFEST)
+		return "bt-manifest";
+	if (kind == JCAT_BLOB_KIND_BT_CHECKPOINT)
+		return "bt-checkpoint";
+	if (kind == JCAT_BLOB_KIND_BT_INCLUSION_PROOF)
+		return "bt-inclusion-proof";
 	return NULL;
 }
 
@@ -115,6 +127,12 @@ jcat_blob_kind_to_filename_ext(JcatBlobKind kind)
 		return "sha256";
 	if (kind == JCAT_BLOB_KIND_SHA1)
 		return "sha1";
+	if (kind == JCAT_BLOB_KIND_BT_MANIFEST)
+		return "btmanifest";
+	if (kind == JCAT_BLOB_KIND_BT_CHECKPOINT)
+		return "btcheckpoint";
+	if (kind == JCAT_BLOB_KIND_BT_INCLUSION_PROOF)
+		return "btinclusionproof";
 	return NULL;
 }
 
