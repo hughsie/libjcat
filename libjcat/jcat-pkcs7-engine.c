@@ -19,21 +19,16 @@ struct _JcatPkcs7Engine {
 G_DEFINE_TYPE(JcatPkcs7Engine, jcat_pkcs7_engine, JCAT_TYPE_ENGINE)
 
 static gboolean
-jcat_pkcs7_engine_add_pubkey(JcatPkcs7Engine *self,
-			     const gchar *filename,
-			     gnutls_x509_crt_fmt_t format,
-			     GError **error)
+jcat_pkcs7_engine_add_pubkey_blob_fmt(JcatPkcs7Engine *self,
+				      GBytes *blob,
+				      gnutls_x509_crt_fmt_t format,
+				      GError **error)
 {
 	guint key_usage = 0;
 	int rc;
 	g_auto(gnutls_x509_crt_t) crt = NULL;
-	g_autoptr(GBytes) blob = NULL;
 
 	/* load file and add to the trust list */
-	g_debug("trying to load certificate from %s", filename);
-	blob = jcat_get_contents_bytes(filename, error);
-	if (blob == NULL)
-		return FALSE;
 	crt = jcat_pkcs7_load_crt_from_blob(blob, format, error);
 	if (crt == NULL)
 		return FALSE;
@@ -52,8 +47,7 @@ jcat_pkcs7_engine_add_pubkey(JcatPkcs7Engine *self,
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_DATA,
-			    "certificate %s not suitable for use [0x%x]",
-			    filename,
+			    "certificate not suitable for use [0x%x]",
 			    key_usage);
 		return FALSE;
 	}
@@ -75,17 +69,30 @@ jcat_pkcs7_engine_add_pubkey(JcatPkcs7Engine *self,
 }
 
 static gboolean
+jcat_pkcs7_engine_add_public_key_raw(JcatEngine *engine, GBytes *blob, GError **error)
+{
+	JcatPkcs7Engine *self = JCAT_PKCS7_ENGINE(engine);
+	return jcat_pkcs7_engine_add_pubkey_blob_fmt(self, blob, GNUTLS_X509_FMT_PEM, error);
+}
+
+static gboolean
 jcat_pkcs7_engine_add_public_key(JcatEngine *engine, const gchar *filename, GError **error)
 {
 	JcatPkcs7Engine *self = JCAT_PKCS7_ENGINE(engine);
 
 	/* search all the public key files */
 	if (g_str_has_suffix(filename, ".pem")) {
-		if (!jcat_pkcs7_engine_add_pubkey(self, filename, GNUTLS_X509_FMT_PEM, error))
+		g_autoptr(GBytes) blob = jcat_get_contents_bytes(filename, error);
+		if (blob == NULL)
+			return FALSE;
+		if (!jcat_pkcs7_engine_add_pubkey_blob_fmt(self, blob, GNUTLS_X509_FMT_PEM, error))
 			return FALSE;
 	} else if (g_str_has_suffix(filename, ".cer") || g_str_has_suffix(filename, ".crt") ||
 		   g_str_has_suffix(filename, ".der")) {
-		if (!jcat_pkcs7_engine_add_pubkey(self, filename, GNUTLS_X509_FMT_DER, error))
+		g_autoptr(GBytes) blob = jcat_get_contents_bytes(filename, error);
+		if (blob == NULL)
+			return FALSE;
+		if (!jcat_pkcs7_engine_add_pubkey_blob_fmt(self, blob, GNUTLS_X509_FMT_DER, error))
 			return FALSE;
 	} else {
 		g_autofree gchar *basename = g_path_get_basename(filename);
@@ -454,6 +461,7 @@ jcat_pkcs7_engine_class_init(JcatPkcs7EngineClass *klass)
 	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS(klass);
 	klass_app->setup = jcat_pkcs7_engine_setup;
 	klass_app->add_public_key = jcat_pkcs7_engine_add_public_key;
+	klass_app->add_public_key_raw = jcat_pkcs7_engine_add_public_key_raw;
 	klass_app->pubkey_verify = jcat_pkcs7_engine_pubkey_verify;
 	klass_app->pubkey_sign = jcat_pkcs7_engine_pubkey_sign;
 	klass_app->self_verify = jcat_pkcs7_engine_self_verify;

@@ -231,6 +231,36 @@ jcat_engine_self_sign(JcatEngine *self, GBytes *blob, JcatSignFlags flags, GErro
 }
 
 /**
+ * jcat_engine_add_public_key_raw:
+ * @self: #JcatEngine
+ * @blob: #GBytes
+ * @error: #GError, or %NULL
+ *
+ * Adds a public key manually.
+ *
+ * Returns: %
+ *
+ * Since: 0.1.9
+ **/
+gboolean
+jcat_engine_add_public_key_raw(JcatEngine *self, GBytes *blob, GError **error)
+{
+	JcatEngineClass *klass = JCAT_ENGINE_GET_CLASS(self);
+	g_return_val_if_fail(JCAT_IS_ENGINE(self), FALSE);
+	g_return_val_if_fail(blob != NULL, FALSE);
+	if (klass->add_public_key_raw == NULL) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "adding public keys manually is not supported");
+		return FALSE;
+	}
+	if (!jcat_engine_setup(self, error))
+		return FALSE;
+	return klass->add_public_key_raw(self, blob, error);
+}
+
+/**
  * jcat_engine_get_kind:
  * @self: #JcatEngine
  *

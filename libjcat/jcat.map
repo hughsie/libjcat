@@ -76,3 +76,9 @@ LIBJCAT_0.1.3 {
     jcat_result_get_method;
   local: *;
 } LIBJCAT_0.1.1;
+
+LIBJCAT_0.1.9 {
+  global:
+    jcat_engine_add_public_key_raw;
+  local: *;
+} LIBJCAT_0.1.3;

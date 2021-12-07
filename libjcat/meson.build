@@ -33,6 +33,9 @@ if get_option('pkcs7')
   jcat_src += 'jcat-pkcs7-common.c'
   jcat_src += 'jcat-pkcs7-engine.c'
 endif
+if get_option('ed25519')
+  jcat_src += 'jcat-ed25519-engine.c'
+endif
 
 jcat_mapfile = 'jcat.map'
 libjcat_ldflags = cc.get_supported_link_arguments([
@@ -67,6 +70,9 @@ if get_option('gpg')
 endif
 if get_option('pkcs7')
   pkgg_variables += 'supported_pkcs7=1'
+endif
+if get_option('ed25519')
+  pkgg_variables += 'supported_ed25519=1'
 endif
 
 pkgg = import('pkgconfig')

@@ -140,6 +140,12 @@ if get_option('pkcs7')
   libjcat_deps += gnutls
 endif
 
+if get_option('ed25519')
+  conf.set('ENABLE_ED25519', '1')
+  libjcat_deps += dependency('hogweed')
+  libjcat_deps += dependency('gnutls')
+endif
+
 if get_option('gpg')
   gpgme = cc.find_library('gpgme')
   gpgerror = cc.find_library('gpg-error')
