@@ -572,6 +572,120 @@ jcat_pkcs7_engine_self_signed_func(void)
 }
 
 static void
+jcat_ed25519_engine_func(void)
+{
+#ifdef ENABLE_ED25519
+	g_autofree gchar *fn_fail = NULL;
+	g_autofree gchar *fn_pass = NULL;
+	g_autofree gchar *fn_sig = NULL;
+	g_autofree gchar *pki_dir = NULL;
+	g_autofree gchar *sig_fn2 = NULL;
+	g_autoptr(GBytes) blob_sig2 = NULL;
+	g_autoptr(GBytes) data_fail = NULL;
+	g_autoptr(GBytes) data_fwbin = NULL;
+	g_autoptr(GBytes) data_sig = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(JcatContext) context = jcat_context_new();
+	g_autoptr(JcatEngine) engine = NULL;
+	g_autoptr(JcatResult) result_fail = NULL;
+	g_autoptr(JcatResult) result_pass = NULL;
+
+	/* set up context */
+	jcat_context_set_keyring_path(context, "/tmp/libjcat-self-test/var");
+	pki_dir = g_test_build_filename(G_TEST_DIST, "pki", NULL);
+	jcat_context_add_public_keys(context, pki_dir);
+
+	/* get engine */
+	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_ED25519, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(engine);
+	g_assert_cmpint(jcat_engine_get_kind(engine), ==, JCAT_BLOB_KIND_ED25519);
+	g_assert_cmpint(jcat_engine_get_method(engine), ==, JCAT_BLOB_METHOD_SIGNATURE);
+
+	/* verify with a manually generated signature */
+	fn_pass = g_test_build_filename(G_TEST_DIST, "colorhug", "firmware.bin", NULL);
+	data_fwbin = jcat_get_contents_bytes(fn_pass, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(data_fwbin);
+	fn_sig = g_test_build_filename(G_TEST_DIST, "colorhug", "firmware.bin.ed25519", NULL);
+	data_sig = jcat_get_contents_bytes(fn_sig, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(data_sig);
+	result_pass =
+	    jcat_engine_pubkey_verify(engine, data_fwbin, data_sig, JCAT_VERIFY_FLAG_NONE, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(result_pass);
+
+	/* verify will fail with valid signature and different data */
+	fn_fail = g_test_build_filename(G_TEST_DIST, "colorhug", "firmware.bin.asc", NULL);
+	data_fail = jcat_get_contents_bytes(fn_fail, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(data_fail);
+	result_fail =
+	    jcat_engine_pubkey_verify(engine, data_fail, data_sig, JCAT_VERIFY_FLAG_NONE, &error);
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+	g_assert_null(result_fail);
+	g_clear_error(&error);
+#else
+	g_test_skip("no GnuTLS support enabled");
+#endif
+}
+
+static void
+jcat_ed25519_engine_self_signed_func(void)
+{
+#ifdef ENABLE_ED25519
+	static const char payload_str[] = "Hello, world!";
+	g_autofree gchar *str = NULL;
+	g_autoptr(JcatBlob) signature = NULL;
+	g_autoptr(JcatContext) context = jcat_context_new();
+	g_autoptr(JcatEngine) engine = NULL;
+	g_autoptr(JcatEngine) engine2 = NULL;
+	g_autoptr(JcatResult) result = NULL;
+	g_autoptr(GBytes) payload = NULL;
+	g_autoptr(GError) error = NULL;
+	const gchar *str_perfect = "JcatResult:\n"
+				   "  Timestamp:             1970-01-01T03:25:45Z\n"
+				   "  JcatEd25519Engine:\n"
+				   "    Kind:                ed25519\n"
+				   "    VerifyKind:          signature\n";
+
+	/* set up context */
+	jcat_context_set_keyring_path(context, "/tmp");
+
+	/* get engine */
+	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_ED25519, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(engine);
+
+	payload = g_bytes_new_static(payload_str, sizeof(payload_str));
+	g_assert_nonnull(payload);
+	signature = jcat_engine_self_sign(engine, payload, JCAT_SIGN_FLAG_ADD_TIMESTAMP, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(signature);
+	result = jcat_engine_self_verify(engine,
+					 payload,
+					 jcat_blob_get_data(signature),
+					 JCAT_VERIFY_FLAG_NONE,
+					 &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(result);
+
+	/* verify engine set */
+	engine2 = jcat_result_get_engine(result);
+	g_assert(engine == engine2);
+
+	/* to string */
+	g_object_set(result, "timestamp", (gint64)12345, NULL);
+	str = jcat_result_to_string(result);
+	g_print("%s", str);
+	g_assert_cmpstr(str, ==, str_perfect);
+#else
+	g_test_skip("no GnuTLS support enabled");
+#endif
+}
+
+static void
 jcat_context_verify_blob_func(void)
 {
 #ifdef ENABLE_PKCS7
@@ -823,6 +937,8 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/engine{gpg-msg}", jcat_gpg_engine_msg_func);
 	g_test_add_func("/jcat/engine{pkcs7}", jcat_pkcs7_engine_func);
 	g_test_add_func("/jcat/engine{pkcs7-self-signed}", jcat_pkcs7_engine_self_signed_func);
+	g_test_add_func("/jcat/engine{ed25519}", jcat_ed25519_engine_func);
+	g_test_add_func("/jcat/engine{ed25519-self-signed}", jcat_ed25519_engine_self_signed_func);
 	g_test_add_func("/jcat/context{verify-blob}", jcat_context_verify_blob_func);
 	g_test_add_func("/jcat/context{verify-item-sign}", jcat_context_verify_item_sign_func);
 	g_test_add_func("/jcat/context{verify-item-csum}", jcat_context_verify_item_csum_func);

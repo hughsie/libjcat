@@ -323,6 +323,8 @@ jcat_tool_import(JcatToolPrivate *priv, gchar **values, GError **error)
 		blob = jcat_blob_new_full(JCAT_BLOB_KIND_PKCS7, data_sig, JCAT_BLOB_FLAG_IS_UTF8);
 	} else if (g_str_has_suffix(values[2], ".der")) {
 		blob = jcat_blob_new_full(JCAT_BLOB_KIND_PKCS7, data_sig, JCAT_BLOB_FLAG_NONE);
+	} else if (g_str_has_suffix(values[2], ".ed25519")) {
+		blob = jcat_blob_new_full(JCAT_BLOB_KIND_ED25519, data_sig, JCAT_BLOB_FLAG_NONE);
 	} else if (g_str_has_suffix(values[2], ".sha256") ||
 		   g_str_has_suffix(values[2], ".SHA256")) {
 		blob = jcat_blob_new_full(JCAT_BLOB_KIND_SHA256, data_sig, JCAT_BLOB_FLAG_IS_UTF8);

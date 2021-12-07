@@ -19,6 +19,9 @@
 #ifdef ENABLE_PKCS7
 #include "jcat-pkcs7-engine.h"
 #endif
+#ifdef ENABLE_ED25519
+#include "jcat-ed25519-engine.h"
+#endif
 
 typedef struct {
 	GPtrArray *engines;
@@ -62,6 +65,9 @@ jcat_context_init(JcatContext *self)
 #endif
 #ifdef ENABLE_PKCS7
 	g_ptr_array_add(priv->engines, jcat_pkcs7_engine_new(self));
+#endif
+#ifdef ENABLE_ED25519
+	g_ptr_array_add(priv->engines, jcat_ed25519_engine_new(self));
 #endif
 }
 

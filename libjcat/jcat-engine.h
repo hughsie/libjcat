@@ -37,7 +37,8 @@ struct _JcatEngineClass {
 				   JcatVerifyFlags flags,
 				   GError **error);
 	JcatBlob *(*self_sign)(JcatEngine *self, GBytes *blob, JcatSignFlags flags, GError **error);
-	gpointer padding[9];
+	gboolean (*add_public_key_raw)(JcatEngine *self, GBytes *blob, GError **error);
+	gpointer padding[8];
 };
 
 JcatBlobKind
@@ -65,3 +66,5 @@ jcat_engine_self_verify(JcatEngine *self,
 			GError **error);
 JcatBlob *
 jcat_engine_self_sign(JcatEngine *self, GBytes *blob, JcatSignFlags flags, GError **error);
+gboolean
+jcat_engine_add_public_key_raw(JcatEngine *self, GBytes *blob, GError **error);
