@@ -302,6 +302,12 @@ jcat_tool_import(JcatToolPrivate *priv, gchar **values, GError **error)
 	/* guess format */
 	if (g_str_has_suffix(values[2], ".asc")) {
 		blob = jcat_blob_new_full(JCAT_BLOB_KIND_GPG, data_sig, JCAT_BLOB_FLAG_IS_UTF8);
+	} else if (g_str_has_suffix(values[2], ".btmanifest")) {
+		blob = jcat_blob_new_full(JCAT_BLOB_KIND_BT_MANIFEST, data_sig, JCAT_BLOB_FLAG_IS_UTF8);
+	} else if (g_str_has_suffix(values[2], ".btcheckpoint")) {
+		blob = jcat_blob_new_full(JCAT_BLOB_KIND_BT_CHECKPOINT, data_sig, JCAT_BLOB_FLAG_IS_UTF8);
+	} else if (g_str_has_suffix(values[2], ".btinclusionproof")) {
+		blob = jcat_blob_new_full(JCAT_BLOB_KIND_BT_INCLUSION_PROOF, data_sig, JCAT_BLOB_FLAG_IS_UTF8);
 	} else if (g_str_has_suffix(values[2], ".p7b") || g_str_has_suffix(values[2], ".p7c") ||
 		   g_str_has_suffix(values[2], ".pem")) {
 		blob = jcat_blob_new_full(JCAT_BLOB_KIND_PKCS7, data_sig, JCAT_BLOB_FLAG_IS_UTF8);
