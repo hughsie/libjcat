@@ -9,6 +9,8 @@
 #include <string.h>
 
 #include "jcat-blob-private.h"
+#include "jcat-bt-checkpoint-private.h"
+#include "jcat-bt-verifier-private.h"
 #include "jcat-common-private.h"
 #include "jcat-context.h"
 #include "jcat-engine-private.h"
@@ -917,6 +919,124 @@ jcat_context_verify_item_csum_func(void)
 #endif
 }
 
+static void
+jcat_bt_verifier_func(void)
+{
+	GBytes *buf;
+	g_autofree gchar *fn = NULL;
+	g_autofree gchar *str = NULL;
+	g_autoptr(GBytes) blob = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(JcatBtVerifier) btverifier = NULL;
+
+	fn = g_test_build_filename(G_TEST_DIST, "test.btverifier", NULL);
+	blob = jcat_get_contents_bytes(fn, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(blob);
+
+	btverifier = jcat_bt_verifier_new(blob, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(btverifier);
+
+	str = jcat_bt_verifier_to_string(btverifier);
+	g_print("%s\n", str);
+
+	g_assert_cmpstr(jcat_bt_verifier_get_name(btverifier), ==, "lvfsqa");
+	g_assert_cmpstr(jcat_bt_verifier_get_hash(btverifier), ==, "c463f084");
+	g_assert_cmpint(jcat_bt_verifier_get_alg(btverifier), ==, 1);
+	buf = jcat_bt_verifier_get_key(btverifier);
+	g_assert_cmpint(g_bytes_get_size(buf), ==, 32);
+}
+
+static void
+jcat_bt_checkpoint_func(void)
+{
+	GBytes *buf;
+	g_autofree gchar *fn = NULL;
+	g_autofree gchar *str = NULL;
+	g_autoptr(GBytes) blob = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(JcatBtCheckpoint) btcheckpoint = NULL;
+
+	fn = g_test_build_filename(G_TEST_DIST, "test.btcheckpoint", NULL);
+	blob = jcat_get_contents_bytes(fn, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(blob);
+
+	btcheckpoint = jcat_bt_checkpoint_new(blob, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(btcheckpoint);
+
+	str = jcat_bt_checkpoint_to_string(btcheckpoint);
+	g_print("%s\n", str);
+
+	g_assert_cmpstr(jcat_bt_checkpoint_get_origin(btcheckpoint), ==, "lvfsqa");
+	g_assert_cmpstr(jcat_bt_checkpoint_get_identity(btcheckpoint), ==, "lvfsqa");
+	g_assert_cmpstr(jcat_bt_checkpoint_get_hash(btcheckpoint), ==, "c463f084");
+	g_assert_cmpint(jcat_bt_checkpoint_get_log_size(btcheckpoint), ==, 4);
+	buf = jcat_bt_checkpoint_get_pubkey(btcheckpoint);
+	g_assert_cmpint(g_bytes_get_size(buf), ==, 32);
+	buf = jcat_bt_checkpoint_get_signature(btcheckpoint);
+	g_assert_cmpint(g_bytes_get_size(buf), ==, 64);
+	buf = jcat_bt_checkpoint_get_payload(btcheckpoint);
+	g_assert_cmpint(g_bytes_get_size(buf), ==, 54);
+}
+
+static void
+jcat_bt_common_func(void)
+{
+	gboolean ret;
+	g_autofree gchar *fn_btcheckpoint = NULL;
+	g_autofree gchar *fn_btverifier = NULL;
+	g_autoptr(GBytes) blob_btcheckpoint = NULL;
+	g_autoptr(GBytes) blob_btverifier = NULL;
+	g_autoptr(JcatBtCheckpoint) btcheckpoint = NULL;
+	g_autoptr(JcatBtVerifier) btverifier = NULL;
+	g_autoptr(JcatContext) context = jcat_context_new();
+	g_autoptr(JcatEngine) engine = NULL;
+	g_autoptr(JcatResult) result = NULL;
+	g_autoptr(GError) error = NULL;
+
+	fn_btverifier = g_test_build_filename(G_TEST_DIST, "test.btverifier", NULL);
+	blob_btverifier = jcat_get_contents_bytes(fn_btverifier, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(blob_btverifier);
+
+	btverifier = jcat_bt_verifier_new(blob_btverifier, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(btverifier);
+
+	fn_btcheckpoint = g_test_build_filename(G_TEST_DIST, "test.btcheckpoint", NULL);
+	blob_btcheckpoint = jcat_get_contents_bytes(fn_btcheckpoint, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(blob_btcheckpoint);
+
+	btcheckpoint = jcat_bt_checkpoint_new(blob_btcheckpoint, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(btcheckpoint);
+
+	/* get engine */
+	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_ED25519, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(engine);
+	g_assert_cmpint(jcat_engine_get_kind(engine), ==, JCAT_BLOB_KIND_ED25519);
+	g_assert_cmpint(jcat_engine_get_method(engine), ==, JCAT_BLOB_METHOD_SIGNATURE);
+
+	ret = jcat_engine_add_public_key_raw(engine, jcat_bt_verifier_get_key(btverifier), &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+
+	// TODO: check jcat_bt_checkpoint_get_origin == jcat_bt_verifier_get_name
+	// TODO: check jcat_bt_checkpoint_get_identity == jcat_bt_verifier_get_name
+	result = jcat_engine_pubkey_verify(engine,
+					   jcat_bt_checkpoint_get_payload(btcheckpoint),
+					   jcat_bt_checkpoint_get_signature(btcheckpoint),
+					   JCAT_VERIFY_FLAG_NONE,
+					   &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(result);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -929,6 +1049,9 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/blob", jcat_blob_func);
 	g_test_add_func("/jcat/item", jcat_item_func);
 	g_test_add_func("/jcat/file", jcat_file_func);
+	g_test_add_func("/jcat/bt-verifier", jcat_bt_verifier_func);
+	g_test_add_func("/jcat/bt-checkpoint", jcat_bt_checkpoint_func);
+	g_test_add_func("/jcat/bt-common", jcat_bt_common_func);
 	g_test_add_func("/jcat/engine{sha1}", jcat_sha1_engine_func);
 	g_test_add_func("/jcat/engine{sha256}", jcat_sha256_engine_func);
 	g_test_add_func("/jcat/engine{gpg}", jcat_gpg_engine_func);
