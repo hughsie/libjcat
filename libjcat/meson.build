@@ -18,6 +18,8 @@ jcat_headers = files(
   'jcat-file.h',
   'jcat-item.h',
   'jcat-result.h',
+  'jcat-bt-verifier.h',
+  'jcat-bt-checkpoint.h',
 ) + [libjcat_version_h]
 
 install_headers(
@@ -52,6 +54,8 @@ libjcat = library(
     'jcat-sha256-engine.c',
     'jcat-sha512-engine.c',
     'jcat-result.c',
+    'jcat-bt-verifier.c',
+    'jcat-bt-checkpoint.c',
     'jcat-file.c',
     'jcat-item.c',
     'jcat-version.c',
@@ -123,6 +127,10 @@ if get_option('introspection')
       'jcat-engine.h',
       'jcat-result.c',
       'jcat-result.h',
+      'jcat-bt-verifier.c',
+      'jcat-bt-verifier.h',
+      'jcat-bt-checkpoint.c',
+      'jcat-bt-checkpoint.h',
       'jcat-version.c',
       libjcat_version_h,
     ],
@@ -239,6 +247,8 @@ if get_option('tests')
       'jcat-file.c',
       'jcat-item.c',
       'jcat-result.c',
+      'jcat-bt-verifier.c',
+      'jcat-bt-checkpoint.c',
       'jcat-sha1-engine.c',
       'jcat-sha256-engine.c',
       'jcat-sha512-engine.c',
