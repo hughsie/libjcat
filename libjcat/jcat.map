@@ -79,6 +79,23 @@ LIBJCAT_0.1.3 {
 
 LIBJCAT_0.1.9 {
   global:
+    jcat_bt_checkpoint_get_hash;
+    jcat_bt_checkpoint_get_identity;
+    jcat_bt_checkpoint_get_log_size;
+    jcat_bt_checkpoint_get_origin;
+    jcat_bt_checkpoint_get_payload;
+    jcat_bt_checkpoint_get_pubkey;
+    jcat_bt_checkpoint_get_signature;
+    jcat_bt_checkpoint_get_type;
+    jcat_bt_checkpoint_new;
+    jcat_bt_checkpoint_to_string;
+    jcat_bt_verifier_get_alg;
+    jcat_bt_verifier_get_hash;
+    jcat_bt_verifier_get_key;
+    jcat_bt_verifier_get_name;
+    jcat_bt_verifier_get_type;
+    jcat_bt_verifier_new;
+    jcat_bt_verifier_to_string;
     jcat_engine_add_public_key_raw;
   local: *;
 } LIBJCAT_0.1.3;

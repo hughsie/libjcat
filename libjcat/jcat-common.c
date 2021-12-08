@@ -108,3 +108,11 @@ jcat_string_append_kv(GString *str, guint idt, const gchar *key, const gchar *va
 		g_string_append(str, "\n");
 	}
 }
+
+/* private */
+void
+jcat_string_append_kx(GString *str, guint idt, const gchar *key, guint value)
+{
+	g_autofree gchar *tmp = g_strdup_printf("0x%x", value);
+	jcat_string_append_kv(str, idt, key, tmp);
+}
