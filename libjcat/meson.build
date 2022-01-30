@@ -153,13 +153,7 @@ if get_option('introspection')
     )
   endif
 
-  python = import('python')
-  python_interpreter = python.find_installation('python3',
-    modules: [
-      'xml.etree.ElementTree',
-      'pkg_resources',
-    ],
-  )
+  python_interpreter = find_program('python3')
 
   # Verify the map file is correct -- note we can't actually use the generated
   # file for two reasons:
