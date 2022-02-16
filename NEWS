@@ -1,3 +1,16 @@
+Version 0.1.10
+~~~~~~~~~~~~~~
+Released: 2022-02-16
+
+New Features:
+ - Add ED25519 support (Richard Hughes)
+ - Define three more types used for the firmware transparency log (Richard Hughes)
+
+Bugfixes:
+ - Include the pkgconfig variables in the subproject dependency (Richard Hughes)
+ - Drop the use of setuptools in the test script for regenerating ld version file (Eli Schwartz)
+ - Use the correct lookup method for the python3 script interpreter (Eli Schwartz)
+
 Version 0.1.9
 ~~~~~~~~~~~~~
 Released: 2021-11-28
