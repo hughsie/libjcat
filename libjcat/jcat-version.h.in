@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <glib.h>
+
 /**
  * JCAT_MAJOR_VERSION:
  *
@@ -47,3 +49,5 @@
 	 (JCAT_MAJOR_VERSION == (major) && JCAT_MINOR_VERSION > (minor)) ||                        \
 	 (JCAT_MAJOR_VERSION == (major) && JCAT_MINOR_VERSION == (minor) &&                        \
 	  JCAT_MICRO_VERSION >= (micro)))
+
+const gchar	*jcat_version_string	(void);
