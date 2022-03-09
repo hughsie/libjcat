@@ -579,8 +579,6 @@ jcat_ed25519_engine_func(void)
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
 	g_autofree gchar *pki_dir = NULL;
-	g_autofree gchar *sig_fn2 = NULL;
-	g_autoptr(GBytes) blob_sig2 = NULL;
 	g_autoptr(GBytes) data_fail = NULL;
 	g_autoptr(GBytes) data_fwbin = NULL;
 	g_autoptr(GBytes) data_sig = NULL;
