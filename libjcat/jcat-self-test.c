@@ -1054,6 +1054,100 @@ jcat_bt_common_func(void)
 	g_assert_nonnull(result);
 }
 
+static gchar *
+jcat_rfc6962_decode_string(GByteArray *buf)
+{
+	GString *str = g_string_new(NULL);
+	for (guint i = 0; i < buf->len; i++)
+		g_string_append_printf(str, "%02x", buf->data[i]);
+	return g_string_free(str, FALSE);
+}
+
+#define RFC6962_LEAF_HASH_PREFIX 0x00
+#define RFC6962_NODE_HASH_PREFIX 0x01
+
+static GByteArray *
+jcat_rfc6962_hash_leaf(GByteArray *buf)
+{
+	gsize digest_len = 32;
+	guint8 buffer[32] = {0x0};
+	guint8 idx = RFC6962_LEAF_HASH_PREFIX;
+	g_autoptr(GChecksum) csum = g_checksum_new(G_CHECKSUM_SHA256);
+	g_autoptr(GByteArray) outbuf = g_byte_array_new();
+
+	g_checksum_update(csum, (const guchar *) &idx, sizeof(idx));
+	g_checksum_update(csum, (const guchar *) buf->data, buf->len);
+
+	g_checksum_get_digest(csum, buffer, &digest_len);
+	g_byte_array_append(outbuf, buffer, sizeof(buffer));
+	return g_steal_pointer(&outbuf);
+}
+
+static GByteArray *
+jcat_rfc6962_hash_children(GByteArray *lbuf, GByteArray *rbuf)
+{
+	gsize digest_len = 32;
+	guint8 buffer[32] = {0x0};
+	guint8 idx = RFC6962_NODE_HASH_PREFIX;
+	g_autoptr(GChecksum) csum = g_checksum_new(G_CHECKSUM_SHA256);
+	g_autoptr(GByteArray) outbuf = g_byte_array_new();
+
+	g_checksum_update(csum, (const guchar *) &idx, sizeof(idx));
+	g_checksum_update(csum, (const guchar *) lbuf->data, lbuf->len);
+	g_checksum_update(csum, (const guchar *) rbuf->data, rbuf->len);
+
+	g_checksum_get_digest(csum, buffer, &digest_len);
+	g_byte_array_append(outbuf, buffer, sizeof(buffer));
+	return g_steal_pointer(&outbuf);
+}
+
+static void
+jcat_rfc6962_func(void)
+{
+	const gchar *leaf_data = "L123456";
+	const gchar *node_data_l = "N123";
+	const gchar *node_data_r = "N456";
+	g_autofree gchar *csum_empty_leaf_str = NULL;
+	g_autofree gchar *csum_empty_str = NULL;
+	g_autofree gchar *csum_leaf_str = NULL;
+	g_autofree gchar *csum_node_str = NULL;
+	g_autofree gchar *csum_node_swapped_str = NULL;
+	g_autoptr(GByteArray) buf = g_byte_array_new();
+	g_autoptr(GByteArray) buf_l = g_byte_array_new();
+	g_autoptr(GByteArray) buf_r = g_byte_array_new();
+	g_autoptr(GByteArray) csum_empty_leaf = NULL;
+	g_autoptr(GByteArray) csum_leaf = NULL;
+	g_autoptr(GByteArray) csum_node = NULL;
+	g_autoptr(GByteArray) csum_node_swapped = NULL;
+
+	/* RFC6962 Empty */
+	csum_empty_str = g_compute_checksum_for_data(G_CHECKSUM_SHA256, NULL, 0);
+	g_assert_cmpstr(csum_empty_str, ==, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+
+	/* RFC6962 Empty Leaf */
+	csum_empty_leaf = jcat_rfc6962_hash_leaf(buf);
+	csum_empty_leaf_str = jcat_rfc6962_decode_string(csum_empty_leaf);
+	g_assert_cmpstr(csum_empty_leaf_str, ==, "6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d");
+
+	/* RFC6962 Leaf */
+	g_byte_array_append(buf, (const guint8 *) leaf_data, strlen(leaf_data));
+	csum_leaf = jcat_rfc6962_hash_leaf(buf);
+	csum_leaf_str = jcat_rfc6962_decode_string(csum_leaf);
+	g_assert_cmpstr(csum_leaf_str, ==, "395aa064aa4c29f7010acfe3f25db9485bbd4b91897b6ad7ad547639252b4d56");
+
+	/* RFC6962 Node */
+	g_byte_array_append(buf_l, (const guint8 *) node_data_l, strlen(node_data_l));
+	g_byte_array_append(buf_r, (const guint8 *) node_data_r, strlen(node_data_r));
+	csum_node = jcat_rfc6962_hash_children(buf_l, buf_r);
+	csum_node_str = jcat_rfc6962_decode_string(csum_node);
+	g_assert_cmpstr(csum_node_str, ==, "aa217fe888e47007fa15edab33c2b492a722cb106c64667fc2b044444de66bbb");
+
+	/* RFC6962 Node, swapped */
+	csum_node_swapped = jcat_rfc6962_hash_children(buf_r, buf_l);
+	csum_node_swapped_str = jcat_rfc6962_decode_string(csum_node_swapped);
+	g_assert_cmpstr(csum_node_swapped_str, ==, "013dee051c2516cf8ba3dfc4fae6bfb016587de88cd448f1e96df99ea575257a");
+}
+
 int
 main(int argc, char **argv)
 {
@@ -1063,6 +1157,7 @@ main(int argc, char **argv)
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL);
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
 
+	g_test_add_func("/jcat/rfc6962", jcat_rfc6962_func);
 	g_test_add_func("/jcat/blob", jcat_blob_func);
 	g_test_add_func("/jcat/item", jcat_item_func);
 	g_test_add_func("/jcat/file", jcat_file_func);
