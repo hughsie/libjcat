@@ -27,3 +27,15 @@ guint
 jcat_bits_trailing_zeros64(guint64 val);
 guint
 jcat_bits_length64(guint64 val);
+guint
+jcat_inner_proof_size(guint64 index, guint64 size);
+void
+jcat_set_byte_array(GByteArray **buf, GByteArray *buf_new);
+gboolean
+jcat_byte_array_compare(GByteArray *buf1, GByteArray *buf2, GError **error);
+gchar *
+jcat_hex_encode_string(GByteArray *buf);
+GPtrArray *
+jcat_byte_arrays_slice_left(GPtrArray *src, guint idx, GError **error);
+GPtrArray *
+jcat_byte_arrays_slice_right(GPtrArray *src, guint idx, GError **error);
