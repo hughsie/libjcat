@@ -198,3 +198,191 @@ jcat_bits_length64(guint64 val)
 	return 64;
 #endif
 }
+
+/**
+ * jcat_inner_proof_size:
+ * @index: input
+ * @size: input
+ *
+ * Find the inner proof size.
+ *
+ * Returns: integer
+ *
+ * Since: 0.2.0
+ **/
+guint
+jcat_inner_proof_size(guint64 index, guint64 size)
+{
+	return jcat_bits_length64(index ^ (size - 1));
+}
+
+/**
+ * jcat_set_byte_array:
+ * @buf: (not nullable) (out): the buffer
+ * @buf_new: (not nullable): the new buffer contents
+ *
+ * Assign a #GByteArray to another #GByteArray.
+ *
+ * Since: 0.2.0
+ **/
+void
+jcat_set_byte_array(GByteArray **buf, GByteArray *buf_new)
+{
+	if (buf_new == *buf)
+		return;
+	if (*buf != NULL)
+		g_byte_array_unref(*buf);
+	*buf = g_byte_array_ref(buf_new);
+}
+
+/**
+ * jcat_set_bytes:
+ * @buf: (not nullable) (out): the buffer
+ * @buf_new: (not nullable): the new buffer contents
+ *
+ * Assign a #GBytes to another #GBytes.
+ *
+ * Since: 0.2.0
+ **/
+void
+jcat_set_bytes(GBytes **buf, GBytes *buf_new)
+{
+	if (buf_new == *buf)
+		return;
+	if (*buf != NULL)
+		g_bytes_unref(*buf);
+	*buf = g_bytes_ref(buf_new);
+}
+
+/**
+ * jcat_byte_array_compare:
+ * @buf1: (not nullable): the first buffer
+ * @buf2: (not nullable): the second buffer
+ * @error: (nullable): #GError, or %NULL
+ *
+ * Compare two instances of #GByteArray
+ *
+ * Returns: Boolean indicating whether they are equal
+ *
+ * Since: 0.2.0
+ **/
+gboolean
+jcat_byte_array_compare(GByteArray *buf1, GByteArray *buf2, GError **error)
+{
+	g_return_val_if_fail(buf1 != NULL, FALSE);
+	g_return_val_if_fail(buf2 != NULL, FALSE);
+	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
+
+	/* not the same length */
+	if (buf1->len != buf2->len) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "got %u bytes, expected %u",
+			    buf1->len,
+			    buf2->len);
+		return FALSE;
+	}
+
+	/* NULL check */
+	if (buf1->len > 0 && (buf1->data == NULL || buf2->data == NULL)) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "buf1 or buf2 NULL with non-zero size %u %u",
+			    buf1->len,
+			    buf2->len);
+		return FALSE;
+	}
+
+	/* check matches */
+	for (guint i = 0x0; i < buf1->len; i++) {
+		if (buf1->data[i] != buf2->data[i]) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "got 0x%02x, expected 0x%02x @ 0x%04x",
+				    buf1->data[i],
+				    buf2->data[i],
+				    i);
+			return FALSE;
+		}
+	}
+
+	/* success */
+	return TRUE;
+}
+
+/**
+ * jcat_hex_encode_string:
+ * @buf: (not nullable): the buffer
+ *
+ * Hex encode.
+ *
+ * Returns: (transfer full): the hex-encoded buffer
+ *
+ * Since: 0.2.0
+ **/
+gchar *
+jcat_hex_encode_string(GByteArray *buf)
+{
+	GString *str = g_string_new(NULL);
+	for (guint i = 0; i < buf->len; i++)
+		g_string_append_printf(str, "%02x", buf->data[i]);
+	return g_string_free(str, FALSE);
+}
+
+/**
+ * jcat_byte_arrays_slice_left:
+ * @src: (element-type GByteArray) (not nullable): the source array
+ * @idx: integer
+ * @error: (nullable): #GError, or %NULL
+ *
+ * Slices a #GPtrArray of #GByteArray from the left.
+ *
+ * Returns: (element-type GByteArray) (transfer container): returned array
+ *
+ * Since: 0.2.0
+ **/
+GPtrArray *
+jcat_byte_arrays_slice_left(GPtrArray *src, guint idx, GError **error)
+{
+	g_autoptr(GPtrArray) dst =
+	    g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref);
+
+	g_return_val_if_fail(src != NULL, NULL);
+	g_return_val_if_fail(error == NULL || *error == NULL, NULL);
+
+	/* sanity check; but note that idx == src->len is valid */
+	if (idx > src->len) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "idx %u of %u", idx, src->len);
+		return NULL;
+	}
+
+	/* copy from 0 to idx, non-inclusive */
+	for (guint i = 0; i < src->len && i < idx; i++) {
+		GByteArray *buf = g_ptr_array_index(src, i);
+		g_ptr_array_add(dst, g_byte_array_ref(buf));
+	}
+	return g_steal_pointer(&dst);
+}
+
+GPtrArray *
+jcat_byte_arrays_slice_right(GPtrArray *src, guint idx, GError **error)
+{
+	g_autoptr(GPtrArray) dst =
+	    g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref);
+
+	/* sanity check; but note that idx == src->len is valid */
+	if (idx > src->len) {
+		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "idx %u of %u", idx, src->len);
+		return NULL;
+	}
+
+	/* copy from 0 to idx, non-inclusive */
+	for (guint i = idx; i < src->len; i++) {
+		GByteArray *buf = g_ptr_array_index(src, i);
+		g_ptr_array_add(dst, g_byte_array_ref(buf));
+	}
+	return g_steal_pointer(&dst);
+}

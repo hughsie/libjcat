@@ -17,6 +17,8 @@
 #include <glib-unix.h>
 #endif
 
+#include "jcat-bt-proof.h"
+#include "jcat-bt-util.h"
 #include "jcat-common-private.h"
 #include "jcat-context.h"
 #include "jcat-file.h"
@@ -737,6 +739,120 @@ jcat_tool_verify(JcatToolPrivate *priv, gchar **values, GError **error)
 	return TRUE;
 }
 
+static gboolean
+jcat_tool_bt_generate_key(JcatToolPrivate *priv, gchar **values, GError **error)
+{
+	g_autoptr(GBytes) public_key = NULL;
+	g_autoptr(GBytes) private_key = NULL;
+
+	if (g_strv_length(values) != 3) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_FAILED,
+				    "Incorrect number of arguments; want KEYNAME OUTPRIV OUTPUB");
+		return FALSE;
+	}
+
+	if (!jcat_bt_generate_key_pair(values[0], &public_key, &private_key, error))
+		return FALSE;
+	if (!jcat_set_contents_bytes(values[1], private_key, error))
+		return FALSE;
+	if (!jcat_set_contents_bytes(values[2], public_key, error))
+		return FALSE;
+
+	return TRUE;
+}
+
+static gboolean
+jcat_tool_bt_integrate_init(JcatToolPrivate *priv, gchar **values, GError **error)
+{
+	g_autoptr(GFile) storage_dir = NULL;
+	g_autoptr(GBytes) private_key_contents = NULL;
+
+	if (g_strv_length(values) != 3) {
+		g_set_error_literal(
+		    error,
+		    G_IO_ERROR,
+		    G_IO_ERROR_FAILED,
+		    "Incorrect number of arguments; want STORAGE_DIR PRIV_KEY ORIGIN");
+		return FALSE;
+	}
+
+	storage_dir = g_file_new_for_path(values[0]);
+	private_key_contents = jcat_get_contents_bytes(values[1], error);
+	if (private_key_contents == NULL)
+		return FALSE;
+
+	return jcat_bt_integrate_init(storage_dir, private_key_contents, values[2], error);
+}
+
+static gboolean
+jcat_tool_bt_sequence(JcatToolPrivate *priv, gchar **values, GError **error)
+{
+	g_autoptr(GBytes) public_key = NULL;
+	g_autoptr(GFile) storage_dir = NULL;
+	g_autoptr(GBytes) checkpoint = NULL;
+	guint64 cp_size = 0;
+	g_autoptr(GBytes) cp_hash = NULL;
+	gsize i;
+
+	if (g_strv_length(values) < 4) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_FAILED,
+				    "Incorrect number of arguments; want at least 4 arguments "
+				    "STORAGE_DIR PUB_KEY ORIGIN ENTRIES...");
+		return FALSE;
+	}
+
+	public_key = jcat_get_contents_bytes(values[1], error);
+	if (public_key == NULL)
+		return FALSE;
+
+	storage_dir = g_file_new_for_path(values[0]);
+	if (g_file_query_file_type(storage_dir, G_FILE_QUERY_INFO_NONE, NULL) !=
+	    G_FILE_TYPE_DIRECTORY) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "The specified storage location %s is not a directory",
+			    values[0]);
+		return FALSE;
+	}
+
+	checkpoint = jcat_bt_fs_read_checkpoint(storage_dir, error);
+	if (checkpoint == NULL)
+		return FALSE;
+
+	if (!jcat_bt_parse_checkpoint(checkpoint, public_key, values[2], &cp_size, &cp_hash, error))
+		return FALSE;
+
+	/* Here comes the actual work of sequencing. */
+	for (i = 3; i < g_strv_length(values); ++i) {
+		g_autoptr(GBytes) leaf_hash = NULL;
+		g_autoptr(GBytes) entry_contents = jcat_get_contents_bytes(values[i], error);
+		guint64 assigned_seq = 0;
+		if (entry_contents == NULL) {
+			g_prefix_error(error, "Cannot sequence %s: ", values[i]);
+			return FALSE;
+		}
+		leaf_hash = g_byte_array_free_to_bytes(
+		    jcat_rfc6962_hash_leaf(g_bytes_unref_to_array(g_bytes_ref(entry_contents))));
+
+		if (!jcat_bt_fs_sequence(storage_dir,
+					 &cp_size,
+					 leaf_hash,
+					 entry_contents,
+					 &assigned_seq,
+					 error))
+			return FALSE;
+		g_info("assigned sequence number %llu to %s",
+		       (unsigned long long)assigned_seq,
+		       values[i]);
+	}
+	return TRUE;
+}
+
 #ifdef HAVE_GIO_UNIX
 static gboolean
 jcat_tool_sigint_cb(gpointer user_data)
@@ -895,6 +1011,21 @@ main(int argc, char *argv[])
 		      /* TRANSLATORS: command description */
 		      _("Remove an alias for a specific item"),
 		      jcat_tool_remove_alias);
+	jcat_tool_add(priv->cmd_array,
+		      "bt-generate-key",
+		      "NAME OUTPRIV OUTPUB",
+		      _("Generate a key pair for signing"),
+		      jcat_tool_bt_generate_key);
+	jcat_tool_add(priv->cmd_array,
+		      "bt-integrate-init",
+		      "STORAGE_DIR PRIV_KEY_PATH ORIGIN",
+		      _("Initialize an on-disk storage directory with an initial checkpoint"),
+		      jcat_tool_bt_integrate_init);
+	jcat_tool_add(priv->cmd_array,
+		      "bt-sequence",
+		      "STORAGE_DIR PUB_KEY ORIGIN ENTRIES...",
+		      _("Integrate sequenced entries into the log"),
+		      jcat_tool_bt_sequence);
 
 	/* do stuff on ctrl+c */
 	priv->cancellable = g_cancellable_new();

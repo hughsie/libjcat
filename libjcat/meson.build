@@ -12,6 +12,7 @@ install_headers(
 
 jcat_headers = files(
   'jcat-blob.h',
+  'jcat-bt-proof.h',
   'jcat-common.h',
   'jcat-context.h',
   'jcat-compile.h',
@@ -57,6 +58,8 @@ libjcat = library(
     'jcat-result.c',
     'jcat-bt-verifier.c',
     'jcat-bt-checkpoint.c',
+    'jcat-bt-proof.c',
+    'jcat-bt-util.c',
     'jcat-file.c',
     'jcat-item.c',
     'jcat-version.c',
@@ -132,6 +135,10 @@ if get_option('introspection')
       'jcat-bt-verifier.h',
       'jcat-bt-checkpoint.c',
       'jcat-bt-checkpoint.h',
+      'jcat-bt-proof.c',
+      'jcat-bt-proof.h',
+      'jcat-bt-util.c',
+      'jcat-bt-util.h',
       'jcat-version.c',
       libjcat_version_h,
     ],
@@ -249,8 +256,10 @@ if get_option('tests')
       'jcat-file.c',
       'jcat-item.c',
       'jcat-result.c',
+      'jcat-bt-proof.c',
       'jcat-bt-verifier.c',
       'jcat-bt-checkpoint.c',
+      'jcat-bt-util.c',
       'jcat-sha1-engine.c',
       'jcat-sha256-engine.c',
       'jcat-sha512-engine.c',
@@ -265,6 +274,10 @@ if get_option('tests')
     ],
     dependencies : [
       libjcat_deps,
+    ],
+    c_args: [
+      '-DSRCDIR="' + testdatadir_src + '"',
+      '-DDESTDIR="' + testdatadir_dst + '"',
     ],
     install : true,
     install_dir : installed_test_bindir
