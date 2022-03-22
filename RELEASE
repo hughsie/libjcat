@@ -2,9 +2,9 @@ libjcat Release Notes
 
 1. Write NEWS entries for libjcat in the same format as usual.
 
-git shortlog 0.1.10.. | grep -i -v trivial | grep -v Merge > NEWS.new
+git shortlog 0.1.11.. | grep -i -v trivial | grep -v Merge > NEWS.new
 
-Version 0.1.11
+Version 0.1.12
 ~~~~~~~~~~~~~~
 Released: 2022-xx-xx
 
@@ -15,7 +15,7 @@ Bugfixes:
 Commit changes to git:
 
 # MAKE SURE THESE ARE CORRECT
-export release_ver="0.1.11"
+export release_ver="0.1.12"
 
 git commit -a -m "Release libjcat ${release_ver}"
 git tag -s -f -m "Release libjcat ${release_ver}" "${release_ver}"
@@ -23,9 +23,6 @@ ninja dist
 gpg -b -a meson-dist/libjcat-${release_ver}.tar.xz
 git push --tags
 git push
-
-Upload tarball:
-
 scp meson-dist/libjcat-${release_ver}.tar.* hughsient@people.freedesktop.org:~/public_html/releases
 
 Do post release version bump in meson.build
