@@ -1,3 +1,13 @@
+Version 0.1.11
+~~~~~~~~~~~~~~
+Released: 2022-03-22
+
+New Features:
+ - Allow the user to get the runtime library version (Richard Hughes)
+
+Bugfixes:
+ - Fix incorrect certtool being called on macOS (Richard Hughes)
+
 Version 0.1.10
 ~~~~~~~~~~~~~~
 Released: 2022-02-16
