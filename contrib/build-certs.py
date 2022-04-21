@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 def _build_certs():
 
     # expire in 7 days to avoid people using these in production
-    dt_activation = datetime.utcnow().isoformat()
+    dt_activation = (datetime.utcnow() - timedelta(days=1)).isoformat()
     dt_expiration = (datetime.utcnow() + timedelta(days=7)).isoformat()
 
     # certificate authority
