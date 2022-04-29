@@ -1,6 +1,7 @@
 install_data([
     'firmware.bin',
     'firmware.bin.asc',
+    'firmware.bin.ed25519',
     'firmware.bin.p7b',
   ],
   install_dir: join_paths(installed_test_bindir, 'colorhug'),
