@@ -162,7 +162,7 @@ jcat_item_export(JcatItem *self, JcatExportFlags flags, JsonBuilder *builder)
 	json_builder_add_string_value(builder, priv->id);
 
 	/* add alias_ids */
-	if (priv->blobs->len > 0) {
+	if (priv->alias_ids->len > 0) {
 		json_builder_set_member_name(builder, "AliasIds");
 		json_builder_begin_array(builder);
 		for (guint i = 0; i < priv->alias_ids->len; i++) {
