@@ -1,3 +1,12 @@
+Version 0.1.12
+~~~~~~~~~~~~~~
+Released: 2022-09-11
+
+Bugfixes:
+ - Correctly export the AliasIds in all cases (Richard Hughes)
+ - Install installed-test firmware.bin.ed25519 (Jan Tojnar)
+ - Predate test cert activation date by 1 day (David Bonner)
+
 Version 0.1.11
 ~~~~~~~~~~~~~~
 Released: 2022-03-22
