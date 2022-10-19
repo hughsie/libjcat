@@ -38,11 +38,14 @@ jcat_sha256_engine_self_verify(JcatEngine *engine,
 	tmp = g_compute_checksum_for_bytes(G_CHECKSUM_SHA256, data);
 	data_tmp = g_bytes_new(tmp, strlen(tmp));
 	if (g_bytes_compare(data_tmp, blob_signature) != 0) {
+		g_autofree gchar *sig = g_strndup(g_bytes_get_data(blob_signature, NULL),
+						  g_bytes_get_size(blob_signature));
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_DATA,
-			    "failed to verify data, expected %s",
-			    tmp);
+			    "failed to verify data, expected %s and got %s",
+			    tmp,
+			    sig);
 		return NULL;
 	}
 	return JCAT_RESULT(g_object_new(JCAT_TYPE_RESULT, "engine", engine, NULL));
