@@ -1400,7 +1400,7 @@ RootFromInclusionProof(gint64 leafIndex,
 	}
 	//	if got, want = len(leafHash), v.hasher.Size(); got != want {
 	//		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "leafHash has unexpected
-	//size %d, want %d", got, want); 		return FALSE;
+	// size %d, want %d", got, want); 		return FALSE;
 	//	}
 
 	decompInclProof(leafIndex, treeSize, &inner, &border);
@@ -1679,151 +1679,465 @@ jcat_rfc6962_func2(void)
 	g_assert_cmpint(proof_right->len, ==, 5);
 }
 
-#if 0
-inclusionProofTestVector struct {
-	     gint64 leaf;
-	 gint64 snapshot;
-	    GPtrArray *proof;
+struct inclusionProofTestVector {
+	gint64 leaf;
+	gint64 snapshot;
+	GPtrArray *proof;
+};
+
+static struct inclusionProofTestVector *
+inclusionProofTestVectorNew(void)
+{
+	struct inclusionProofTestVector *iptv = g_new0(struct inclusionProofTestVector, 1);
+	iptv->proof = g_ptr_array_new_with_free_func((GDestroyNotify)g_bytes_unref);
+	return iptv;
 }
 
-consistencyTestVector struct {
+static void
+inclusionProofTestVectorFree(struct inclusionProofTestVector *iptv)
+{
+	g_ptr_array_unref(iptv->proof);
+}
+
+static char
+decode_nibble(char h)
+{
+	if (h >= '0' && h <= '9')
+		return h - '0';
+	if (h >= 'a' && h <= 'f')
+		return h - 'a' + 10;
+	if (h >= 'A' && h <= 'F')
+		return h - 'A' + 10;
+	return 0;
+}
+
+static GBytes *
+dh(const char *s, int expected_size)
+{
+	char buf[32];
+	int input_size = strlen(s);
+	g_assert_true(input_size <= 64 && input_size % 2 == 0);
+	g_assert_cmpint(input_size, ==, expected_size * 2);
+	for (int i = 0, j = 0; i < input_size; i += 2) {
+		buf[j++] = (decode_nibble(s[i]) << 4) | decode_nibble(s[i + 1]);
+	}
+	return g_bytes_new(buf, input_size / 2);
+}
+
+static GBytes *
+sha256SomeHash(void)
+{
+	return dh("abacaba000000000000000000000000000000000000000000060061e00123456", 32);
+}
+
+static GBytes *
+sha256EmptyTreeHash(void)
+{
+	return dh("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", 32);
+}
+
+static GPtrArray *
+inclusionProofs(void)
+{
+	GPtrArray *rv =
+	    g_ptr_array_new_with_free_func((GDestroyNotify)inclusionProofTestVectorFree);
+	struct inclusionProofTestVector *iptv = NULL;
+
+	iptv = inclusionProofTestVectorNew();
+	g_ptr_array_add(rv, iptv);
+
+	iptv = inclusionProofTestVectorNew();
+	iptv->leaf = 1;
+	iptv->snapshot = 1;
+	g_ptr_array_add(rv, iptv);
+
+	iptv = inclusionProofTestVectorNew();
+	iptv->leaf = 1;
+	iptv->snapshot = 8;
+	g_ptr_array_add(iptv->proof,
+			dh("96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7", 32));
+	g_ptr_array_add(iptv->proof,
+			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32));
+	g_ptr_array_add(iptv->proof,
+			dh("6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4", 32));
+	g_ptr_array_add(rv, iptv);
+
+	iptv = inclusionProofTestVectorNew();
+	iptv->leaf = 6;
+	iptv->snapshot = 8;
+	g_ptr_array_add(iptv->proof,
+			dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32));
+	g_ptr_array_add(iptv->proof,
+			dh("ca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0", 32));
+	g_ptr_array_add(iptv->proof,
+			dh("d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7", 32));
+	g_ptr_array_add(rv, iptv);
+
+	iptv = inclusionProofTestVectorNew();
+	iptv->leaf = 3;
+	iptv->snapshot = 3;
+	g_ptr_array_add(iptv->proof,
+			dh("fac54203e7cc696cf0dfcb42c92a1d9dbaf70ad9e621f4bd8d98662f00e3c125", 32));
+	g_ptr_array_add(rv, iptv);
+
+	iptv = inclusionProofTestVectorNew();
+	iptv->leaf = 2;
+	iptv->snapshot = 5;
+	g_ptr_array_add(iptv->proof,
+			dh("6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d", 32));
+	g_ptr_array_add(iptv->proof,
+			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32));
+	g_ptr_array_add(iptv->proof,
+			dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32));
+	g_ptr_array_add(rv, iptv);
+
+	return rv;
+}
+
+struct consistencyTestVector {
 	gint64 snapshot1;
 	gint64 snapshot2;
 	GPtrArray *proof;
+};
+
+static struct consistencyTestVector *
+consistencyTestVectorNew(void)
+{
+	struct consistencyTestVector *ctv = g_new0(struct consistencyTestVector, 1);
+	ctv->proof = g_ptr_array_new_with_free_func((GDestroyNotify)g_bytes_unref);
+	return ctv;
 }
 
-var (
-	sha256SomeHash      = dh("abacaba000000000000000000000000000000000000000000060061e00123456", 32)
-	sha256EmptyTreeHash = dh("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", 32)
+static void
+consistencyTestVectorFree(struct consistencyTestVector *ctv)
+{
+	g_ptr_array_unref(ctv->proof);
+}
 
-	inclusionProofs = []inclusionProofTestVector{
-		{0, 0, NULL},
-		{1, 1, NULL},
-		{1, 8, GPtrArray *{
-			dh("96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7", 32),
-			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32),
-			dh("6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4", 32),
-		}},
-		{6, 8, GPtrArray *{
-			dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32),
-			dh("ca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0", 32),
-			dh("d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7", 32),
-		}},
-		{3, 3, GPtrArray *{
-			dh("fac54203e7cc696cf0dfcb42c92a1d9dbaf70ad9e621f4bd8d98662f00e3c125", 32),
-		}},
-		{2, 5, GPtrArray *{
-			dh("6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d", 32),
-			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32),
-			dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32),
-		}},
-	}
+static GPtrArray *
+consistencyProofs(void)
+{
+	GPtrArray *rv = g_ptr_array_new_with_free_func((GDestroyNotify)consistencyTestVectorFree);
+	struct consistencyTestVector *ctv = NULL;
 
-	consistencyProofs = []consistencyTestVector{
-		{1, 1, NULL},
-		{1, 8, GPtrArray *{
-			dh("96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7", 32),
-			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32),
-			dh("6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4", 32),
-		}},
-		{6, 8, GPtrArray *{
-			dh("0ebc5d3437fbe2db158b9f126a1d118e308181031d0a949f8dededebc558ef6a", 32),
-			dh("ca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0", 32),
-			dh("d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7", 32),
-		}},
-		{2, 5, GPtrArray *{
-			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32),
-			dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32),
-		}},
-	}
+	ctv = consistencyTestVectorNew();
+	ctv->snapshot1 = 1;
+	ctv->snapshot2 = 1;
+	g_ptr_array_add(rv, ctv);
 
-	roots = GPtrArray *{
-		dh("6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d", 32),
-		dh("fac54203e7cc696cf0dfcb42c92a1d9dbaf70ad9e621f4bd8d98662f00e3c125", 32),
-		dh("aeb6bcfe274b70a14fb067a5e5578264db0fa9b51af5e0ba159158f329e06e77", 32),
-		dh("d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7", 32),
-		dh("4e3bbb1f7b478dcfe71fb631631519a3bca12c9aefca1612bfce4c13a86264d4", 32),
-		dh("76e67dadbcdf1e10e1b74ddc608abd2f98dfb16fbce75277b5232a127f2087ef", 32),
-		dh("ddb89be403809e325750d3d263cd78929c2942b7942a34b77e122c9594a74c8c", 32),
-		dh("5dc9da79a70659a9ad559cb701ded9a2ab9d823aad2f4960cfe370eff4604328", 32),
-	}
+	ctv = consistencyTestVectorNew();
+	ctv->snapshot1 = 1;
+	ctv->snapshot2 = 8;
+	g_ptr_array_add(ctv->proof,
+			dh("96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7", 32));
+	g_ptr_array_add(ctv->proof,
+			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32));
+	g_ptr_array_add(ctv->proof,
+			dh("6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4", 32));
+	g_ptr_array_add(rv, ctv);
 
-	leaves = GPtrArray *{
-		dh("", 0),
-		dh("00", 1),
-		dh("10", 1),
-		dh("2021", 2),
-		dh("3031", 2),
-		dh("40414243", 4),
-		dh("5051525354555657", 8),
-		dh("606162636465666768696a6b6c6d6e6f", 16),
-	}
-)
+	ctv = consistencyTestVectorNew();
+	ctv->snapshot1 = 6;
+	ctv->snapshot2 = 8;
+	g_ptr_array_add(ctv->proof,
+			dh("0ebc5d3437fbe2db158b9f126a1d118e308181031d0a949f8dededebc558ef6a", 32));
+	g_ptr_array_add(ctv->proof,
+			dh("ca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0", 32));
+	g_ptr_array_add(ctv->proof,
+			dh("d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7", 32));
+	g_ptr_array_add(rv, ctv);
+
+	ctv = consistencyTestVectorNew();
+	ctv->snapshot1 = 2;
+	ctv->snapshot2 = 5;
+	g_ptr_array_add(ctv->proof,
+			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32));
+	g_ptr_array_add(ctv->proof,
+			dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32));
+	g_ptr_array_add(rv, ctv);
+
+	return rv;
+}
+
+static GPtrArray *
+roots(void)
+{
+	GPtrArray *rv = g_ptr_array_new_with_free_func((GDestroyNotify)g_bytes_unref);
+	g_ptr_array_add(rv,
+			dh("6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d", 32));
+	g_ptr_array_add(rv,
+			dh("fac54203e7cc696cf0dfcb42c92a1d9dbaf70ad9e621f4bd8d98662f00e3c125", 32));
+	g_ptr_array_add(rv,
+			dh("aeb6bcfe274b70a14fb067a5e5578264db0fa9b51af5e0ba159158f329e06e77", 32));
+	g_ptr_array_add(rv,
+			dh("d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7", 32));
+	g_ptr_array_add(rv,
+			dh("4e3bbb1f7b478dcfe71fb631631519a3bca12c9aefca1612bfce4c13a86264d4", 32));
+	g_ptr_array_add(rv,
+			dh("76e67dadbcdf1e10e1b74ddc608abd2f98dfb16fbce75277b5232a127f2087ef", 32));
+	g_ptr_array_add(rv,
+			dh("ddb89be403809e325750d3d263cd78929c2942b7942a34b77e122c9594a74c8c", 32));
+	g_ptr_array_add(rv,
+			dh("5dc9da79a70659a9ad559cb701ded9a2ab9d823aad2f4960cfe370eff4604328", 32));
+	return rv;
+}
+
+static GPtrArray *
+leaves(void)
+{
+	GPtrArray *rv = g_ptr_array_new_with_free_func((GDestroyNotify)g_bytes_unref);
+	g_ptr_array_add(rv, dh("", 0));
+	g_ptr_array_add(rv, dh("00", 1));
+	g_ptr_array_add(rv, dh("2021", 2));
+	g_ptr_array_add(rv, dh("3031", 2));
+	g_ptr_array_add(rv, dh("40414243", 4));
+	g_ptr_array_add(rv, dh("5051525354555657", 8));
+	g_ptr_array_add(rv, dh("606162636465666768696a6b6c6d6e6f", 16));
+	return rv;
+}
 
 // inclusionProbe is a parameter set for inclusion proof verification.
-type inclusionProbe struct {
-	gint64 leafIndex
-	gint64 treeSize
+struct inclusionProbe {
+	gint64 leafIndex;
+	gint64 treeSize;
 	GByteArray *root;
 	GByteArray *leafHash;
 	GPtrArray *proof;
 
-	desc string
+	// A string literal for the description. Do not free.
+	const char *desc;
+};
+
+static struct inclusionProbe *
+inclusionProbeNew(void)
+{
+	struct inclusionProbe *ip = g_new0(struct inclusionProbe, 1);
+	return ip;
+}
+
+static void
+inclusionProbeFree(struct inclusionProbe *ip)
+{
+	if (ip->root)
+		g_byte_array_unref(ip->root);
+	if (ip->leafHash)
+		g_byte_array_unref(ip->leafHash);
+	if (ip->proof)
+		g_ptr_array_unref(ip->proof);
 }
 
 // consistencyProbe is a parameter set for consistency proof verification.
-type consistencyProbe struct {
+struct consistencyProbe {
 	gint64 snapshot1;
 	gint64 snapshot2;
 	GByteArray *root1;
 	GByteArray *root2;
 	GPtrArray *proof;
 
-	desc string
-}
+	// A string literal for the description. Do not free.
+	const char *desc;
+};
 
-func corruptInclusionProof(leafIndex, gint64 treeSize, GPtrArray *proof, root, GByteArray *leafHash) []inclusionProbe {
-	ret = []inclusionProbe{
-		// Wrong leaf index.
-		{leafIndex - 1, treeSize, root, leafHash, proof, "leafIndex - 1"},
-		{leafIndex + 1, treeSize, root, leafHash, proof, "leafIndex + 1"},
-		{leafIndex ^ 2, treeSize, root, leafHash, proof, "leafIndex ^ 2"},
-		// Wrong tree height.
-		{leafIndex, treeSize * 2, root, leafHash, proof, "treeSize * 2"},
-		{leafIndex, treeSize / 2, root, leafHash, proof, "treeSize / 2"},
-		// Wrong leaf or root.
-		{leafIndex, treeSize, root, GByteArray *("WrongLeaf"), proof, "wrong leaf"},
-		{leafIndex, treeSize, sha256EmptyTreeHash, leafHash, proof, "empty root"},
-		{leafIndex, treeSize, sha256SomeHash, leafHash, proof, "random root"},
-		// Add garbage at the end.
-		{leafIndex, treeSize, root, leafHash, extend(proof, GByteArray *{}), "trailing garbage"},
-		{leafIndex, treeSize, root, leafHash, extend(proof, root), "trailing root"},
-		// Add garbage at the front.
-		{leafIndex, treeSize, root, leafHash, prepend(proof, GByteArray *{}), "preceding garbage"},
-		{leafIndex, treeSize, root, leafHash, prepend(proof, root), "preceding root"},
+static GPtrArray *
+corruptInclusionProof(gint64 leafIndex,
+		      gint64 treeSize,
+		      GPtrArray *proof,
+		      GByteArray *root,
+		      GByteArray *leafHash)
+{
+	GPtrArray *ret = g_ptr_array_new_with_free_func((GDestroyNotify)inclusionProbeFree);
+	struct inclusionProbe *ip = NULL;
+	guint ln = proof->len;
+
+	// Wrong leaf index.
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex - 1;
+	ip->treeSize = treeSize;
+	ip->root = g_byte_array_ref(root);
+	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->proof = g_ptr_array_ref(proof);
+	ip->desc = "leafIndex - 1";
+	g_ptr_array_add(ret, ip);
+
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex + 1;
+	ip->treeSize = treeSize;
+	ip->root = g_byte_array_ref(root);
+	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->proof = g_ptr_array_ref(proof);
+	ip->desc = "leafIndex + 1";
+	g_ptr_array_add(ret, ip);
+
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex ^ 2;
+	ip->treeSize = treeSize;
+	ip->root = g_byte_array_ref(root);
+	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->proof = g_ptr_array_ref(proof);
+	ip->desc = "leafIndex ^ 2";
+	g_ptr_array_add(ret, ip);
+
+	// Wrong tree height
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex;
+	ip->treeSize = treeSize * 2;
+	ip->root = g_byte_array_ref(root);
+	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->proof = g_ptr_array_ref(proof);
+	ip->desc = "treeSize * 2";
+	g_ptr_array_add(ret, ip);
+
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex;
+	ip->treeSize = treeSize / 2;
+	ip->root = g_byte_array_ref(root);
+	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->proof = g_ptr_array_ref(proof);
+	ip->desc = "treeSize / 2";
+	g_ptr_array_add(ret, ip);
+
+	// Wrong leaf or root.
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex;
+	ip->treeSize = treeSize;
+	ip->root = g_byte_array_ref(root);
+	{
+		GByteArray *bad = g_byte_array_new();
+		const unsigned char wrong_leaf[] = "WrongLeaf";
+		ip->leafHash = g_byte_array_append(bad, wrong_leaf, sizeof wrong_leaf - 1);
 	}
-	ln = len(proof)
+	ip->proof = g_ptr_array_ref(proof);
+	ip->desc = "wrong leaf";
+	g_ptr_array_add(ret, ip);
+
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex;
+	ip->treeSize = treeSize;
+	ip->root = g_bytes_unref_to_array(sha256EmptyTreeHash());
+	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->proof = g_ptr_array_ref(proof);
+	ip->desc = "empty root";
+	g_ptr_array_add(ret, ip);
+
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex;
+	ip->treeSize = treeSize;
+	ip->root = g_bytes_unref_to_array(sha256SomeHash());
+	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->proof = g_ptr_array_ref(proof);
+	ip->desc = "random root";
+	g_ptr_array_add(ret, ip);
+
+	// Add garbage at the end
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex;
+	ip->treeSize = treeSize;
+	ip->root = g_byte_array_ref(root);
+	ip->leafHash = g_byte_array_ref(leafHash);
+	{
+		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		g_ptr_array_add(new_proof, dh("", 0));
+		ip->proof = new_proof;
+	}
+	ip->desc = "trailing garbage";
+	g_ptr_array_add(ret, ip);
+
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex;
+	ip->treeSize = treeSize;
+	ip->root = g_byte_array_ref(root);
+	ip->leafHash = g_byte_array_ref(leafHash);
+	{
+		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GByteArray *extra_root = g_byte_array_ref(root);
+		g_ptr_array_add(new_proof, g_byte_array_free_to_bytes(extra_root));
+		ip->proof = new_proof;
+	}
+	ip->desc = "trailing root";
+	g_ptr_array_add(ret, ip);
+
+	// Add garbage at the front
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex;
+	ip->treeSize = treeSize;
+	ip->root = g_byte_array_ref(root);
+	ip->leafHash = g_byte_array_ref(leafHash);
+	{
+		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		g_ptr_array_insert(new_proof, 0, dh("", 0));
+		ip->proof = new_proof;
+	}
+	ip->desc = "preceding garbage";
+	g_ptr_array_add(ret, ip);
+
+	ip = inclusionProbeNew();
+	ip->leafIndex = leafIndex;
+	ip->treeSize = treeSize;
+	ip->root = g_byte_array_ref(root);
+	ip->leafHash = g_byte_array_ref(leafHash);
+	{
+		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GByteArray *extra_root = g_byte_array_ref(root);
+		g_ptr_array_insert(new_proof, 0, g_byte_array_free_to_bytes(extra_root));
+		ip->proof = new_proof;
+	}
+	ip->desc = "preceding root";
+	g_ptr_array_add(ret, ip);
 
 	// Modify single bit in an element of the proof.
-	for i = 0; i < ln; i++ {
-		wrongProof = prepend(proof)                          // Copy the proof slice.
-		wrongProof[i] = append(GByteArray *(NULL), wrongProof[i]...) // But also the modified data.
-		wrongProof[i][0] ^= 8                                 // Flip the bit.
-		desc = fmt.Sprintf("modified proof[%d] bit 3", i)
-		ret = append(ret, inclusionProbe{leafIndex, treeSize, root, leafHash, wrongProof, desc})
+	for (guint i = 0; i < ln; ++i) {
+		// Copy the proof
+		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		// And also the data inside
+		GBytes *b = g_ptr_array_steal_index(wrong_proof, i);
+		GByteArray *ba = g_bytes_unref_to_array(b);
+		// Flip the bit.
+		ba->data[i] ^= 8;
+		b = g_byte_array_free_to_bytes(ba);
+		g_ptr_array_insert(wrong_proof, i, b);
+
+		ip = inclusionProbeNew();
+		ip->leafIndex = leafIndex;
+		ip->treeSize = treeSize;
+		ip->root = g_byte_array_ref(root);
+		ip->leafHash = g_byte_array_ref(leafHash);
+		ip->proof = wrong_proof;
+		ip->desc = "modified proof bit 3";
+		g_ptr_array_add(ret, ip);
 	}
 
-	if ln > 0 {
-		ret = append(ret, inclusionProbe{leafIndex, treeSize, root, leafHash, proof[:ln-1], "removed component"})
-	}
-	if ln > 1 {
-		wrongProof = prepend(proof[1:], proof[0], sha256SomeHash)
-		ret = append(ret, inclusionProbe{leafIndex, treeSize, root, leafHash, wrongProof, "inserted component"})
+	if (ln > 0) {
+		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		g_ptr_array_remove_index(wrong_proof, ln - 1);
+
+		ip = inclusionProbeNew();
+		ip->leafIndex = leafIndex;
+		ip->treeSize = treeSize;
+		ip->root = g_byte_array_ref(root);
+		ip->leafHash = g_byte_array_ref(leafHash);
+		ip->proof = wrong_proof;
+		ip->desc = "removed component";
+		g_ptr_array_add(ret, ip);
 	}
 
-	return ret
+	if (ln > 1) {
+		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		g_ptr_array_insert(wrong_proof, 1, g_bytes_ref(g_ptr_array_index(proof, 0)));
+
+		ip = inclusionProbeNew();
+		ip->leafIndex = leafIndex;
+		ip->treeSize = treeSize;
+		ip->root = g_byte_array_ref(root);
+		ip->leafHash = g_byte_array_ref(leafHash);
+		ip->proof = wrong_proof;
+		ip->desc = "inserted component";
+		g_ptr_array_add(ret, ip);
+	}
+
+	return ret;
 }
 
+#if 0
 func corruptConsistencyProof(gint64 snapshot1, gint64 snapshot2, GByteArray *root1, GByteArray *root2, GPtrArray *proof) []consistencyProbe {
 	ln = len(proof)
 	ret = []consistencyProbe{
@@ -2171,17 +2485,6 @@ func prepend(GPtrArray *proof, hashes ...GByteArray *) GPtrArray * {
 	return append(hashes, proof...)
 }
 
-func dh(h string, expLen int) GByteArray * {
-	r, err = hex.DecodeString(h)
-	if err != NULL {
-		panic(err)
-	}
-	if got = len(r); got != expLen {
-		panic(fmt.Sprintf("decode %q: len=%d, want %d", h, got, expLen))
-	}
-	return r
-}
-
 func shortHash(GByteArray *hash) string {
 	if len(hash) == 0 {
 		return "<empty>"
@@ -2212,6 +2515,13 @@ func getLeafAndProof(tree *inmemory.Tree, gint64 index) (GByteArray *, GPtrArray
 }
 #endif
 
+static void
+smoke_test(void)
+{
+	GPtrArray *array = inclusionProofs();
+	g_ptr_array_unref(array);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -2240,5 +2550,7 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/context{verify-blob}", jcat_context_verify_blob_func);
 	g_test_add_func("/jcat/context{verify-item-sign}", jcat_context_verify_item_sign_func);
 	g_test_add_func("/jcat/context{verify-item-csum}", jcat_context_verify_item_csum_func);
+
+	g_test_add_func("/jcat/smoke", smoke_test);
 	return g_test_run();
 }
