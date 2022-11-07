@@ -1897,7 +1897,7 @@ leaves(void)
 	return rv;
 }
 
-// inclusionProbe is a parameter set for inclusion proof verification.
+/* inclusionProbe is a parameter set for inclusion proof verification. */
 typedef struct {
 	gint64 leafIndex;
 	gint64 treeSize;
@@ -1927,7 +1927,7 @@ inclusionProbeFree(inclusionProbe *ip)
 		g_ptr_array_unref(ip->proof);
 }
 
-// consistencyProbe is a parameter set for consistency proof verification.
+/* consistencyProbe is a parameter set for consistency proof verification. */
 typedef struct {
 	gint64 snapshot1;
 	gint64 snapshot2;
@@ -1938,6 +1938,24 @@ typedef struct {
 	/* A string literal for the description. Do not free. */
 	const char *desc;
 } consistencyProbe;
+
+static consistencyProbe *
+consistencyProbeNew(void)
+{
+	consistencyProbe *cp = g_new0(consistencyProbe, 1);
+	return cp;
+}
+
+static void
+consistencyProbeFree(consistencyProbe *cp)
+{
+	if (cp->root1)
+		g_byte_array_unref(cp->root1);
+	if (cp->root2)
+		g_byte_array_unref(cp->root2);
+	if (cp->proof)
+		g_ptr_array_unref(cp->proof);
+}
 
 static GPtrArray *
 corruptInclusionProof(gint64 leafIndex,
@@ -2138,51 +2156,244 @@ corruptInclusionProof(gint64 leafIndex,
 	return ret;
 }
 
-#if 0
-func corruptConsistencyProof(gint64 snapshot1, gint64 snapshot2, GByteArray *root1, GByteArray *root2, GPtrArray *proof) []consistencyProbe {
-	ln = len(proof)
-	ret = []consistencyProbe{
-		// Wrong snapshot index.
-		{snapshot1 - 1, snapshot2, root1, root2, proof, "snapshot1 - 1"},
-		{snapshot1 + 1, snapshot2, root1, root2, proof, "snapshot1 + 1"},
-		{snapshot1 ^ 2, snapshot2, root1, root2, proof, "snapshot1 ^ 2"},
-		// Wrong tree height.
-		{snapshot1, snapshot2 * 2, root1, root2, proof, "snapshot2 * 2"},
-		{snapshot1, snapshot2 / 2, root1, root2, proof, "snapshot2 / 2"},
-		// Wrong root.
-		{snapshot1, snapshot2, GByteArray *("WrongRoot"), root2, proof, "wrong root1"},
-		{snapshot1, snapshot2, root1, GByteArray *("WrongRoot"), proof, "wrong root2"},
-		{snapshot1, snapshot2, root2, root1, proof, "swapped roots"},
-		// Empty proof.
-		{snapshot1, snapshot2, root1, root2, GPtrArray *{}, "empty proof"},
-		// Add garbage at the end.
-		{snapshot1, snapshot2, root1, root2, extend(proof, GByteArray *{}), "trailing garbage"},
-		{snapshot1, snapshot2, root1, root2, extend(proof, root1), "trailing root1"},
-		{snapshot1, snapshot2, root1, root2, extend(proof, root2), "trailing root2"},
-		// Add garbage at the front.
-		{snapshot1, snapshot2, root1, root2, prepend(proof, GByteArray *{}), "preceding garbage"},
-		{snapshot1, snapshot2, root1, root2, prepend(proof, root1), "preceding root1"},
-		{snapshot1, snapshot2, root1, root2, prepend(proof, root2), "preceding root2"},
-		{snapshot1, snapshot2, root1, root2, prepend(proof, proof[0]), "preceding proof[0]"},
-	}
+static GPtrArray *
+corruptConsistencyProof(gint64 snapshot1,
+			gint64 snapshot2,
+			GByteArray *root1,
+			GByteArray *root2,
+			GPtrArray *proof)
+{
+	GPtrArray *ret = g_ptr_array_new_with_free_func((GDestroyNotify)consistencyProbeFree);
+	consistencyProbe *cp = NULL;
+	guint ln = proof->len;
 
-	// Remove a node from the end.
+	GByteArray *bad_root = NULL;
+	const unsigned char wrong_root[] = "WrongRoot";
+	bad_root = g_byte_array_new();
+	bad_root = g_byte_array_append(bad_root, wrong_root, sizeof wrong_root - 1);
+
+	/* Wrong snapshot index. */
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1 - 1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	cp->proof = g_ptr_array_ref(proof);
+	cp->desc = "snapshot1 - 1";
+	g_ptr_array_add(ret, cp);
+
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1 + 1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	cp->proof = g_ptr_array_ref(proof);
+	cp->desc = "snapshot1 + 1";
+	g_ptr_array_add(ret, cp);
+
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1 ^ 2;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	cp->proof = g_ptr_array_ref(proof);
+	cp->desc = "snapshot1 ^ 2";
+	g_ptr_array_add(ret, cp);
+
+	/* Wrong tree height */
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2 * 2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	cp->proof = g_ptr_array_ref(proof);
+	cp->desc = "snapshot2 * 2";
+	g_ptr_array_add(ret, cp);
+
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2 / 2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	cp->proof = g_ptr_array_ref(proof);
+	cp->desc = "snapshot2 / 2";
+	g_ptr_array_add(ret, cp);
+
+	/* Wrong root */
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(bad_root);
+	cp->root2 = g_byte_array_ref(root2);
+	cp->proof = g_ptr_array_ref(proof);
+	cp->desc = "wrong root 1";
+	g_ptr_array_add(ret, cp);
+
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(bad_root);
+	cp->proof = g_ptr_array_ref(proof);
+	cp->desc = "wrong root 2";
+	g_ptr_array_add(ret, cp);
+
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root2);
+	cp->root2 = g_byte_array_ref(root1);
+	cp->proof = g_ptr_array_ref(proof);
+	cp->desc = "swapped roots";
+	g_ptr_array_add(ret, cp);
+
+	/* Empty proof */
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	cp->proof = g_ptr_array_new();
+	cp->desc = "empty proof";
+	g_ptr_array_add(ret, cp);
+
+	/* Add garbage at the end */
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	{
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		g_ptr_array_add(bad_proof, g_bytes_new(NULL, 0));
+		cp->proof = bad_proof;
+	}
+	cp->desc = "trailing garbage";
+	g_ptr_array_add(ret, cp);
+
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	{
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		g_ptr_array_add(bad_proof, g_byte_array_ref(root1));
+		cp->proof = bad_proof;
+	}
+	cp->desc = "trailing root1";
+	g_ptr_array_add(ret, cp);
+
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	{
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		g_ptr_array_add(bad_proof, g_byte_array_ref(root2));
+		cp->proof = bad_proof;
+	}
+	cp->desc = "trailing root2";
+	g_ptr_array_add(ret, cp);
+
+	/* Add garbage at the front */
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	{
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		g_ptr_array_insert(bad_proof, 0, g_bytes_new(NULL, 0));
+		cp->proof = bad_proof;
+	}
+	cp->desc = "preceding garbage";
+	g_ptr_array_add(ret, cp);
+
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	{
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		g_ptr_array_insert(bad_proof,
+				   0,
+				   g_byte_array_free_to_bytes(g_byte_array_ref(root1)));
+		cp->proof = bad_proof;
+	}
+	cp->desc = "preceding root1";
+	g_ptr_array_add(ret, cp);
+
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	{
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		g_ptr_array_insert(bad_proof,
+				   0,
+				   g_byte_array_free_to_bytes(g_byte_array_ref(root2)));
+		cp->proof = bad_proof;
+	}
+	cp->desc = "preceding root2";
+	g_ptr_array_add(ret, cp);
+
+	cp = consistencyProbeNew();
+	cp->snapshot1 = snapshot1;
+	cp->snapshot2 = snapshot2;
+	cp->root1 = g_byte_array_ref(root1);
+	cp->root2 = g_byte_array_ref(root2);
+	{
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GBytes *proof0 = g_ptr_array_index(proof, 0);
+		g_ptr_array_insert(bad_proof, 0, g_bytes_ref(proof0));
+		cp->proof = bad_proof;
+	}
+	cp->desc = "preceding proof[0]";
+	g_ptr_array_add(ret, cp);
+
 	if (ln > 0) {
-		ret = append(ret, consistencyProbe{snapshot1, snapshot2, root1, root2, proof[:ln-1], "truncated proof"})
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		g_ptr_array_remove_index(bad_proof, ln - 1);
+
+		cp = consistencyProbeNew();
+		cp->snapshot1 = snapshot1;
+		cp->snapshot2 = snapshot2;
+		cp->root1 = g_byte_array_ref(root1);
+		cp->root2 = g_byte_array_ref(root2);
+		cp->proof = bad_proof;
+		cp->desc = "truncated proof";
+		g_ptr_array_add(ret, cp);
 	}
 
-	// Modify single bit in an element of the proof.
-	for (i = 0; i < ln; i++) {
-		wrongProof = prepend(proof)                          // Copy the proof slice.
-		wrongProof[i] = append(GByteArray *(NULL), wrongProof[i]...) // But also the modified data.
-		wrongProof[i][0] ^= 16                                // Flip the bit.
-		desc = fmt.Sprintf("modified proof[%d] bit 4", i)
-		ret = append(ret, consistencyProbe{snapshot1, snapshot2, root1, root2, wrongProof, desc})
+	for (guint i = 0; i < ln; ++i) {
+		/* Copy the proof */
+		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		/* And also the data inside */
+		GBytes *b = g_ptr_array_steal_index(wrong_proof, i);
+		GByteArray *ba = g_bytes_unref_to_array(b);
+		/* Flip the bit. */
+		ba->data[0] ^= 16;
+		b = g_byte_array_free_to_bytes(ba);
+		g_ptr_array_insert(wrong_proof, i, b);
+
+		cp = consistencyProbeNew();
+		cp->snapshot1 = snapshot1;
+		cp->snapshot2 = snapshot2;
+		cp->root1 = g_byte_array_ref(root1);
+		cp->root2 = g_byte_array_ref(root2);
+		cp->proof = wrong_proof;
+		cp->desc = "modified proof[i] bit 4";
+		g_ptr_array_add(ret, cp);
 	}
 
-	return ret
+	return ret;
 }
 
+#if 0
 func verifierCheck(v *LogVerifier, leafIndex, gint64 treeSize, GPtrArray *proof, root, GByteArray *leafHash, GError **error)
 {
 	// Verify original inclusion proof.
