@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2020 Richard Hughes <richard@hughsie.com>
+ * Copyright (C) 2022 Joe Qian <joeqian@google.com>
  *
  * SPDX-License-Identifier: LGPL-2.1+
  */
@@ -1679,22 +1680,22 @@ jcat_rfc6962_func2(void)
 	g_assert_cmpint(proof_right->len, ==, 5);
 }
 
-struct inclusionProofTestVector {
+typedef struct {
 	gint64 leaf;
 	gint64 snapshot;
 	GPtrArray *proof;
-};
+} inclusionProofTestVector;
 
-static struct inclusionProofTestVector *
+static inclusionProofTestVector *
 inclusionProofTestVectorNew(void)
 {
-	struct inclusionProofTestVector *iptv = g_new0(struct inclusionProofTestVector, 1);
+	inclusionProofTestVector *iptv = g_new0(inclusionProofTestVector, 1);
 	iptv->proof = g_ptr_array_new_with_free_func((GDestroyNotify)g_bytes_unref);
 	return iptv;
 }
 
 static void
-inclusionProofTestVectorFree(struct inclusionProofTestVector *iptv)
+inclusionProofTestVectorFree(inclusionProofTestVector *iptv)
 {
 	g_ptr_array_unref(iptv->proof);
 }
@@ -1714,7 +1715,7 @@ decode_nibble(char h)
 static GBytes *
 dh(const char *s, int expected_size)
 {
-	char buf[32];
+	gchar buf[32] = {};
 	int input_size = strlen(s);
 	g_assert_true(input_size <= 64 && input_size % 2 == 0);
 	g_assert_cmpint(input_size, ==, expected_size * 2);
@@ -1741,7 +1742,7 @@ inclusionProofs(void)
 {
 	GPtrArray *rv =
 	    g_ptr_array_new_with_free_func((GDestroyNotify)inclusionProofTestVectorFree);
-	struct inclusionProofTestVector *iptv = NULL;
+	inclusionProofTestVector *iptv = NULL;
 
 	iptv = inclusionProofTestVectorNew();
 	g_ptr_array_add(rv, iptv);
@@ -1794,22 +1795,22 @@ inclusionProofs(void)
 	return rv;
 }
 
-struct consistencyTestVector {
+typedef struct {
 	gint64 snapshot1;
 	gint64 snapshot2;
 	GPtrArray *proof;
-};
+} consistencyTestVector;
 
-static struct consistencyTestVector *
+static consistencyTestVector *
 consistencyTestVectorNew(void)
 {
-	struct consistencyTestVector *ctv = g_new0(struct consistencyTestVector, 1);
+	consistencyTestVector *ctv = g_new0(consistencyTestVector, 1);
 	ctv->proof = g_ptr_array_new_with_free_func((GDestroyNotify)g_bytes_unref);
 	return ctv;
 }
 
 static void
-consistencyTestVectorFree(struct consistencyTestVector *ctv)
+consistencyTestVectorFree(consistencyTestVector *ctv)
 {
 	g_ptr_array_unref(ctv->proof);
 }
@@ -1818,7 +1819,7 @@ static GPtrArray *
 consistencyProofs(void)
 {
 	GPtrArray *rv = g_ptr_array_new_with_free_func((GDestroyNotify)consistencyTestVectorFree);
-	struct consistencyTestVector *ctv = NULL;
+	consistencyTestVector *ctv = NULL;
 
 	ctv = consistencyTestVectorNew();
 	ctv->snapshot1 = 1;
@@ -1897,26 +1898,26 @@ leaves(void)
 }
 
 // inclusionProbe is a parameter set for inclusion proof verification.
-struct inclusionProbe {
+typedef struct {
 	gint64 leafIndex;
 	gint64 treeSize;
 	GByteArray *root;
 	GByteArray *leafHash;
 	GPtrArray *proof;
 
-	// A string literal for the description. Do not free.
+	/* A string literal for the description. Do not free. */
 	const char *desc;
-};
+} inclusionProbe;
 
-static struct inclusionProbe *
+static inclusionProbe *
 inclusionProbeNew(void)
 {
-	struct inclusionProbe *ip = g_new0(struct inclusionProbe, 1);
+	inclusionProbe *ip = g_new0(inclusionProbe, 1);
 	return ip;
 }
 
 static void
-inclusionProbeFree(struct inclusionProbe *ip)
+inclusionProbeFree(inclusionProbe *ip)
 {
 	if (ip->root)
 		g_byte_array_unref(ip->root);
@@ -1927,16 +1928,16 @@ inclusionProbeFree(struct inclusionProbe *ip)
 }
 
 // consistencyProbe is a parameter set for consistency proof verification.
-struct consistencyProbe {
+typedef struct {
 	gint64 snapshot1;
 	gint64 snapshot2;
 	GByteArray *root1;
 	GByteArray *root2;
 	GPtrArray *proof;
 
-	// A string literal for the description. Do not free.
+	/* A string literal for the description. Do not free. */
 	const char *desc;
-};
+} consistencyProbe;
 
 static GPtrArray *
 corruptInclusionProof(gint64 leafIndex,
@@ -1946,7 +1947,7 @@ corruptInclusionProof(gint64 leafIndex,
 		      GByteArray *leafHash)
 {
 	GPtrArray *ret = g_ptr_array_new_with_free_func((GDestroyNotify)inclusionProbeFree);
-	struct inclusionProbe *ip = NULL;
+	inclusionProbe *ip = NULL;
 	guint ln = proof->len;
 
 	// Wrong leaf index.
@@ -2056,7 +2057,7 @@ corruptInclusionProof(gint64 leafIndex,
 	ip->desc = "trailing root";
 	g_ptr_array_add(ret, ip);
 
-	// Add garbage at the front
+	/* Add garbage at the front */
 	ip = inclusionProbeNew();
 	ip->leafIndex = leafIndex;
 	ip->treeSize = treeSize;
@@ -2084,14 +2085,14 @@ corruptInclusionProof(gint64 leafIndex,
 	ip->desc = "preceding root";
 	g_ptr_array_add(ret, ip);
 
-	// Modify single bit in an element of the proof.
+	/* Modify single bit in an element of the proof. */
 	for (guint i = 0; i < ln; ++i) {
-		// Copy the proof
+		/* Copy the proof */
 		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
-		// And also the data inside
+		/* And also the data inside */
 		GBytes *b = g_ptr_array_steal_index(wrong_proof, i);
 		GByteArray *ba = g_bytes_unref_to_array(b);
-		// Flip the bit.
+		/* Flip the bit. */
 		ba->data[i] ^= 8;
 		b = g_byte_array_free_to_bytes(ba);
 		g_ptr_array_insert(wrong_proof, i, b);
