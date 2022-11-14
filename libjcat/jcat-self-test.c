@@ -2393,59 +2393,144 @@ corruptConsistencyProof(gint64 snapshot1,
 	return ret;
 }
 
+static void
+verifierCheck(void *v,
+	      gint64 leafIndex,
+	      gint64 treeSize,
+	      GPtrArray *proof,
+	      GByteArray *root,
+	      GByteArray *leafHash,
+	      GError **error)
+{
+	GByteArray *got = RootFromInclusionProof(leafIndex, treeSize, proof, leafHash, error);
+	if (*error != NULL) {
+		return;
+	}
+	if (!fu_byte_array_compare(got, root, error)) {
+		g_autofree gchar *str1 = jcat_rfc6962_decode_string(got);
+		g_autofree gchar *str2 = jcat_rfc6962_decode_string(root);
+		g_prefix_error(error, "CalculatedRoot=%s, ExpectedRoot=%s: ", str1, str2);
+		return;
+	}
+	if (!VerifyInclusionProof(leafIndex, treeSize, proof, root, leafHash, error)) {
+		return;
+	}
+
+	{
+		g_autoptr(GPtrArray) probes =
+		    corruptInclusionProof(leafIndex, treeSize, proof, root, leafHash);
+		guint wrong = 0;
+		for (guint i = 0; i < probes->len; ++i) {
+			inclusionProbe *p = g_ptr_array_index(probes, i);
+			if (VerifyInclusionProof(p->leafIndex,
+						 p->treeSize,
+						 p->proof,
+						 p->root,
+						 p->leafHash,
+						 error)) {
+				if (wrong++ == 0) {
+					g_set_error(error,
+						    G_IO_ERROR,
+						    G_IO_ERROR_FAILED,
+						    "verifierCheck: incorrectly verified");
+				}
+				g_prefix_error(error, "case=%s ", p->desc);
+			}
+		}
+	}
+}
+
+static void
+verifierConsistencyCheck(gint64 snapshot1,
+			 gint64 snapshot2,
+			 GByteArray *root1,
+			 GByteArray *root2,
+			 GPtrArray *proof,
+			 GError **error)
+{
+	/* verify original consistency proof */
+	if (!VerifyConsistencyProof(snapshot1, snapshot2, root1, root2, proof, error)) {
+		return;
+	}
+
+	/* For simplicity test only non-trivial proofs that have root1 != root2,
+	 snapshot1 != 0 and snapshot1 != snapshot2.
+	 */
+	if (proof->len == 0) {
+		return;
+	}
+
+	{
+		g_autoptr(GPtrArray) probes =
+		    corruptConsistencyProof(snapshot1, snapshot2, root1, root2, proof);
+		guint wrong = 0;
+		for (guint i = 0; i < probes->len; ++i) {
+			consistencyProbe *p = g_ptr_array_index(probes, i);
+			if (VerifyConsistencyProof(p->snapshot1,
+						   p->snapshot2,
+						   p->root1,
+						   p->root2,
+						   p->proof,
+						   error)) {
+				if (wrong++ == 0) {
+					g_set_error(
+					    error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_FAILED,
+					    "verifierConsistencyCheck: incorrectly verified");
+				}
+				g_prefix_error(error, "case=%s ", p->desc);
+			}
+		}
+	}
+}
+
+static void
+TestVerifyInclusionProofSingleEntry(void)
+{
+	g_autoptr(GByteArray) data = g_byte_array_new();
+	g_autoptr(GByteArray) hash = NULL;
+	// The corresponding inclusion proof is empty.
+	g_autoptr(GPtrArray) proof = g_ptr_array_new();
+	g_autoptr(GByteArray) emptyHash = g_byte_array_new();
+
+	data = g_byte_array_append(data, (guint8 *)"data", 4);
+	/* Root and leaf hash for 1-entry tree are the same. */
+	hash = jcat_rfc6962_hash_leaf(data);
+
+	{
+		struct testcase {
+			GByteArray *root;
+			GByteArray *leaf;
+			gboolean wantErr;
+		};
+		struct testcase testcases[] = {
+		    {hash, hash, FALSE},
+		    {hash, emptyHash, TRUE},
+		    {emptyHash, hash, TRUE},
+		    {emptyHash, emptyHash, TRUE}, /* Wrong hash size*/
+		};
+
+		for (guint i = 0, end = 4; i < end; i++) {
+			g_autoptr(GError) error = NULL;
+			gboolean result = VerifyInclusionProof(0,
+							       1,
+							       proof,
+							       testcases[i].root,
+							       testcases[i].leaf,
+							       &error);
+			if (testcases[i].wantErr) {
+				g_assert_false(result);
+				g_assert_nonnull(error);
+			} else {
+				g_assert_true(result);
+				g_assert_no_error(error);
+			}
+		}
+	}
+}
+
 #if 0
-func verifierCheck(v *LogVerifier, leafIndex, gint64 treeSize, GPtrArray *proof, root, GByteArray *leafHash, GError **error)
-{
-	// Verify original inclusion proof.
-	got, err = v.RootFromInclusionProof(leafIndex, treeSize, proof, leafHash)
-	if err != NULL {
-		return err
-	}
-	if !bytes.Equal(got, root) {
-		return fmt.Errorf("got root:\n%x\nexpected:\n%x", got, root)
-	}
-	if err = v.VerifyInclusionProof(leafIndex, treeSize, proof, root, leafHash); err != NULL {
-		return err
-	}
-
-	probes = corruptInclusionProof(leafIndex, treeSize, proof, root, leafHash)
-	var wrong []string
-	for _, p = range probes {
-		if err = v.VerifyInclusionProof(p.leafIndex, p.treeSize, p.proof, p.root, p.leafHash); err == NULL {
-			wrong = append(wrong, p.desc)
-		}
-	}
-	if len(wrong) > 0 {
-		return fmt.Errorf("incorrectly verified against: %s", strings.Join(wrong, ", "))
-	}
-	return NULL
-}
-
-func verifierConsistencyCheck(v *LogVerifier, snapshot1, snapshot2 gint64, root1, GByteArray *root2, GPtrArray *proof, GError **error)
-{
-	// Verify original consistency proof.
-	if err = v.VerifyConsistencyProof(snapshot1, snapshot2, root1, root2, proof); err != NULL {
-		return err
-	}
-	// For simplicity test only non-trivial proofs that have root1 != root2,
-	// snapshot1 != 0 and snapshot1 != snapshot2.
-	if len(proof) == 0 {
-		return NULL
-	}
-
-	probes = corruptConsistencyProof(snapshot1, snapshot2, root1, root2, proof)
-	var wrong []string
-	for _, p = range probes {
-		if err = v.VerifyConsistencyProof(p.snapshot1, p.snapshot2, p.root1, p.root2, p.proof); err == NULL {
-			wrong = append(wrong, p.desc)
-		}
-	}
-	if len(wrong) > 0 {
-		return fmt.Errorf("incorrectly verified against: %s", strings.Join(wrong, ", "))
-	}
-	return NULL
-}
-
 func TestVerifyInclusionProofSingleEntry(t *testing.T) {
 	v = New(rfc6962.DefaultHasher)
 	data = GByteArray *("data")
@@ -2727,13 +2812,6 @@ func getLeafAndProof(tree *inmemory.Tree, gint64 index) (GByteArray *, GPtrArray
 }
 #endif
 
-static void
-smoke_test(void)
-{
-	GPtrArray *array = inclusionProofs();
-	g_ptr_array_unref(array);
-}
-
 int
 main(int argc, char **argv)
 {
@@ -2763,6 +2841,7 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/context{verify-item-sign}", jcat_context_verify_item_sign_func);
 	g_test_add_func("/jcat/context{verify-item-csum}", jcat_context_verify_item_csum_func);
 
-	g_test_add_func("/jcat/smoke", smoke_test);
+	g_test_add_func("/jcat/TestVerifyInclusionProofSingleEntry",
+			TestVerifyInclusionProofSingleEntry);
 	return g_test_run();
 }
