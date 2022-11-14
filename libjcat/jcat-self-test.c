@@ -2394,8 +2394,7 @@ corruptConsistencyProof(gint64 snapshot1,
 }
 
 static void
-verifierCheck(void *v,
-	      gint64 leafIndex,
+verifierCheck(gint64 leafIndex,
 	      gint64 treeSize,
 	      GPtrArray *proof,
 	      GByteArray *root,
@@ -2519,79 +2518,114 @@ TestVerifyInclusionProofSingleEntry(void)
 							       testcases[i].root,
 							       testcases[i].leaf,
 							       &error);
+			g_autofree gchar *str_root = jcat_rfc6962_decode_string(testcases[i].root);
+			g_autofree gchar *str_leaf = jcat_rfc6962_decode_string(testcases[i].leaf);
+			g_debug("ran test case %u (root=%s, leaf=%s) with result %d",
+				i,
+				str_root,
+				str_leaf,
+				result);
 			if (testcases[i].wantErr) {
-				g_assert_false(result);
 				g_assert_nonnull(error);
+				g_assert_false(result);
 			} else {
-				g_assert_true(result);
 				g_assert_no_error(error);
+				g_assert_true(result);
 			}
 		}
 	}
 }
 
+static void
+TestVerifyInclusionProof(void)
+{
+	g_autoptr(GPtrArray) ips = inclusionProofs();
+	g_autoptr(GPtrArray) ls = leaves();
+	g_autoptr(GPtrArray) rs = roots();
+	g_autoptr(GPtrArray) proof = g_ptr_array_new();
+
+	struct probe {
+		gint64 index, size;
+	};
+	struct probe probes[] = {{0, 0}, {0, 1}, {1, 0}, {2, 1}};
+
+	for (guint i = 0; i < 4; ++i) {
+		g_autoptr(GByteArray) empty = g_byte_array_new();
+		g_autoptr(GByteArray) someHash = g_bytes_unref_to_array(sha256SomeHash());
+		g_autoptr(GByteArray) emptyTreeHash = g_bytes_unref_to_array(sha256EmptyTreeHash());
+
+		{
+			g_autoptr(GError) error = NULL;
+			gboolean result = VerifyInclusionProof(probes[i].index,
+							       probes[i].size,
+							       proof,
+							       empty,
+							       someHash,
+							       &error);
+			g_assert_false(result);
+			g_assert_nonnull(error);
+		}
+		{
+			g_autoptr(GError) error = NULL;
+			gboolean result = VerifyInclusionProof(probes[i].index,
+							       probes[i].size,
+							       proof,
+							       emptyTreeHash,
+							       empty,
+							       &error);
+			g_assert_false(result);
+			g_assert_nonnull(error);
+		}
+		{
+			g_autoptr(GError) error = NULL;
+			gboolean result = VerifyInclusionProof(probes[i].index,
+							       probes[i].size,
+							       proof,
+							       emptyTreeHash,
+							       someHash,
+							       &error);
+			g_assert_false(result);
+			g_assert_nonnull(error);
+		}
+	}
+
+	/* i = 0 is an invalid path */
+	for (guint i = 1; i < 6; ++i) {
+		inclusionProofTestVector *p = g_ptr_array_index(ips, i);
+		GBytes *leaf = g_bytes_ref(g_ptr_array_index(ls, p->leaf - 1));
+		g_autoptr(GByteArray) leafHash =
+		    jcat_rfc6962_hash_leaf(g_bytes_unref_to_array(leaf));
+		GBytes *root = g_bytes_ref(g_ptr_array_index(rs, p->snapshot - 1));
+
+		g_autoptr(GError) error = NULL;
+		verifierCheck(p->leaf - 1,
+			      p->snapshot,
+			      p->proof,
+			      g_bytes_unref_to_array(root),
+			      leafHash,
+			      &error);
+		g_prefix_error(&error, "verifierCheck() i = %u ", i);
+		g_assert_no_error(error);
+	}
+}
+
+static void
+TestVerifyInclusionProofGenerated(void)
+{
+	g_autoptr(GArray) sizes = g_array_new(FALSE, TRUE, sizeof(guint64));
+	guint64 s;
+	for (s = 1; s <= 70; ++s) {
+		g_array_append_val(sizes, s);
+	}
+	s = 1024;
+	g_array_append_val(sizes, s);
+	s = 5050;
+	g_array_append_val(sizes, s);
+
+	/* TODO(joeqian): figure out the createTree and growTree functions */
+}
+
 #if 0
-func TestVerifyInclusionProofSingleEntry(t *testing.T) {
-	v = New(rfc6962.DefaultHasher)
-	data = GByteArray *("data")
-	// Root and leaf hash for 1-entry tree are the same.
-	hash = v.hasher.HashLeaf(data)
-	// The corresponding inclusion proof is empty.
-	proof = GPtrArray *{}
-	emptyHash = GByteArray *{}
-
-	for i, tc = range []struct {
-		root    GByteArray *
-		leaf    GByteArray *
-		wantErr bool
-	}{
-		{hash, hash, false},
-		{hash, emptyHash, true},
-		{emptyHash, hash, true},
-		{emptyHash, emptyHash, true}, // Wrong hash size.
-	} {
-		t.Run(fmt.Sprintf("test:%d", i), func(t *testing.T) {
-			err = v.VerifyInclusionProof(0, 1, proof, tc.root, tc.leaf)
-			if got, want = err != NULL, tc.wantErr; got != want {
-				t.Errorf("error: %v, want %v", got, want)
-			}
-		})
-	}
-}
-
-func TestVerifyInclusionProof(t *testing.T) {
-	v = New(rfc6962.DefaultHasher)
-	proof = GPtrArray *{}
-
-	probes = []struct {
-		index, size gint64
-	}{{0, 0}, {0, 1}, {1, 0}, {2, 1}}
-	for _, p = range probes {
-		t.Run(fmt.Sprintf("probe:%d:%d", p.index, p.size), func(t *testing.T) {
-			if err = v.VerifyInclusionProof(p.index, p.size, proof, GByteArray *{}, sha256SomeHash); err == NULL {
-				t.Error("Incorrectly verified invalid root/leaf")
-			}
-			if err = v.VerifyInclusionProof(p.index, p.size, proof, sha256EmptyTreeHash, GByteArray *{}); err == NULL {
-				t.Error("Incorrectly verified invalid root/leaf")
-			}
-			if err = v.VerifyInclusionProof(p.index, p.size, proof, sha256EmptyTreeHash, sha256SomeHash); err == NULL {
-				t.Error("Incorrectly verified invalid root/leaf")
-			}
-		})
-	}
-
-	// i = 0 is an invalid path.
-	for i = 1; i < 6; i++ {
-		p = inclusionProofs[i]
-		t.Run(fmt.Sprintf("proof:%d", i), func(t *testing.T) {
-			leafHash = rfc6962.DefaultHasher.HashLeaf(leaves[p.leaf-1])
-			if err = verifierCheck(&v, p.leaf-1, p.snapshot, p.proof, roots[p.snapshot-1], leafHash); err != NULL {
-				t.Errorf("verifierCheck(): %s", err)
-			}
-		})
-	}
-}
-
 func TestVerifyInclusionProofGenerated(t *testing.T) {
 	gint64 sizes []
 	for s = 1; s <= 70; s++ {
@@ -2843,5 +2877,6 @@ main(int argc, char **argv)
 
 	g_test_add_func("/jcat/TestVerifyInclusionProofSingleEntry",
 			TestVerifyInclusionProofSingleEntry);
+	g_test_add_func("/jcat/TestVerifyInclusionProof", TestVerifyInclusionProof);
 	return g_test_run();
 }
