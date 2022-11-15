@@ -1253,11 +1253,13 @@ innerProofSize(guint64 index, guint64 size)
 	return bits_Len64(index ^ (size - 1));
 }
 
-// decompInclProof breaks down inclusion proof for a leaf at the specified
-// |index| in a tree of the specified |size| into 2 components. The splitting
-// point between them is where paths to leaves |index| and |size-1| diverge.
-// Returns lengths of the bottom and upper proof parts correspondingly. The sum
-// of the two determines the correct length of the inclusion proof.
+/*
+ * This breaks down inclusion proof for a leaf at the specified |index| in a tree of the
+ * specified |size| into 2 components.
+ * The splitting point between them is where paths to leaves |index| and |size-1| diverge.
+ * Returns lengths of the bottom and upper proof parts correspondingly. The sum
+ * of the two determines the correct length of the inclusion proof.
+ */
 static void
 decompInclProof(guint64 index, guint64 size, guint *inner, guint *border)
 {
@@ -1358,9 +1360,11 @@ jcat_rfc6962_proof_slice_right(GPtrArray *src, guint pos, GError **error)
 	return dst;
 }
 
-// RootFromInclusionProof calculates the expected tree root given the proof and leaf.
-// leafIndex starts at 0.  treeSize is the number of nodes in the tree.
-// proof is an array of neighbor nodes from the bottom to the root.
+/*
+ * This calculates the expected tree root given the proof and leaf.
+ * @leafIndex starts at 0. @treeSize is the number of nodes in the tree.
+ * @proof is an array of neighbor nodes from the bottom to the root.
+ */
 static GByteArray *
 RootFromInclusionProof(gint64 leafIndex,
 		       gint64 treeSize,
@@ -1425,8 +1429,7 @@ RootFromInclusionProof(gint64 leafIndex,
 	return jcat_hash_chainBorderRight(res, proof_right);
 }
 
-// VerifyInclusionProof verifies the correctness of the proof given the passed
-// in information about the tree and leaf.
+/* verifies the correctness of the proof given the passed in information about the tree and leaf */
 static gboolean
 VerifyInclusionProof(gint64 leafIndex,
 		     guint64 treeSize,
@@ -1452,9 +1455,10 @@ VerifyInclusionProof(gint64 leafIndex,
 	return TRUE;
 }
 
-// VerifyConsistencyProof checks that the passed in consistency proof is valid
-// between the passed in tree snapshots. Snapshots are the respective tree
-// sizes. Accepts shapshot2 >= snapshot1 >= 0.
+/*
+ * Checks that the passed in consistency proof is valid between the passed in tree snapshots.
+ * Snapshots are the respective tree sizes. Accepts @shapshot2 >= @snapshot1 >= 0.
+ */
 static gboolean
 VerifyConsistencyProof(gint64 snapshot1,
 		       gint64 snapshot2,
@@ -1506,12 +1510,12 @@ VerifyConsistencyProof(gint64 snapshot1,
 				    "root1 and root2 match, but proof is non-empty");
 			return FALSE;
 		}
-		// Proof OK.
+		/* proof OK */
 		return TRUE;
 	}
 
 	if (snapshot1 == 0) {
-		// Any snapshot greater than 0 is consistent with snapshot 0.
+		/* any snapshot greater than 0 is consistent with snapshot 0 */
 		if (proof->len > 0) {
 			g_set_error(error,
 				    G_IO_ERROR,
@@ -1520,7 +1524,7 @@ VerifyConsistencyProof(gint64 snapshot1,
 				    proof->len);
 			return FALSE;
 		}
-		// Proof OK.
+		/* proof OK */
 		return TRUE;
 	}
 
@@ -1531,11 +1535,11 @@ VerifyConsistencyProof(gint64 snapshot1,
 
 	decompInclProof(snapshot1 - 1, snapshot2, &inner, &border);
 	shift = bits_TrailingZeros64((guint64)snapshot1);
-	inner -= shift; // Note: shift < inner if snapshot1 < snapshot2.
+	inner -= shift; /* note: shift < inner if snapshot1 < snapshot2 */
 
-	// The proof includes the root hash for the sub-tree of size 2^shift.
+	/* proof includes the root hash for the sub-tree of size 2^shift */
 	if (snapshot1 == 1 << ((guint)shift)) {
-		// Unless snapshot1 is that very 2^shift.
+		/* unless snapshot1 is that very 2^shift */
 		seed = root1;
 		start = 0;
 	} else {
@@ -1555,12 +1559,14 @@ VerifyConsistencyProof(gint64 snapshot1,
 	if (proof_new == NULL)
 		return FALSE;
 
-	// Now proof->len == inner+border, and proof is effectively a suffix of
-	// inclusion proof for entry |snapshot1-1| in a tree of size |snapshot2|.
+	/*
+	 * Now proof->len == inner+border, and proof is effectively a suffix of
+	 * inclusion proof for entry |snapshot1-1| in a tree of size |snapshot2|
+	 */
 
-	// Verify the first root.
+	/* verify the first root */
 	//	ch = hashChainer(v)
-	mask = (snapshot1 - 1) >> (guint)shift; // Start chaining from level |shift|.
+	mask = (snapshot1 - 1) >> (guint)shift; /* start chaining from level |shift| */
 
 	proof_left = jcat_rfc6962_proof_slice_left(proof_new, inner, error);
 	if (proof_left == NULL)
@@ -1578,7 +1584,7 @@ VerifyConsistencyProof(gint64 snapshot1,
 		return FALSE;
 	}
 
-	// Verify the second root.
+	/* verify the second root */
 	hash2 = jcat_hash_chainInner(seed, proof_left, mask);
 	hash2 = jcat_hash_chainBorderRight(hash2, proof_right);
 	if (!fu_byte_array_compare(hash2, root2, error)) {
@@ -1588,16 +1594,16 @@ VerifyConsistencyProof(gint64 snapshot1,
 		return FALSE;
 	}
 
-	// Proof OK.
+	/* proof OK */
 	return TRUE;
 }
 
-// VerifiedPrefixHashFromInclusionProof calculates a root hash over leaves
-// [0..subSize), based on the inclusion |proof| and |leafHash| for a leaf at
-// index |subSize-1| in a tree of the specified |size| with the passed in
-// |root| hash.
-// Returns an error if the |proof| verification fails. The resulting smaller
-// tree's root hash is trusted iff the bigger tree's |root| hash is trusted.
+/*
+ * Calculates a root hash over leaves [0..subSize), based on the inclusion |proof| and |leafHash|
+ * for a leaf at index |subSize-1| in a tree of the specified |size| with the passed in @root hash.
+ * Returns an error if the |proof| verification fails. The resulting smaller tree's root hash is
+ * trusted iff the bigger tree's @root hash is trusted.
+ */
 static GByteArray *
 VerifiedPrefixHashFromInclusionProof(gint64 subSize,
 				     gint64 size,
@@ -1813,6 +1819,7 @@ static void
 consistencyTestVectorFree(consistencyTestVector *ctv)
 {
 	g_ptr_array_unref(ctv->proof);
+	g_free(ctv);
 }
 
 static GPtrArray *
@@ -1968,7 +1975,7 @@ corruptInclusionProof(gint64 leafIndex,
 	inclusionProbe *ip = NULL;
 	guint ln = proof->len;
 
-	// Wrong leaf index.
+	/* wrong leaf index */
 	ip = inclusionProbeNew();
 	ip->leafIndex = leafIndex - 1;
 	ip->treeSize = treeSize;
@@ -1996,7 +2003,7 @@ corruptInclusionProof(gint64 leafIndex,
 	ip->desc = "leafIndex ^ 2";
 	g_ptr_array_add(ret, ip);
 
-	// Wrong tree height
+	/* wrong tree height */
 	ip = inclusionProbeNew();
 	ip->leafIndex = leafIndex;
 	ip->treeSize = treeSize * 2;
@@ -2015,7 +2022,7 @@ corruptInclusionProof(gint64 leafIndex,
 	ip->desc = "treeSize / 2";
 	g_ptr_array_add(ret, ip);
 
-	// Wrong leaf or root.
+	/* wrong leaf or root */
 	ip = inclusionProbeNew();
 	ip->leafIndex = leafIndex;
 	ip->treeSize = treeSize;
@@ -2047,7 +2054,7 @@ corruptInclusionProof(gint64 leafIndex,
 	ip->desc = "random root";
 	g_ptr_array_add(ret, ip);
 
-	// Add garbage at the end
+	/* add garbage at the end */
 	ip = inclusionProbeNew();
 	ip->leafIndex = leafIndex;
 	ip->treeSize = treeSize;
@@ -2075,7 +2082,7 @@ corruptInclusionProof(gint64 leafIndex,
 	ip->desc = "trailing root";
 	g_ptr_array_add(ret, ip);
 
-	/* Add garbage at the front */
+	/* add garbage at the front */
 	ip = inclusionProbeNew();
 	ip->leafIndex = leafIndex;
 	ip->treeSize = treeSize;
@@ -2172,7 +2179,7 @@ corruptConsistencyProof(gint64 snapshot1,
 	bad_root = g_byte_array_new();
 	bad_root = g_byte_array_append(bad_root, wrong_root, sizeof wrong_root - 1);
 
-	/* Wrong snapshot index. */
+	/* wrong snapshot index */
 	cp = consistencyProbeNew();
 	cp->snapshot1 = snapshot1 - 1;
 	cp->snapshot2 = snapshot2;
@@ -2200,7 +2207,7 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->desc = "snapshot1 ^ 2";
 	g_ptr_array_add(ret, cp);
 
-	/* Wrong tree height */
+	/* wrong tree height */
 	cp = consistencyProbeNew();
 	cp->snapshot1 = snapshot1;
 	cp->snapshot2 = snapshot2 * 2;
@@ -2219,7 +2226,7 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->desc = "snapshot2 / 2";
 	g_ptr_array_add(ret, cp);
 
-	/* Wrong root */
+	/* wrong root */
 	cp = consistencyProbeNew();
 	cp->snapshot1 = snapshot1;
 	cp->snapshot2 = snapshot2;
@@ -2247,7 +2254,7 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->desc = "swapped roots";
 	g_ptr_array_add(ret, cp);
 
-	/* Empty proof */
+	/* empty proof */
 	cp = consistencyProbeNew();
 	cp->snapshot1 = snapshot1;
 	cp->snapshot2 = snapshot2;
@@ -2257,7 +2264,7 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->desc = "empty proof";
 	g_ptr_array_add(ret, cp);
 
-	/* Add garbage at the end */
+	/* add garbage at the end */
 	cp = consistencyProbeNew();
 	cp->snapshot1 = snapshot1;
 	cp->snapshot2 = snapshot2;
@@ -2297,7 +2304,7 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->desc = "trailing root2";
 	g_ptr_array_add(ret, cp);
 
-	/* Add garbage at the front */
+	/* add garbage at the front */
 	cp = consistencyProbeNew();
 	cp->snapshot1 = snapshot1;
 	cp->snapshot2 = snapshot2;
@@ -2370,12 +2377,12 @@ corruptConsistencyProof(gint64 snapshot1,
 	}
 
 	for (guint i = 0; i < ln; ++i) {
-		/* Copy the proof */
+		/* copy the proof */
 		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
-		/* And also the data inside */
+		/* and also the data inside */
 		GBytes *b = g_ptr_array_steal_index(wrong_proof, i);
 		GByteArray *ba = g_bytes_unref_to_array(b);
-		/* Flip the bit. */
+		/* flip the bit */
 		ba->data[0] ^= 16;
 		b = g_byte_array_free_to_bytes(ba);
 		g_ptr_array_insert(wrong_proof, i, b);
@@ -2393,7 +2400,7 @@ corruptConsistencyProof(gint64 snapshot1,
 	return ret;
 }
 
-static void
+static gboolean
 verifierCheck(gint64 leafIndex,
 	      gint64 treeSize,
 	      GPtrArray *proof,
@@ -2402,18 +2409,16 @@ verifierCheck(gint64 leafIndex,
 	      GError **error)
 {
 	GByteArray *got = RootFromInclusionProof(leafIndex, treeSize, proof, leafHash, error);
-	if (*error != NULL) {
-		return;
-	}
+	if (got == NULL)
+		return FALSE;
 	if (!fu_byte_array_compare(got, root, error)) {
 		g_autofree gchar *str1 = jcat_rfc6962_decode_string(got);
 		g_autofree gchar *str2 = jcat_rfc6962_decode_string(root);
 		g_prefix_error(error, "CalculatedRoot=%s, ExpectedRoot=%s: ", str1, str2);
-		return;
+		return FALSE;
 	}
-	if (!VerifyInclusionProof(leafIndex, treeSize, proof, root, leafHash, error)) {
-		return;
-	}
+	if (!VerifyInclusionProof(leafIndex, treeSize, proof, root, leafHash, error))
+		return FALSE;
 
 	{
 		g_autoptr(GPtrArray) probes =
@@ -2437,9 +2442,11 @@ verifierCheck(gint64 leafIndex,
 			}
 		}
 	}
+	// TODO: check if @error is set here
+	return FALSE;
 }
 
-static void
+static gboolean
 verifierConsistencyCheck(gint64 snapshot1,
 			 gint64 snapshot2,
 			 GByteArray *root1,
@@ -2448,16 +2455,14 @@ verifierConsistencyCheck(gint64 snapshot1,
 			 GError **error)
 {
 	/* verify original consistency proof */
-	if (!VerifyConsistencyProof(snapshot1, snapshot2, root1, root2, proof, error)) {
-		return;
-	}
+	if (!VerifyConsistencyProof(snapshot1, snapshot2, root1, root2, proof, error))
+		return FALSE;
 
 	/* For simplicity test only non-trivial proofs that have root1 != root2,
 	 snapshot1 != 0 and snapshot1 != snapshot2.
 	 */
-	if (proof->len == 0) {
-		return;
-	}
+	if (proof->len == 0)
+		return TRUE;
 
 	{
 		g_autoptr(GPtrArray) probes =
@@ -2472,16 +2477,17 @@ verifierConsistencyCheck(gint64 snapshot1,
 						   p->proof,
 						   error)) {
 				if (wrong++ == 0) {
-					g_set_error(
-					    error,
-					    G_IO_ERROR,
-					    G_IO_ERROR_FAILED,
-					    "verifierConsistencyCheck: incorrectly verified");
+					g_set_error(error,
+						    G_IO_ERROR,
+						    G_IO_ERROR_FAILED,
+						    "incorrectly verified");
 				}
 				g_prefix_error(error, "case=%s ", p->desc);
 			}
 		}
 	}
+	// TODO: check if @error is set here
+	return FALSE;
 }
 
 static void
@@ -2489,12 +2495,12 @@ TestVerifyInclusionProofSingleEntry(void)
 {
 	g_autoptr(GByteArray) data = g_byte_array_new();
 	g_autoptr(GByteArray) hash = NULL;
-	// The corresponding inclusion proof is empty.
+	/* the corresponding inclusion proof is empty */
 	g_autoptr(GPtrArray) proof = g_ptr_array_new();
 	g_autoptr(GByteArray) emptyHash = g_byte_array_new();
 
 	data = g_byte_array_append(data, (guint8 *)"data", 4);
-	/* Root and leaf hash for 1-entry tree are the same. */
+	/* root and leaf hash for 1-entry tree are the same */
 	hash = jcat_rfc6962_hash_leaf(data);
 
 	{
@@ -2507,30 +2513,30 @@ TestVerifyInclusionProofSingleEntry(void)
 		    {hash, hash, FALSE},
 		    {hash, emptyHash, TRUE},
 		    {emptyHash, hash, TRUE},
-		    {emptyHash, emptyHash, TRUE}, /* Wrong hash size*/
+		    {emptyHash, emptyHash, TRUE}, /* wrong hash size */
 		};
 
 		for (guint i = 0, end = 4; i < end; i++) {
 			g_autoptr(GError) error = NULL;
-			gboolean result = VerifyInclusionProof(0,
-							       1,
-							       proof,
-							       testcases[i].root,
-							       testcases[i].leaf,
-							       &error);
+			gboolean ret = VerifyInclusionProof(0,
+							    1,
+							    proof,
+							    testcases[i].root,
+							    testcases[i].leaf,
+							    &error);
 			g_autofree gchar *str_root = jcat_rfc6962_decode_string(testcases[i].root);
 			g_autofree gchar *str_leaf = jcat_rfc6962_decode_string(testcases[i].leaf);
-			g_debug("ran test case %u (root=%s, leaf=%s) with result %d",
+			g_debug("ran test case %u (root=%s, leaf=%s) with ret %d",
 				i,
 				str_root,
 				str_leaf,
-				result);
+				ret);
 			if (testcases[i].wantErr) {
 				g_assert_nonnull(error);
-				g_assert_false(result);
+				g_assert_false(ret);
 			} else {
 				g_assert_no_error(error);
-				g_assert_true(result);
+				g_assert_true(ret);
 			}
 		}
 	}
@@ -2553,40 +2559,38 @@ TestVerifyInclusionProof(void)
 		g_autoptr(GByteArray) empty = g_byte_array_new();
 		g_autoptr(GByteArray) someHash = g_bytes_unref_to_array(sha256SomeHash());
 		g_autoptr(GByteArray) emptyTreeHash = g_bytes_unref_to_array(sha256EmptyTreeHash());
+		g_autoptr(GError) error = NULL;
+		gboolean ret;
 
-		{
-			g_autoptr(GError) error = NULL;
-			gboolean result = VerifyInclusionProof(probes[i].index,
-							       probes[i].size,
-							       proof,
-							       empty,
-							       someHash,
-							       &error);
-			g_assert_false(result);
-			g_assert_nonnull(error);
-		}
-		{
-			g_autoptr(GError) error = NULL;
-			gboolean result = VerifyInclusionProof(probes[i].index,
-							       probes[i].size,
-							       proof,
-							       emptyTreeHash,
-							       empty,
-							       &error);
-			g_assert_false(result);
-			g_assert_nonnull(error);
-		}
-		{
-			g_autoptr(GError) error = NULL;
-			gboolean result = VerifyInclusionProof(probes[i].index,
-							       probes[i].size,
-							       proof,
-							       emptyTreeHash,
-							       someHash,
-							       &error);
-			g_assert_false(result);
-			g_assert_nonnull(error);
-		}
+		ret = VerifyInclusionProof(probes[i].index,
+					   probes[i].size,
+					   proof,
+					   empty,
+					   someHash,
+					   &error);
+		g_assert_false(ret);
+		g_assert_nonnull(error);
+		g_clear_error(&error);
+
+		ret = VerifyInclusionProof(probes[i].index,
+					   probes[i].size,
+					   proof,
+					   emptyTreeHash,
+					   empty,
+					   &error);
+		g_assert_false(ret);
+		g_assert_nonnull(error);
+		g_clear_error(&error);
+
+		ret = VerifyInclusionProof(probes[i].index,
+					   probes[i].size,
+					   proof,
+					   emptyTreeHash,
+					   someHash,
+					   &error);
+		g_assert_false(ret);
+		g_assert_nonnull(error);
+		g_clear_error(&error);
 	}
 
 	/* i = 0 is an invalid path */
@@ -2665,19 +2669,19 @@ func TestVerifyConsistencyProof(t *testing.T) {
 	}{
 		{0, 0, root1, root2, proof1, true},
 		{1, 1, root1, root2, proof1, true},
-		// Snapshots that are always consistent.
+		/* snapshots that are always consistent */
 		{0, 0, root1, root1, proof1, false},
 		{0, 1, root1, root2, proof1, false},
 		{1, 1, root2, root2, proof1, false},
-		// Time travel to the past.
+		/* time travel to the past */
 		{1, 0, root1, root2, proof1, true},
 		{2, 1, root1, root2, proof1, true},
-		// Empty proof.
+		/* empty proof */
 		{1, 2, root1, root2, proof1, true},
-		// Roots don't match.
+		/* roots don't match */
 		{0, 0, sha256EmptyTreeHash, root2, proof1, true},
 		{1, 1, sha256EmptyTreeHash, root2, proof1, true},
-		// Roots match but the proof is not empty.
+		/* roots match but the proof is not empty */
 		{0, 0, sha256EmptyTreeHash, sha256EmptyTreeHash, proof2, true},
 		{0, 1, sha256EmptyTreeHash, sha256EmptyTreeHash, proof2, true},
 		{1, 1, sha256EmptyTreeHash, sha256EmptyTreeHash, proof2, true},
