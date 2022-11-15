@@ -79,23 +79,6 @@ LIBJCAT_0.1.3 {
 
 LIBJCAT_0.1.9 {
   global:
-    jcat_bt_checkpoint_get_hash;
-    jcat_bt_checkpoint_get_identity;
-    jcat_bt_checkpoint_get_log_size;
-    jcat_bt_checkpoint_get_origin;
-    jcat_bt_checkpoint_get_payload;
-    jcat_bt_checkpoint_get_pubkey;
-    jcat_bt_checkpoint_get_signature;
-    jcat_bt_checkpoint_get_type;
-    jcat_bt_checkpoint_new;
-    jcat_bt_checkpoint_to_string;
-    jcat_bt_verifier_get_alg;
-    jcat_bt_verifier_get_hash;
-    jcat_bt_verifier_get_key;
-    jcat_bt_verifier_get_name;
-    jcat_bt_verifier_get_type;
-    jcat_bt_verifier_new;
-    jcat_bt_verifier_to_string;
     jcat_engine_add_public_key_raw;
   local: *;
 } LIBJCAT_0.1.3;
@@ -112,3 +95,40 @@ LIBJCAT_0.1.12 {
     jcat_context_blob_kind_disallow;
   local: *;
 } LIBJCAT_0.1.11;
+
+LIBJCAT_0.2.0 {
+  global:
+    jcat_bt_checkpoint_get_hash;
+    jcat_bt_checkpoint_get_identity;
+    jcat_bt_checkpoint_get_log_size;
+    jcat_bt_checkpoint_get_origin;
+    jcat_bt_checkpoint_get_payload;
+    jcat_bt_checkpoint_get_pubkey;
+    jcat_bt_checkpoint_get_signature;
+    jcat_bt_checkpoint_get_type;
+    jcat_bt_checkpoint_new;
+    jcat_bt_checkpoint_to_string;
+    jcat_bt_consistency_proof_verify;
+    jcat_bt_fs_read_checkpoint;
+    jcat_bt_fs_sequence;
+    jcat_bt_generate_key_pair;
+    jcat_bt_hash_chain_border_right;
+    jcat_bt_hash_chain_inner;
+    jcat_bt_hash_chain_inner_right;
+    jcat_bt_inclusion_proof_calculate_root;
+    jcat_bt_inclusion_proof_verify;
+    jcat_bt_integrate_init;
+    jcat_bt_parse_checkpoint;
+    jcat_bt_parse_private_key;
+    jcat_bt_parse_public_key;
+    jcat_bt_verifier_get_alg;
+    jcat_bt_verifier_get_hash;
+    jcat_bt_verifier_get_key;
+    jcat_bt_verifier_get_name;
+    jcat_bt_verifier_get_type;
+    jcat_bt_verifier_new;
+    jcat_bt_verifier_to_string;
+    jcat_rfc6962_hash_children;
+    jcat_rfc6962_hash_leaf;
+  local: *;
+} LIBJCAT_0.1.12;

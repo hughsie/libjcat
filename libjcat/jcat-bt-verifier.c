@@ -27,7 +27,7 @@ G_DEFINE_TYPE(JcatBtVerifier, jcat_bt_verifier, G_TYPE_OBJECT)
  *
  * Returns: ID, typically 1
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 guint8
 jcat_bt_verifier_get_alg(JcatBtVerifier *self)
@@ -44,7 +44,7 @@ jcat_bt_verifier_get_alg(JcatBtVerifier *self)
  *
  * Returns: string, or %NULL
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 const gchar *
 jcat_bt_verifier_get_name(JcatBtVerifier *self)
@@ -61,7 +61,7 @@ jcat_bt_verifier_get_name(JcatBtVerifier *self)
  *
  * Returns: string, or %NULL
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 const gchar *
 jcat_bt_verifier_get_hash(JcatBtVerifier *self)
@@ -78,7 +78,7 @@ jcat_bt_verifier_get_hash(JcatBtVerifier *self)
  *
  * Returns: (transfer none): blob, or %NULL
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 GBytes *
 jcat_bt_verifier_get_key(JcatBtVerifier *self)
@@ -111,7 +111,7 @@ jcat_bt_verifier_add_string(JcatBtVerifier *self, guint idt, GString *str)
  *
  * Returns: string
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 gchar *
 jcat_bt_verifier_to_string(JcatBtVerifier *self)
@@ -130,7 +130,7 @@ jcat_bt_verifier_to_string(JcatBtVerifier *self)
  *
  * Returns: (transfer full): a #JcatBtVerifier, or %NULL on error
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 JcatBtVerifier *
 jcat_bt_verifier_new(GBytes *blob, GError **error)

@@ -4,8 +4,9 @@ libjcat Release Notes
 
 git shortlog 0.1.14.. | grep -i -v trivial | grep -v Merge > NEWS.new
 
-Version 0.1.15
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+Version 0.2.0
+~~~~~~~~~~~~~
 Released: 2023-xx-xx
 
 New Features:
@@ -15,7 +16,11 @@ Bugfixes:
 Commit changes to git:
 
 # MAKE SURE THESE ARE CORRECT
+<<<<<<< HEAD
 export release_ver="0.1.15"
+=======
+export release_ver="0.2.0"
+>>>>>>> 76eaf61 (Translated some self-test code from Go to C)
 
 git commit -a -m "Release libjcat ${release_ver}"
 git tag -s -f -m "Release libjcat ${release_ver}" "${release_ver}"

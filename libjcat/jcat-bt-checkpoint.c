@@ -30,7 +30,7 @@ G_DEFINE_TYPE(JcatBtCheckpoint, jcat_bt_checkpoint, G_TYPE_OBJECT)
  *
  * Returns: integer
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 guint
 jcat_bt_checkpoint_get_log_size(JcatBtCheckpoint *self)
@@ -47,7 +47,7 @@ jcat_bt_checkpoint_get_log_size(JcatBtCheckpoint *self)
  *
  * Returns: string, or %NULL
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 const gchar *
 jcat_bt_checkpoint_get_origin(JcatBtCheckpoint *self)
@@ -64,7 +64,7 @@ jcat_bt_checkpoint_get_origin(JcatBtCheckpoint *self)
  *
  * Returns: string, or %NULL
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 const gchar *
 jcat_bt_checkpoint_get_identity(JcatBtCheckpoint *self)
@@ -82,7 +82,7 @@ jcat_bt_checkpoint_get_identity(JcatBtCheckpoint *self)
  *
  * Returns: string, or %NULL
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 const gchar *
 jcat_bt_checkpoint_get_hash(JcatBtCheckpoint *self)
@@ -99,7 +99,7 @@ jcat_bt_checkpoint_get_hash(JcatBtCheckpoint *self)
  *
  * Returns: (transfer none): blob, or %NULL
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 GBytes *
 jcat_bt_checkpoint_get_pubkey(JcatBtCheckpoint *self)
@@ -116,7 +116,7 @@ jcat_bt_checkpoint_get_pubkey(JcatBtCheckpoint *self)
  *
  * Returns: (transfer none): blob, or %NULL
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 GBytes *
 jcat_bt_checkpoint_get_signature(JcatBtCheckpoint *self)
@@ -133,7 +133,7 @@ jcat_bt_checkpoint_get_signature(JcatBtCheckpoint *self)
  *
  * Returns: (transfer none): blob, or %NULL
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 GBytes *
 jcat_bt_checkpoint_get_payload(JcatBtCheckpoint *self)
@@ -181,7 +181,7 @@ jcat_bt_checkpoint_add_string(JcatBtCheckpoint *self, guint idt, GString *str)
  *
  * Returns: string
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 gchar *
 jcat_bt_checkpoint_to_string(JcatBtCheckpoint *self)
@@ -200,7 +200,7 @@ jcat_bt_checkpoint_to_string(JcatBtCheckpoint *self)
  *
  * Returns: (transfer full): a #JcatBtCheckpoint, or %NULL on error
  *
- * Since: 0.1.9
+ * Since: 0.2.0
  **/
 JcatBtCheckpoint *
 jcat_bt_checkpoint_new(GBytes *blob, GError **error)
