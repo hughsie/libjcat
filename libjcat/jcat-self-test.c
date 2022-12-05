@@ -2613,9 +2613,308 @@ TestVerifyInclusionProof(void)
 	}
 }
 
+typedef struct {
+	/* GPtrArray of GPtrArray of GByteArray */
+	GPtrArray *tree;
+	gint64 leavesProcessed;
+	gint64 levelCount;
+} inmemoryTree;
+
+static inmemoryTree *
+newInmemoryTree(void)
+{
+	inmemoryTree *tree = g_new0(inmemoryTree, 1);
+	tree->tree = g_ptr_array_new_with_free_func((GDestroyNotify)g_ptr_array_unref);
+	return tree;
+}
+
+static void
+inmemoryTreeFree(inmemoryTree *tree)
+{
+	g_ptr_array_unref(tree->tree);
+}
+
+static gint64
+inmemoryTreeNodeCount(inmemoryTree *tree, gint64 level)
+{
+	GPtrArray *this_level = NULL;
+	if (tree->tree->len <= level) {
+		abort();
+	}
+	this_level = g_ptr_array_index(tree->tree, level);
+	return this_level->len;
+}
+
+static gint64
+inmemoryTreeLeafCount(inmemoryTree *tree)
+{
+	if (tree->tree->len == 0)
+		return 0;
+	return inmemoryTreeNodeCount(tree, 0);
+}
+
+static void
+inmemoryTreeAddLevel(inmemoryTree *tree)
+{
+	g_ptr_array_add(tree->tree,
+			g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref));
+}
+
+static gboolean
+isPowerOfTwoPlusOne(gint64 x)
+{
+	if (x == 0)
+		return FALSE;
+	if (x == 1)
+		return TRUE;
+	return ((x - 1) & (x - 2)) == 0;
+}
+
+static void
+inmemoryTreeAddLeaf(inmemoryTree *tree, GByteArray *leaf_data)
+{
+	GByteArray *leaf_hash = jcat_rfc6962_hash_leaf(leaf_data);
+	gsize lazy_level_count = tree->tree->len;
+	GPtrArray *leaf_level = NULL;
+	gint64 leaf_count = 0;
+	if (lazy_level_count == 0) {
+		inmemoryTreeAddLevel(tree);
+		tree->leavesProcessed = 1;
+	}
+	leaf_level = g_ptr_array_index(tree->tree, 0);
+	g_ptr_array_add(leaf_level, leaf_hash);
+	leaf_count = inmemoryTreeLeafCount(tree);
+	if (isPowerOfTwoPlusOne(leaf_count)) {
+		tree->levelCount++;
+	}
+}
+
+static GByteArray *
+inmemoryTreeRoot(inmemoryTree *tree)
+{
+	GPtrArray *last_level = g_ptr_array_index(tree->tree, tree->tree->len - 1);
+	if (last_level->len > 1)
+		abort();
+	return g_byte_array_ref(g_ptr_array_index(last_level, 0));
+}
+
+static GByteArray *
+inmemoryTreeUpdateToSnapshot(inmemoryTree *tree, gint64 snapshot)
+{
+	if (snapshot == 0) {
+		return g_bytes_unref_to_array(sha256EmptyTreeHash());
+	}
+	if (snapshot == 1) {
+		GPtrArray *leaf_level = g_ptr_array_index(tree->tree, 0);
+		return g_byte_array_ref(g_ptr_array_index(leaf_level, 0));
+	}
+	if (snapshot == tree->leavesProcessed) {
+		return inmemoryTreeRoot(tree);
+	}
+	g_assert_cmpint(snapshot, <=, inmemoryTreeLeafCount(tree));
+	g_assert_cmpint(snapshot, >, tree->leavesProcessed);
+
+	for (gint64 level = 0, first_node = tree->leavesProcessed, last_node = snapshot - 1;
+	     last_node != 0;
+	     level++, first_node >>= 1, last_node >>= 1) {
+		if (tree->tree->len <= level + 1) {
+			inmemoryTreeAddLevel(tree);
+		} else if (inmemoryTreeNodeCount(tree, level + 1) == (first_node >> 1) + 1) {
+			GPtrArray *next_level = g_ptr_array_index(tree->tree, level + 1);
+			g_ptr_array_remove_index(next_level, next_level->len - 1);
+		}
+		for (gint64 j = first_node & ~(gint64)1; j < last_node; j += 2) {
+			g_ptr_array_add(
+			    g_ptr_array_index(tree->tree, level + 1),
+			    jcat_rfc6962_hash_children(
+				g_ptr_array_index((GPtrArray *)g_ptr_array_index(tree->tree, level),
+						  j),
+				g_ptr_array_index((GPtrArray *)g_ptr_array_index(tree->tree, level),
+						  j + 1)));
+		}
+		if ((last_node & 1) == 0) {
+			g_ptr_array_add(g_ptr_array_index(tree->tree, level + 1),
+					g_byte_array_ref(g_ptr_array_index(
+					    (GPtrArray *)g_ptr_array_index(tree->tree, level),
+					    last_node)));
+		}
+	}
+	tree->leavesProcessed = snapshot;
+	return inmemoryTreeRoot(tree);
+}
+
+static GByteArray *
+inmemoryTreeRecomputePastSnapshot(inmemoryTree *tree,
+				  gint64 snapshot,
+				  gint64 node_level,
+				  GByteArray **node)
+{
+	gint64 level = 0;
+	gint64 last_node = snapshot - 1;
+	g_autoptr(GByteArray) subtree_root = NULL;
+	if (snapshot == tree->leavesProcessed) {
+		if (node != NULL && tree->tree->len > node_level) {
+			GPtrArray *this_level = g_ptr_array_index(tree->tree, node_level);
+			if (*node != NULL)
+				g_byte_array_unref(*node);
+			if (node_level > 0) {
+				*node = g_byte_array_ref(
+				    g_ptr_array_index(this_level, this_level->len - 1));
+			} else {
+				*node = g_byte_array_ref(g_ptr_array_index(this_level, last_node));
+			}
+		}
+		return inmemoryTreeRoot(tree);
+	}
+
+	g_assert_cmpint(snapshot, <, tree->leavesProcessed);
+
+	while ((last_node & 1) == 1) {
+		if (node != NULL && node_level == level) {
+			GPtrArray *this_level = g_ptr_array_index(tree->tree, level);
+			if (*node != NULL)
+				g_byte_array_unref(*node);
+			*node = g_byte_array_ref(g_ptr_array_index(this_level, last_node));
+		}
+		last_node >>= 1;
+		level++;
+	}
+
+	subtree_root = g_byte_array_ref(
+	    g_ptr_array_index((GPtrArray *)g_ptr_array_index(tree->tree, level), last_node));
+
+	if (node != NULL && node_level == level) {
+		if (*node != NULL)
+			g_byte_array_unref(*node);
+		*node = g_byte_array_ref(subtree_root);
+	}
+
+	while (last_node != 0) {
+		if ((last_node & 1) == 1) {
+			GPtrArray *this_level = g_ptr_array_index(tree->tree, level);
+			GByteArray *new_subtree_root =
+			    jcat_rfc6962_hash_children(g_ptr_array_index(this_level, last_node - 1),
+						       subtree_root);
+			g_byte_array_unref(subtree_root);
+			subtree_root = new_subtree_root;
+		}
+
+		last_node >>= 1;
+		level++;
+		if (node != NULL && node_level == level) {
+			if (*node != NULL)
+				g_byte_array_unref(*node);
+			*node = g_byte_array_ref(subtree_root);
+		}
+	}
+	return subtree_root;
+}
+
+static GByteArray *
+inmemoryTreeRootAtSnapshot(inmemoryTree *tree, gint64 snapshot)
+{
+	if (snapshot == 0) {
+		return g_bytes_unref_to_array(sha256EmptyTreeHash());
+	}
+	if (snapshot > inmemoryTreeLeafCount(tree)) {
+		return NULL;
+	}
+	if (snapshot >= tree->leavesProcessed) {
+		return inmemoryTreeUpdateToSnapshot(tree, snapshot);
+	}
+	return inmemoryTreeRecomputePastSnapshot(tree, snapshot, 0, NULL);
+}
+
+static GByteArray *
+inmemoryTreeCurrentRoot(inmemoryTree *tree)
+{
+	return inmemoryTreeRootAtSnapshot(tree, inmemoryTreeLeafCount(tree));
+}
+
+static GPtrArray *
+inmemoryTreePathFromNodeToRootAtSnapshot(inmemoryTree *tree,
+					 gint64 node,
+					 gint64 level,
+					 gint64 snapshot)
+{
+	GPtrArray *path = g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref);
+	gint64 last_node = (snapshot - 1) >> level;
+	if (snapshot == 0 || level >= tree->levelCount || node > last_node ||
+	    snapshot > inmemoryTreeLeafCount(tree))
+		return path;
+	if (snapshot > tree->leavesProcessed) {
+		inmemoryTreeUpdateToSnapshot(tree, snapshot);
+	}
+	while (last_node) {
+		gint64 sibling = (node & 1) == 1 ? node - 1 : node + 1;
+		if (sibling < last_node) {
+			g_ptr_array_add(path,
+					g_byte_array_ref(g_ptr_array_index(
+					    (GPtrArray *)g_ptr_array_index(tree->tree, level),
+					    sibling)));
+		} else if (sibling == last_node) {
+			GByteArray *recomputed = NULL;
+			inmemoryTreeRecomputePastSnapshot(tree, snapshot, level, &recomputed);
+			g_assert_nonnull(recomputed);
+			g_ptr_array_add(path, recomputed);
+		}
+		node >>= 1;
+		last_node >>= 1;
+		level++;
+	}
+	return path;
+}
+
+static GPtrArray *
+inmemoryTreePathToRootAtSnapshot(inmemoryTree *tree, gint64 leaf, gint64 snapshot)
+{
+	if (leaf > snapshot || snapshot > inmemoryTreeLeafCount(tree) || leaf == 0) {
+		return g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref);
+	}
+	return inmemoryTreePathFromNodeToRootAtSnapshot(tree, leaf - 1, 0, snapshot);
+}
+
+static GPtrArray *
+inmemoryTreePathToCurrentRoot(inmemoryTree *tree, gint64 leaf)
+{
+	return inmemoryTreePathToRootAtSnapshot(tree, leaf, inmemoryTreeLeafCount(tree));
+}
+
+static void
+growTree(inmemoryTree *tree, gint64 upTo)
+{
+	for (gint64 i = inmemoryTreeLeafCount(tree); i < upTo; ++i) {
+		g_autoptr(GString) str = g_string_new(NULL);
+		g_autoptr(GByteArray) leaf = g_byte_array_new();
+		g_autoptr(GByteArray) leaf_hash = NULL;
+		g_string_printf(str, "data:%ld", i);
+		g_byte_array_append(leaf, (const guint8 *)str->str, str->len);
+		inmemoryTreeAddLeaf(tree, leaf);
+	}
+}
+
+static inmemoryTree *
+createTree(gint64 size)
+{
+	inmemoryTree *tree = newInmemoryTree();
+	growTree(tree, size);
+	return tree;
+}
+
+static void
+getLeafAndProof(inmemoryTree *tree, gint64 index, GByteArray **leaf_hash, GPtrArray **proof)
+{
+	g_assert_nonnull(leaf_hash);
+	g_assert_nonnull(proof);
+	*proof = inmemoryTreePathToCurrentRoot(tree, index + 1);
+	*leaf_hash = g_byte_array_ref(
+	    g_ptr_array_index((GPtrArray *)g_ptr_array_index(tree->tree, 0), index));
+}
+
 static void
 TestVerifyInclusionProofGenerated(void)
 {
+	inmemoryTree *tree = createTree(0);
 	g_autoptr(GArray) sizes = g_array_new(FALSE, TRUE, sizeof(guint64));
 	guint64 s;
 	for (s = 1; s <= 70; ++s) {
@@ -2626,32 +2925,25 @@ TestVerifyInclusionProofGenerated(void)
 	s = 5050;
 	g_array_append_val(sizes, s);
 
-	/* TODO(joeqian): figure out the createTree and growTree functions */
+	for (gsize k = 0; k < sizes->len; ++k) {
+		guint64 size = g_array_index(sizes, guint64, k);
+		g_autoptr(GByteArray) root = NULL;
+		growTree(tree, size);
+		root = inmemoryTreeCurrentRoot(tree);
+		for (guint64 i = 0; i < size; ++i) {
+			g_autoptr(GByteArray) leaf_hash = NULL;
+			g_autoptr(GPtrArray) proof = NULL;
+			g_autoptr(GError) error = NULL;
+			getLeafAndProof(tree, i, &leaf_hash, &proof);
+			verifierCheck(i, size, proof, root, leaf_hash, &error);
+			g_prefix_error(&error, "verifierCheck() i = %lu size = %lu ", i, size);
+			g_assert_no_error(error);
+		}
+	}
+	inmemoryTreeFree(tree);
 }
 
 #if 0
-func TestVerifyInclusionProofGenerated(t *testing.T) {
-	gint64 sizes []
-	for s = 1; s <= 70; s++ {
-		sizes = append(sizes, gint64(s))
-	}
-	sizes = append(sizes, []gint64{1024, 5050}...)
-
-	tree, v = createTree(0)
-	for _, size = range sizes {
-		growTree(tree, size)
-		root = tree.Hash()
-		for i = gint64(0); i < size; i++ {
-			t.Run(fmt.Sprintf("size:%d:index:%d", size, i), func(t *testing.T) {
-				leaf, proof = getLeafAndProof(tree, i)
-				if err = verifierCheck(&v, i, size, proof, root, leaf); err != NULL {
-					t.Errorf("verifierCheck(): %v", err)
-				}
-			})
-		}
-	}
-}
-
 func TestVerifyConsistencyProof(t *testing.T) {
 	v = New(rfc6962.DefaultHasher)
 
@@ -2826,28 +3118,6 @@ func shortHash(GByteArray *hash) string {
 	}
 	return fmt.Sprintf("%x...", hash[:4])
 }
-
-func createTree(size gint64) (*inmemory.Tree, LogVerifier) {
-	tree = inmemory.New(rfc6962.DefaultHasher)
-	growTree(tree, size)
-	return tree, New(rfc6962.DefaultHasher)
-}
-
-func growTree(tree *inmemory.Tree, upTo gint64) {
-	for i = gint64(tree.Size()); i < upTo; i++ {
-		tree.AppendData(GByteArray *(fmt.Sprintf("data:%d", i)))
-	}
-}
-
-func getLeafAndProof(tree *inmemory.Tree, gint64 index) (GByteArray *, GPtrArray *) {
-	// Note: inmemory.MerkleTree counts leaves from 1.
-	proof, err = tree.InclusionProof((guint64) index, tree.Size())
-	if err != NULL {
-		panic(err)
-	}
-	leafHash = tree.LeafHash((guint64) index)
-	return leafHash, proof
-}
 #endif
 
 int
@@ -2882,5 +3152,7 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/TestVerifyInclusionProofSingleEntry",
 			TestVerifyInclusionProofSingleEntry);
 	g_test_add_func("/jcat/TestVerifyInclusionProof", TestVerifyInclusionProof);
+	g_test_add_func("/jcat/TestVerifyInclusionProofGenerated",
+			TestVerifyInclusionProofGenerated);
 	return g_test_run();
 }
