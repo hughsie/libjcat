@@ -45,3 +45,7 @@ jcat_context_verify_item(JcatContext *self,
 			 JcatItem *item,
 			 JcatVerifyFlags flags,
 			 GError **error);
+void
+jcat_context_blob_kind_allow(JcatContext *self, JcatBlobKind kind);
+void
+jcat_context_blob_kind_disallow(JcatContext *self, JcatBlobKind kind);

@@ -251,6 +251,12 @@ jcat_sha1_engine_func(void)
 	g_assert_nonnull(blob_sig2);
 	sig = jcat_blob_get_data_as_string(blob_sig2);
 	g_assert_cmpstr(sig, ==, sig_actual);
+
+	/* not supported */
+	jcat_context_blob_kind_disallow(context, JCAT_BLOB_KIND_SHA1);
+	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_SHA1, &error);
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED);
+	g_assert_null(engine);
 }
 
 static void
@@ -702,6 +708,7 @@ jcat_context_verify_blob_func(void)
 	g_autoptr(JcatEngine) engine3 = NULL;
 	g_autoptr(JcatEngine) engine4 = NULL;
 	g_autoptr(JcatResult) result = NULL;
+	g_autoptr(JcatResult) result_disallow = NULL;
 
 	/* set up context */
 	jcat_context_set_keyring_path(context, "/tmp");
@@ -746,6 +753,16 @@ jcat_context_verify_blob_func(void)
 	g_assert_cmpstr(jcat_result_get_authority(result),
 			==,
 			"O=Linux Vendor Firmware Project,CN=LVFS CA");
+
+	/* not supported */
+	jcat_context_blob_kind_disallow(context, JCAT_BLOB_KIND_PKCS7);
+	result_disallow = jcat_context_verify_blob(context,
+						   data_fwbin,
+						   blob,
+						   JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS,
+						   &error);
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED);
+	g_assert_null(result_disallow);
 #else
 	g_test_skip("no GnuTLS support enabled");
 #endif
