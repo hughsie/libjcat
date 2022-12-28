@@ -27,6 +27,7 @@ typedef struct {
 	GPtrArray *engines;
 	GPtrArray *public_keys;
 	gchar *keyring_path;
+	guint32 blob_kinds;
 } JcatContextPrivate;
 
 G_DEFINE_TYPE_WITH_PRIVATE(JcatContext, jcat_context, G_TYPE_OBJECT)
@@ -54,6 +55,8 @@ static void
 jcat_context_init(JcatContext *self)
 {
 	JcatContextPrivate *priv = GET_PRIVATE(self);
+
+	priv->blob_kinds = G_MAXUINT32;
 	priv->keyring_path = g_build_filename(g_get_user_data_dir(), PACKAGE_NAME, NULL);
 	priv->engines = g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
 	priv->public_keys = g_ptr_array_new_with_free_func(g_free);
@@ -162,6 +165,13 @@ jcat_context_get_keyring_path(JcatContext *self)
 	return priv->keyring_path;
 }
 
+static gboolean
+jcat_context_is_blob_kind_allowed(JcatContext *self, JcatBlobKind kind)
+{
+	JcatContextPrivate *priv = GET_PRIVATE(self);
+	return (priv->blob_kinds & (1ull << kind)) > 0;
+}
+
 /**
  * jcat_context_get_engine:
  * @self: #JcatContext
@@ -182,6 +192,14 @@ jcat_context_get_engine(JcatContext *self, JcatBlobKind kind, GError **error)
 
 	g_return_val_if_fail(JCAT_IS_CONTEXT(self), NULL);
 
+	if (!jcat_context_is_blob_kind_allowed(self, kind)) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_NOT_SUPPORTED,
+			    "Jcat engine kind '%s' not allowed",
+			    jcat_blob_kind_to_string(kind));
+		return NULL;
+	}
 	for (guint i = 0; i < priv->engines->len; i++) {
 		JcatEngine *engine = g_ptr_array_index(priv->engines, i);
 		if (jcat_engine_get_kind(engine) == kind)
@@ -231,6 +249,56 @@ jcat_context_verify_blob(JcatContext *self,
 	if (jcat_engine_get_method(engine) == JCAT_BLOB_METHOD_CHECKSUM)
 		return jcat_engine_self_verify(engine, data, blob_signature, flags, error);
 	return jcat_engine_pubkey_verify(engine, data, blob_signature, flags, error);
+}
+
+/**
+ * jcat_context_blob_kind_allow:
+ * @self: #JcatContext
+ * @kind: #JcatBlobKind, e.g. %JCAT_BLOB_KIND_GPG
+ *
+ * Adds a blob kind to the allowlist. By default, JCat will use all signature and checksum schemes
+ * compiled in at build time. Once this function has been called only specific blob kinds will be
+ * used in functions like jcat_context_verify_blob().
+ *
+ * Since: 0.1.12
+ **/
+void
+jcat_context_blob_kind_allow(JcatContext *self, JcatBlobKind kind)
+{
+	JcatContextPrivate *priv = GET_PRIVATE(self);
+
+	g_return_if_fail(JCAT_IS_CONTEXT(self));
+	g_return_if_fail(kind < JCAT_BLOB_KIND_LAST);
+
+	/* clear all */
+	if (priv->blob_kinds == G_MAXUINT32)
+		priv->blob_kinds = 0x0;
+
+	/* enable this */
+	priv->blob_kinds |= 1ull << kind;
+}
+
+/**
+ * jcat_context_blob_kind_disallow:
+ * @self: #JcatContext
+ * @kind: #JcatBlobKind, e.g. %JCAT_BLOB_KIND_GPG
+ *
+ * Removes a blob kind from the allowlist. By default, JCat will use all signature and checksum
+ * schemes compiled in at build time. Once this function has been called this @kind will not be
+ * used in functions like jcat_context_verify_blob().
+ *
+ * Since: 0.1.12
+ **/
+void
+jcat_context_blob_kind_disallow(JcatContext *self, JcatBlobKind kind)
+{
+	JcatContextPrivate *priv = GET_PRIVATE(self);
+
+	g_return_if_fail(JCAT_IS_CONTEXT(self));
+	g_return_if_fail(kind < JCAT_BLOB_KIND_LAST);
+
+	/* disable this */
+	priv->blob_kinds &= ~(1ull << kind);
 }
 
 /**

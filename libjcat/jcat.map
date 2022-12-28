@@ -88,3 +88,10 @@ LIBJCAT_0.1.11 {
     jcat_version_string;
   local: *;
 } LIBJCAT_0.1.9;
+
+LIBJCAT_0.1.12 {
+  global:
+    jcat_context_blob_kind_allow;
+    jcat_context_blob_kind_disallow;
+  local: *;
+} LIBJCAT_0.1.11;
