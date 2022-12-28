@@ -77,6 +77,8 @@ jcat_blob_kind_from_string(const gchar *kind)
 		return JCAT_BLOB_KIND_BT_VERIFIER;
 	if (g_strcmp0(kind, "ed25519") == 0)
 		return JCAT_BLOB_KIND_ED25519;
+	if (g_strcmp0(kind, "sha512") == 0)
+		return JCAT_BLOB_KIND_SHA512;
 	return JCAT_BLOB_KIND_UNKNOWN;
 }
 
@@ -111,6 +113,8 @@ jcat_blob_kind_to_string(JcatBlobKind kind)
 		return "bt-verifier";
 	if (kind == JCAT_BLOB_KIND_ED25519)
 		return "ed25519";
+	if (kind == JCAT_BLOB_KIND_SHA512)
+		return "sha512";
 	return NULL;
 }
 
@@ -145,6 +149,8 @@ jcat_blob_kind_to_filename_ext(JcatBlobKind kind)
 		return "btverifier";
 	if (kind == JCAT_BLOB_KIND_ED25519)
 		return "ed25519";
+	if (kind == JCAT_BLOB_KIND_SHA512)
+		return "sha512";
 	return NULL;
 }
 

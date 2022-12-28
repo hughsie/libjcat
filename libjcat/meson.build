@@ -50,6 +50,7 @@ libjcat = library(
     'jcat-engine.c',
     'jcat-sha1-engine.c',
     'jcat-sha256-engine.c',
+    'jcat-sha512-engine.c',
     'jcat-result.c',
     'jcat-file.c',
     'jcat-item.c',
@@ -240,6 +241,7 @@ if get_option('tests')
       'jcat-result.c',
       'jcat-sha1-engine.c',
       'jcat-sha256-engine.c',
+      'jcat-sha512-engine.c',
       jcat_src,
     ],
     include_directories : [

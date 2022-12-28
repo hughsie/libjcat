@@ -328,6 +328,9 @@ jcat_tool_import(JcatToolPrivate *priv, gchar **values, GError **error)
 	} else if (g_str_has_suffix(values[2], ".sha256") ||
 		   g_str_has_suffix(values[2], ".SHA256")) {
 		blob = jcat_blob_new_full(JCAT_BLOB_KIND_SHA256, data_sig, JCAT_BLOB_FLAG_IS_UTF8);
+	} else if (g_str_has_suffix(values[2], ".sha512") ||
+		   g_str_has_suffix(values[2], ".SHA512")) {
+		blob = jcat_blob_new_full(JCAT_BLOB_KIND_SHA512, data_sig, JCAT_BLOB_FLAG_IS_UTF8);
 	} else {
 		g_autoptr(GString) tmp = g_string_new(NULL);
 		for (guint i = 1; i < JCAT_BLOB_KIND_LAST; i++)
