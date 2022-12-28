@@ -24,6 +24,7 @@ G_DECLARE_DERIVABLE_TYPE(JcatBlob, jcat_blob, JCAT, BLOB, GObject)
  * @JCAT_BLOB_KIND_BT_INCLUSION_PROOF:	Binary transparency inclusion proof
  * @JCAT_BLOB_KIND_BT_VERIFIER:		Binary transparency verifier
  * @JCAT_BLOB_KIND_ED25519:		ED25519 signature
+ * @JCAT_BLOB_KIND_SHA512:		SHA-512 checksum
  *
  * The kind of blob stored as a signature on the item.
  **/
@@ -38,6 +39,7 @@ typedef enum {
 	JCAT_BLOB_KIND_BT_INCLUSION_PROOF, /* Since: 0.1.9 */
 	JCAT_BLOB_KIND_BT_VERIFIER,	   /* Since: 0.1.9 */
 	JCAT_BLOB_KIND_ED25519,		   /* Since: 0.1.9 */
+	JCAT_BLOB_KIND_SHA512,		   /* Since: 0.1.13 */
 	/*< private >*/
 	JCAT_BLOB_KIND_LAST
 } JcatBlobKind;
