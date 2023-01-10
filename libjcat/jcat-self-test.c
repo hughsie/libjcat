@@ -2813,15 +2813,15 @@ inmemoryTreeRecomputePastSnapshot(inmemoryTree *tree,
 static GByteArray *
 inmemoryTreeRootAtSnapshot(inmemoryTree *tree, gint64 snapshot)
 {
-	if (snapshot == 0) {
+	if (snapshot == 0)
 		return g_bytes_unref_to_array(sha256EmptyTreeHash());
-	}
-	if (snapshot > inmemoryTreeLeafCount(tree)) {
+
+	if (snapshot > inmemoryTreeLeafCount(tree))
 		return NULL;
-	}
-	if (snapshot >= tree->leavesProcessed) {
+
+	if (snapshot >= tree->leavesProcessed)
 		return inmemoryTreeUpdateToSnapshot(tree, snapshot);
-	}
+
 	return inmemoryTreeRecomputePastSnapshot(tree, snapshot, 0, NULL);
 }
 
@@ -2842,10 +2842,10 @@ inmemoryTreePathFromNodeToRootAtSnapshot(inmemoryTree *tree,
 	if (snapshot == 0 || level >= tree->levelCount || node > last_node ||
 	    snapshot > inmemoryTreeLeafCount(tree))
 		return path;
-	if (snapshot > tree->leavesProcessed) {
+	if (snapshot > tree->leavesProcessed)
 		inmemoryTreeUpdateToSnapshot(tree, snapshot);
-	}
-	while (last_node) {
+
+	while (last_node != 0) {
 		gint64 sibling = (node & 1) == 1 ? node - 1 : node + 1;
 		if (sibling < last_node) {
 			g_ptr_array_add(path,
@@ -2868,9 +2868,9 @@ inmemoryTreePathFromNodeToRootAtSnapshot(inmemoryTree *tree,
 static GPtrArray *
 inmemoryTreePathToRootAtSnapshot(inmemoryTree *tree, gint64 leaf, gint64 snapshot)
 {
-	if (leaf > snapshot || snapshot > inmemoryTreeLeafCount(tree) || leaf == 0) {
+	if (leaf > snapshot || snapshot > inmemoryTreeLeafCount(tree) || leaf == 0)
 		return g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref);
-	}
+
 	return inmemoryTreePathFromNodeToRootAtSnapshot(tree, leaf - 1, 0, snapshot);
 }
 
@@ -2917,9 +2917,9 @@ TestVerifyInclusionProofGenerated(void)
 	inmemoryTree *tree = createTree(0);
 	g_autoptr(GArray) sizes = g_array_new(FALSE, TRUE, sizeof(guint64));
 	guint64 s;
-	for (s = 1; s <= 70; ++s) {
+	for (s = 1; s <= 70; ++s)
 		g_array_append_val(sizes, s);
-	}
+
 	s = 1024;
 	g_array_append_val(sizes, s);
 	s = 5050;
