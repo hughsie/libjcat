@@ -2943,64 +2943,90 @@ TestVerifyInclusionProofGenerated(void)
 	inmemoryTreeFree(tree);
 }
 
-#if 0
-func TestVerifyConsistencyProof(t *testing.T) {
-	v = New(rfc6962.DefaultHasher)
+static void
+TestVerifyConsistencyProof(void)
+{
+	static const char root1_str[] = "don't care 1";
+	static const char root2_str[] = "don't care 2";
 
-	root1 = GByteArray *("don't care 1")
-	root2 = GByteArray *("don't care 2")
-	proof1 = GPtrArray *{}
-	proof2 = GPtrArray *{sha256EmptyTreeHash}
+	g_autoptr(GByteArray) root1 = g_byte_array_new();
+	g_autoptr(GByteArray) root2 = g_byte_array_new();
+	g_autoptr(GPtrArray) proof1 = g_ptr_array_new();
+	g_autoptr(GPtrArray) proof2 =
+	    g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref);
+	g_autoptr(GByteArray) emptyTreeRoot = g_bytes_unref_to_array(sha256EmptyTreeHash());
 
-	tests = []struct {
-		gint64 snap1, snap2
-		GByteArray *root1,
-		GByteArray *root2,
-		GPtrArray *proof        ,
-		bool wantErr      
-	}{
-		{0, 0, root1, root2, proof1, true},
-		{1, 1, root1, root2, proof1, true},
-		/* snapshots that are always consistent */
-		{0, 0, root1, root1, proof1, false},
-		{0, 1, root1, root2, proof1, false},
-		{1, 1, root2, root2, proof1, false},
-		/* time travel to the past */
-		{1, 0, root1, root2, proof1, true},
-		{2, 1, root1, root2, proof1, true},
-		/* empty proof */
-		{1, 2, root1, root2, proof1, true},
-		/* roots don't match */
-		{0, 0, sha256EmptyTreeHash, root2, proof1, true},
-		{1, 1, sha256EmptyTreeHash, root2, proof1, true},
-		/* roots match but the proof is not empty */
-		{0, 0, sha256EmptyTreeHash, sha256EmptyTreeHash, proof2, true},
-		{0, 1, sha256EmptyTreeHash, sha256EmptyTreeHash, proof2, true},
-		{1, 1, sha256EmptyTreeHash, sha256EmptyTreeHash, proof2, true},
-	}
-	for i, p = range tests {
-		t.Run(fmt.Sprintf("test:%d:snap:%d-%d", i, p.snap1, p.snap2), func(t *testing.T) {
-			err = verifierConsistencyCheck(&v, p.snap1, p.snap2, p.root1, p.root2, p.proof)
-			if p.wantErr && err == NULL {
-				t.Errorf("Incorrectly verified")
-			} else if !p.wantErr && err != NULL {
-				t.Errorf("Failed to verify: %v", err)
+	g_autoptr(GPtrArray) rs = roots();
+	g_autoptr(GPtrArray) cps = consistencyProofs();
+
+	g_byte_array_append(root1, (const guint8 *)root1_str, strlen(root1_str));
+	g_byte_array_append(root2, (const guint8 *)root2_str, strlen(root2_str));
+
+	g_ptr_array_add(proof2, g_bytes_unref_to_array(sha256EmptyTreeHash()));
+
+	{
+		struct testcase {
+			gint64 snap1, snap2;
+			GByteArray *root1;
+			GByteArray *root2;
+			GPtrArray *proof;
+			gboolean wantErr;
+		};
+		struct testcase testcases[] = {
+		    {0, 0, root1, root2, proof1, TRUE},
+		    {1, 1, root1, root2, proof1, TRUE},
+		    /* snapshots that are always consistent */
+		    {0, 0, root1, root1, proof1, FALSE},
+		    {0, 1, root1, root2, proof1, FALSE},
+		    {1, 1, root2, root2, proof1, FALSE},
+		    /* time travel to the past */
+		    {1, 0, root1, root2, proof1, TRUE},
+		    {2, 1, root1, root2, proof1, TRUE},
+		    /* empty proof */
+		    {1, 2, root1, root2, proof1, TRUE},
+		    /* roots don't match */
+		    {0, 0, emptyTreeRoot, root2, proof1, TRUE},
+		    {1, 1, emptyTreeRoot, root2, proof1, TRUE},
+		    /* roots match but the proof is not empty */
+		    {0, 0, emptyTreeRoot, emptyTreeRoot, proof2, TRUE},
+		    {0, 1, emptyTreeRoot, emptyTreeRoot, proof2, TRUE},
+		    {1, 1, emptyTreeRoot, emptyTreeRoot, proof2, TRUE},
+		};
+		for (int i = 0, end = sizeof testcases / sizeof(struct testcase); i < end; ++i) {
+			g_autoptr(GError) error = NULL;
+			gboolean ret = verifierConsistencyCheck(testcases[i].snap1,
+								testcases[i].snap2,
+								testcases[i].root1,
+								testcases[i].root2,
+								testcases[i].proof,
+								&error);
+			if (testcases[i].wantErr) {
+				g_assert_nonnull(error);
+				g_assert_false(ret);
+			} else {
+				g_prefix_error(&error, "verifierConsistencyCheck case i %d ", i);
+				g_assert_no_error(error);
+				g_assert_true(ret);
 			}
-		})
+		}
 	}
 
-	for i = 0; i < 4; i++ {
-		p = consistencyProofs[i]
-		t.Run(fmt.Sprintf("proof:%d", i), func(t *testing.T) {
-			err = verifierConsistencyCheck(&v, p.snapshot1, p.snapshot2,
-				roots[p.snapshot1-1], roots[p.snapshot2-1], p.proof)
-			if err != NULL {
-				t.Fatalf("Failed to verify known good proof: %s", err)
-			}
-		})
+	for (int i = 0; i < 4; ++i) {
+		g_autoptr(GError) error = NULL;
+		consistencyTestVector *p = g_ptr_array_index(cps, i);
+		gboolean ret = verifierConsistencyCheck(p->snapshot1,
+							p->snapshot2,
+							g_ptr_array_index(rs, p->snapshot1 - 1),
+							g_ptr_array_index(rs, p->snapshot2 - 1),
+							p->proof,
+							&error);
+		g_prefix_error(&error, "Failed to verify known good proof: ");
+		g_assert_no_error(error);
+		g_assert_true(ret);
 	}
 }
 
+#if 0
 func TestVerifyConsistencyProofGenerated(t *testing.T) {
 	size = gint64(130)
 	tree, v = createTree(size)
@@ -3154,5 +3180,6 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/TestVerifyInclusionProof", TestVerifyInclusionProof);
 	g_test_add_func("/jcat/TestVerifyInclusionProofGenerated",
 			TestVerifyInclusionProofGenerated);
+	g_test_add_func("/jcat/TestVerifyConsistencyProof", TestVerifyConsistencyProof);
 	return g_test_run();
 }
