@@ -1423,10 +1423,14 @@ RootFromInclusionProof(gint64 leafIndex,
 			    (guint)treeSize);
 		return NULL;
 	}
-	//	if got, want = len(leafHash), v.hasher.Size(); got != want {
-	//		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "leafHash has unexpected
-	// size %d, want %d", got, want); 		return FALSE;
-	//	}
+	if (leafHash->len != 32) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "leafHash has unexpected size %u, want 32",
+			    leafHash->len);
+		return FALSE;
+	}
 
 	decompInclProof(leafIndex, treeSize, &inner, &border);
 	if (proof->len != inner + border) {
@@ -1463,6 +1467,8 @@ VerifyInclusionProof(gint64 leafIndex,
 	calcRoot = RootFromInclusionProof(leafIndex, treeSize, proof, leafHash, error);
 	if (calcRoot == NULL)
 		return FALSE;
+	g_debug("calcRoot buf %p size %u\n", calcRoot->data, calcRoot->len);
+	g_debug("root buf %p size %u\n", root->data, root->len);
 
 	if (!fu_byte_array_compare(calcRoot, root, error)) {
 		g_autofree gchar *str1 = jcat_rfc6962_decode_string(calcRoot);
