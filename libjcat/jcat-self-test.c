@@ -1325,9 +1325,14 @@ jcat_rfc6962_proof_slice_left(GPtrArray *src, guint pos, GError **error)
 {
 	GPtrArray *dst;
 
-	/* sanity check */
-	if (pos >= src->len) {
-		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "pos %u of %u", pos, src->len);
+	/* sanity check; but note that pos == src->len is valid */
+	if (pos > src->len) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "jcat_rfc6962_proof_slice_left: pos %u of %u",
+			    pos,
+			    src->len);
 		return NULL;
 	}
 
@@ -1345,9 +1350,14 @@ jcat_rfc6962_proof_slice_right(GPtrArray *src, guint pos, GError **error)
 {
 	GPtrArray *dst;
 
-	/* sanity check */
-	if (pos >= src->len) {
-		g_set_error(error, G_IO_ERROR, G_IO_ERROR_FAILED, "pos %u of %u", pos, src->len);
+	/* sanity check; but note that pos == src->len is valid */
+	if (pos > src->len) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "jcat_rfc6962_proof_slice_right: pos %u of %u",
+			    pos,
+			    src->len);
 		return NULL;
 	}
 
