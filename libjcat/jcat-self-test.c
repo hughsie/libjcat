@@ -1277,8 +1277,6 @@ fu_common_bytes_compare_raw(const guint8 *buf1,
 			    gsize bufsz2,
 			    GError **error)
 {
-	g_return_val_if_fail(buf1 != NULL, FALSE);
-	g_return_val_if_fail(buf2 != NULL, FALSE);
 	g_return_val_if_fail(error == NULL || *error == NULL, FALSE);
 
 	/* not the same length */
@@ -1288,6 +1286,18 @@ fu_common_bytes_compare_raw(const guint8 *buf1,
 			    G_IO_ERROR_INVALID_DATA,
 			    "got %" G_GSIZE_FORMAT " bytes, expected "
 			    "%" G_GSIZE_FORMAT,
+			    bufsz1,
+			    bufsz2);
+		return FALSE;
+	}
+
+	/* NULL check */
+	if (bufsz1 > 0 && (buf1 == NULL || buf2 == NULL)) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "buf1 or buf2 NULL with non-zero size %" G_GSIZE_FORMAT
+			    " %" G_GSIZE_FORMAT,
 			    bufsz1,
 			    bufsz2);
 		return FALSE;
