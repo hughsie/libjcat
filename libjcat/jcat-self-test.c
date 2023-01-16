@@ -3148,74 +3148,73 @@ TestPrefixHashFromInclusionProofGenerated(void)
 	inmemoryTreeFree(tree);
 }
 
-#if 0
-func TestPrefixHashFromInclusionProofErrors(t *testing.T) {
-	size = gint64(307)
-	tree, v = createTree(size)
-	root = tree.Hash()
+static void
+TestPrefixHashFromInclusionProofErrors(void)
+{
+	gint64 size = 307;
+	inmemoryTree *tree = createTree(size);
+	g_autoptr(GByteArray) root = NULL;
 
-	leaf2, proof2 = getLeafAndProof(tree, 2)
-	_, proof3 = getLeafAndProof(tree, 3)
-	_, proof301 = getLeafAndProof(tree, 301)
+	g_autoptr(GByteArray) leaf2 = NULL;
+	g_autoptr(GPtrArray) proof2 = NULL;
+	g_autoptr(GByteArray) leaf3 = NULL;
+	g_autoptr(GPtrArray) proof3 = NULL;
+	g_autoptr(GByteArray) leaf301 = NULL;
+	g_autoptr(GPtrArray) proof301 = NULL;
+	g_autoptr(GError) error = NULL;
 
-	idxTests = []struct {
-		gint64 index
-		gint64 size
-	}{
-		{-1, -1},
-		{-10, -1},
-		{-1, -10},
-		{10, -1},
-		{10, 0},
-		{10, 9},
-		{0, 10},
-		{0, -1},
-		{0, 0},
-		{-1, 0},
-		{-1, size},
-		{0, size},
-		{size, size},
-		{size + 1, size},
-		{size + 100, size},
-	}
-	for _, it = range idxTests {
-		if _, err = v.VerifiedPrefixHashFromInclusionProof(it.index, it.size, proof2, root, leaf2); err == NULL {
-			t.Errorf("VerifiedPrefixHashFromInclusionProof(%d,%d): expected error", it.index, it.size)
-		}
+	struct idxTest {
+		gint64 index;
+		gint64 size;
+	};
+	struct idxTest idxTests[] = {
+	    {-1, -1},
+	    {-10, -1},
+	    {-1, -10},
+	    {10, -1},
+	    {10, 0},
+	    {10, 9},
+	    {0, 10},
+	    {0, -1},
+	    {0, 0},
+	    {-1, 0},
+	    {-1, size},
+	    {0, size},
+	    {size, size},
+	    {size + 1, size},
+	    {size + 100, size},
+	};
+
+	root = inmemoryTreeCurrentRoot(tree);
+	getLeafAndProof(tree, 2, &leaf2, &proof2);
+	getLeafAndProof(tree, 3, &leaf3, &proof3);
+	getLeafAndProof(tree, 301, &leaf301, &proof301);
+
+	for (int i = 0, end = sizeof idxTests / sizeof(struct idxTest); i < end; ++i) {
+		VerifiedPrefixHashFromInclusionProof(idxTests[i].index,
+						     idxTests[i].size,
+						     proof2,
+						     root,
+						     leaf2,
+						     &error);
+		g_assert_nonnull(error);
+		g_clear_error(&error);
 	}
 
-	if _, err = v.VerifiedPrefixHashFromInclusionProof(3, size, proof2, root, leaf2); err != NULL {
-		t.Errorf("VerifiedPrefixHashFromInclusionProof(): %v, expected no error", err)
-	}
+	VerifiedPrefixHashFromInclusionProof(3, size, proof2, root, leaf2, &error);
+	g_assert_no_error(error);
 
-	// Proof #3 has the same length, but doesn't verify against index #2.
-	// Neither does proof #301 as it has a different length.
-	for _, proof = range []GPtrArray *{proof3, proof301} {
-		if _, err = v.VerifiedPrefixHashFromInclusionProof(3, size, proof, root, leaf2); err == NULL {
-			t.Error("VerifiedPrefixHashFromInclusionProof(): expected error")
-		}
-	}
+	/* Proof #3 has the same length, but doesn't verify against index #2.
+	 Neither does proof #301 as it has a different length.*/
+	VerifiedPrefixHashFromInclusionProof(3, size, proof3, root, leaf2, &error);
+	g_assert_nonnull(error);
+	g_clear_error(&error);
+	VerifiedPrefixHashFromInclusionProof(3, size, proof301, root, leaf2, &error);
+	g_assert_nonnull(error);
+	g_clear_error(&error);
+
+	inmemoryTreeFree(tree);
 }
-
-// extend explicitly copies |proof| slice and appends |hashes| to it.
-func extend(GPtrArray *proof, hashes ...GByteArray *) GPtrArray * {
-	res = make(GPtrArray *, len(proof), len(proof)+len(hashes))
-	copy(res, proof)
-	return append(res, hashes...)
-}
-
-// prepend adds |proof| to the tail of |hashes|.
-func prepend(GPtrArray *proof, hashes ...GByteArray *) GPtrArray * {
-	return append(hashes, proof...)
-}
-
-func shortHash(GByteArray *hash) string {
-	if len(hash) == 0 {
-		return "<empty>"
-	}
-	return fmt.Sprintf("%x...", hash[:4])
-}
-#endif
 
 int
 main(int argc, char **argv)
@@ -3256,5 +3255,7 @@ main(int argc, char **argv)
 			TestVerifyConsistencyProofGenerated);
 	g_test_add_func("/jcat/TestPrefixHashFromInclusionProofGenerated",
 			TestPrefixHashFromInclusionProofGenerated);
+	g_test_add_func("/jcat/TestPrefixHashFromInclusionProofErrors",
+			TestPrefixHashFromInclusionProofErrors);
 	return g_test_run();
 }
