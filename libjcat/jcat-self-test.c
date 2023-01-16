@@ -3093,35 +3093,62 @@ TestVerifyConsistencyProofGenerated(void)
 	inmemoryTreeFree(tree);
 }
 
-#if 0
-func TestPrefixHashFromInclusionProofGenerated(t *testing.T) {
-	var sizes []gint64
-	for s = 1; s <= 258; s++ {
-		sizes = append(sizes, gint64(s))
-	}
-	sizes = append(sizes, []gint64{1024, 5050, 10000}...)
+static void
+TestPrefixHashFromInclusionProofGenerated(void)
+{
+	inmemoryTree *tree = createTree(0);
+	g_autoptr(GArray) sizes = g_array_new(FALSE, TRUE, sizeof(guint64));
+	guint64 s;
+	for (s = 1; s <= 258; ++s)
+		g_array_append_val(sizes, s);
 
-	tree, v = createTree(0)
-	for _, size = range sizes {
-		growTree(tree, size)
-		root = tree.Hash()
+	s = 1024;
+	g_array_append_val(sizes, s);
+	s = 5050;
+	g_array_append_val(sizes, s);
+	s = 10000;
+	g_array_append_val(sizes, s);
 
-		for i = gint64(1); i <= size; i++ {
-			t.Run(fmt.Sprintf("size:%d:prefix:%d", size, i), func(t *testing.T) {
-				leaf, proof = getLeafAndProof(tree, i-1)
-				pRoot, err = v.VerifiedPrefixHashFromInclusionProof(i, size, proof, root, leaf)
-				if err != NULL {
-					t.Fatalf("VerifiedPrefixHashFromInclusionProof(): %v", err)
-				}
-				exp = tree.HashAt(uint64(i))
-				if !bytes.Equal(pRoot, exp) {
-					t.Fatalf("wrong prefix hash: %s, want %s", shortHash(pRoot), shortHash(exp))
-				}
-			})
+	for (gsize k = 0; k < sizes->len; ++k) {
+		guint64 size = g_array_index(sizes, guint64, k);
+		g_autoptr(GByteArray) root = NULL;
+		growTree(tree, size);
+		root = inmemoryTreeCurrentRoot(tree);
+		for (gint64 i = 1; i <= (gint64)size; ++i) {
+			g_autoptr(GByteArray) leaf_hash = NULL;
+			g_autoptr(GPtrArray) proof = NULL;
+			g_autoptr(GError) error = NULL;
+			g_autoptr(GByteArray) pRoot = NULL;
+			g_autoptr(GByteArray) exp = NULL;
+			getLeafAndProof(tree, i - 1, &leaf_hash, &proof);
+			pRoot = VerifiedPrefixHashFromInclusionProof(i,
+								     size,
+								     proof,
+								     root,
+								     leaf_hash,
+								     &error);
+			g_prefix_error(&error,
+				       "VerifiedPrefixHashFromInclusionProof size %lu prefix %ld ",
+				       size,
+				       i);
+			g_assert_no_error(error);
+			exp = inmemoryTreeRootAtSnapshot(tree, i);
+			if (!fu_byte_array_compare(pRoot, exp, &error)) {
+				g_autofree gchar *str1 = jcat_rfc6962_decode_string(pRoot);
+				g_autofree gchar *str2 = jcat_rfc6962_decode_string(exp);
+				g_prefix_error(&error,
+					       "Wrong prefix hash: got %s, want %s: ",
+					       str1,
+					       str2);
+				g_assert_no_error(error);
+			}
 		}
 	}
+
+	inmemoryTreeFree(tree);
 }
 
+#if 0
 func TestPrefixHashFromInclusionProofErrors(t *testing.T) {
 	size = gint64(307)
 	tree, v = createTree(size)
@@ -3227,5 +3254,7 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/TestVerifyConsistencyProof", TestVerifyConsistencyProof);
 	g_test_add_func("/jcat/TestVerifyConsistencyProofGenerated",
 			TestVerifyConsistencyProofGenerated);
+	g_test_add_func("/jcat/TestPrefixHashFromInclusionProofGenerated",
+			TestPrefixHashFromInclusionProofGenerated);
 	return g_test_run();
 }
