@@ -1555,7 +1555,7 @@ VerifyConsistencyProof(gint64 snapshot1,
 			    (guint)(start + inner + border));
 		return FALSE;
 	}
-	proof_new = jcat_rfc6962_proof_slice_right(proof_new, start, error);
+	proof_new = jcat_rfc6962_proof_slice_right(proof, start, error);
 	if (proof_new == NULL)
 		return FALSE;
 
@@ -2880,6 +2880,39 @@ inmemoryTreePathToCurrentRoot(inmemoryTree *tree, gint64 leaf)
 	return inmemoryTreePathToRootAtSnapshot(tree, leaf, inmemoryTreeLeafCount(tree));
 }
 
+static GPtrArray *
+inmemoryTreeSnapshotConsistency(inmemoryTree *tree, gint64 snapshot1, gint64 snapshot2)
+{
+	GPtrArray *proof = g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref);
+	gint64 level = 0;
+	gint64 node = snapshot1 - 1;
+
+	if (snapshot1 == 0 || snapshot1 >= snapshot2 || snapshot2 > inmemoryTreeLeafCount(tree)) {
+		return proof;
+	}
+
+	while ((node & 1) == 1) {
+		node >>= 1;
+		level++;
+	}
+
+	if (snapshot2 > tree->leavesProcessed) {
+		inmemoryTreeUpdateToSnapshot(tree, snapshot2);
+	}
+
+	if (node != 0) {
+		g_ptr_array_add(proof,
+				g_byte_array_ref(g_ptr_array_index(
+				    (GPtrArray *)g_ptr_array_index(tree->tree, level),
+				    node)));
+	}
+
+	g_ptr_array_extend_and_steal(
+	    proof,
+	    inmemoryTreePathFromNodeToRootAtSnapshot(tree, node, level, snapshot2));
+	return proof;
+}
+
 static void
 growTree(inmemoryTree *tree, gint64 upTo)
 {
@@ -3026,30 +3059,41 @@ TestVerifyConsistencyProof(void)
 	}
 }
 
-#if 0
-func TestVerifyConsistencyProofGenerated(t *testing.T) {
-	size = gint64(130)
-	tree, v = createTree(size)
-	roots = make(GPtrArray *, size+1)
-	for i = gint64(0); i <= size; i++ {
-		roots[i] = tree.HashAt(uint64(i))
+static void
+TestVerifyConsistencyProofGenerated(void)
+{
+	gint64 size = 130;
+	inmemoryTree *tree = createTree(size);
+	g_autoptr(GPtrArray) roots =
+	    g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref);
+	for (gint64 i = 0; i <= size; ++i) {
+		g_ptr_array_add(roots, inmemoryTreeRootAtSnapshot(tree, i));
 	}
-
-	for i = gint64(0); i <= size; i++ {
-		for j = i; j <= size; j++ {
-			proof, err = tree.ConsistencyProof(uint64(i), uint64(j))
-			if err != NULL {
-				t.Fatalf("ConsistencyProof: %v", err)
-			}
-			t.Run(fmt.Sprintf("size:%d:consistency:%d-%d", size, i, j), func(t *testing.T) {
-				if err = verifierConsistencyCheck(&v, i, j, roots[i], roots[j], proof); err != NULL {
-					t.Errorf("verifierConsistencyCheck(): %v", err)
-				}
-			})
+	for (gint64 i = 0; i <= size; ++i) {
+		for (gint64 j = i; j <= size; ++j) {
+			g_autoptr(GPtrArray) proof = inmemoryTreeSnapshotConsistency(tree, i, j);
+			GError *error = NULL;
+			gboolean ret = verifierConsistencyCheck(i,
+								j,
+								g_ptr_array_index(roots, i),
+								g_ptr_array_index(roots, j),
+								proof,
+								&error);
+			g_prefix_error(&error,
+				       "failed to verify known good generated consistency proof at "
+				       "size %ld consistency %ld %ld ",
+				       size,
+				       i,
+				       j);
+			g_assert_no_error(error);
+			g_assert_true(ret);
 		}
 	}
+
+	inmemoryTreeFree(tree);
 }
 
+#if 0
 func TestPrefixHashFromInclusionProofGenerated(t *testing.T) {
 	var sizes []gint64
 	for s = 1; s <= 258; s++ {
@@ -3181,5 +3225,7 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/TestVerifyInclusionProofGenerated",
 			TestVerifyInclusionProofGenerated);
 	g_test_add_func("/jcat/TestVerifyConsistencyProof", TestVerifyConsistencyProof);
+	g_test_add_func("/jcat/TestVerifyConsistencyProofGenerated",
+			TestVerifyConsistencyProofGenerated);
 	return g_test_run();
 }
