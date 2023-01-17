@@ -1467,8 +1467,6 @@ VerifyInclusionProof(gint64 leafIndex,
 	calcRoot = RootFromInclusionProof(leafIndex, treeSize, proof, leafHash, error);
 	if (calcRoot == NULL)
 		return FALSE;
-	g_debug("calcRoot buf %p size %u\n", calcRoot->data, calcRoot->len);
-	g_debug("root buf %p size %u\n", root->data, root->len);
 
 	if (!fu_byte_array_compare(calcRoot, root, error)) {
 		g_autofree gchar *str1 = jcat_rfc6962_decode_string(calcRoot);
@@ -2179,10 +2177,12 @@ corruptInclusionProof(gint64 leafIndex,
 		/* Copy the proof */
 		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		/* And also the data inside */
-		GByteArray *ba = g_ptr_array_steal_index(wrong_proof, i);
+		GByteArray *good = g_ptr_array_steal_index(wrong_proof, i);
+		GByteArray *corrupt = g_byte_array_new();
+		g_byte_array_append(corrupt, good->data, good->len);
 		/* Flip the bit. */
-		ba->data[i] ^= 8;
-		g_ptr_array_insert(wrong_proof, i, ba);
+		corrupt->data[i] ^= 8;
+		g_ptr_array_insert(wrong_proof, i, corrupt);
 
 		ip = inclusionProbeNew();
 		ip->leafIndex = leafIndex;
@@ -2387,9 +2387,7 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->root2 = g_byte_array_ref(root2);
 	{
 		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
-		g_ptr_array_insert(bad_proof,
-				   0,
-				   g_byte_array_ref(root1));
+		g_ptr_array_insert(bad_proof, 0, g_byte_array_ref(root1));
 		cp->proof = bad_proof;
 	}
 	cp->desc = "preceding root1";
@@ -2402,9 +2400,7 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->root2 = g_byte_array_ref(root2);
 	{
 		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
-		g_ptr_array_insert(bad_proof,
-				   0,
-				   g_byte_array_ref(root2));
+		g_ptr_array_insert(bad_proof, 0, g_byte_array_ref(root2));
 		cp->proof = bad_proof;
 	}
 	cp->desc = "preceding root2";
@@ -2442,10 +2438,12 @@ corruptConsistencyProof(gint64 snapshot1,
 		/* copy the proof */
 		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		/* and also the data inside */
-		GByteArray *ba = g_ptr_array_steal_index(wrong_proof, i);
+		GByteArray *good = g_ptr_array_steal_index(wrong_proof, i);
+		GByteArray *corrupt = g_byte_array_new();
+		g_byte_array_append(corrupt, good->data, good->len);
 		/* flip the bit */
-		ba->data[0] ^= 16;
-		g_ptr_array_insert(wrong_proof, i, ba);
+		corrupt->data[0] ^= 16;
+		g_ptr_array_insert(wrong_proof, i, corrupt);
 
 		cp = consistencyProbeNew();
 		cp->snapshot1 = snapshot1;
@@ -2474,7 +2472,7 @@ verifierCheck(gint64 leafIndex,
 	if (!fu_byte_array_compare(got, root, error)) {
 		g_autofree gchar *str1 = jcat_rfc6962_decode_string(got);
 		g_autofree gchar *str2 = jcat_rfc6962_decode_string(root);
-		g_prefix_error(error, "CalculatedRoot=%s, ExpectedRoot=%s: ", str1, str2);
+		g_prefix_error(error, "got root: %s, expected %s ", str1, str2);
 		return FALSE;
 	}
 	if (!VerifyInclusionProof(leafIndex, treeSize, proof, root, leafHash, error))
@@ -3026,6 +3024,7 @@ TestVerifyInclusionProofGenerated(void)
 			g_autoptr(GByteArray) leaf_hash = NULL;
 			g_autoptr(GPtrArray) proof = NULL;
 			g_autoptr(GError) error = NULL;
+			g_debug("/size:%lu:index:%lu", size, i);
 			getLeafAndProof(tree, i, &leaf_hash, &proof);
 			verifierCheck(i, size, proof, root, leaf_hash, &error);
 			g_prefix_error(&error, "verifierCheck() i = %lu size = %lu ", i, size);
