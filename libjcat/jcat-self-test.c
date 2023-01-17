@@ -2449,27 +2449,26 @@ verifierCheck(gint64 leafIndex,
 	{
 		g_autoptr(GPtrArray) probes =
 		    corruptInclusionProof(leafIndex, treeSize, proof, root, leafHash);
-		guint wrong = 0;
 		for (guint i = 0; i < probes->len; ++i) {
 			inclusionProbe *p = g_ptr_array_index(probes, i);
+			g_debug("testing corruptInclusionProof index %u", i);
 			if (VerifyInclusionProof(p->leafIndex,
 						 p->treeSize,
 						 p->proof,
 						 p->root,
 						 p->leafHash,
 						 error)) {
-				if (wrong++ == 0) {
-					g_set_error(error,
-						    G_IO_ERROR,
-						    G_IO_ERROR_FAILED,
-						    "verifierCheck: incorrectly verified");
-				}
-				g_prefix_error(error, "case=%s ", p->desc);
+				g_set_error(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_FAILED,
+					    "verifierCheck case %s: incorrectly verified",
+					    p->desc);
+				return FALSE;
 			}
+			g_clear_error(error);
 		}
 	}
-	// TODO: check if @error is set here
-	return FALSE;
+	return TRUE;
 }
 
 static gboolean
@@ -2493,7 +2492,6 @@ verifierConsistencyCheck(gint64 snapshot1,
 	{
 		g_autoptr(GPtrArray) probes =
 		    corruptConsistencyProof(snapshot1, snapshot2, root1, root2, proof);
-		guint wrong = 0;
 		for (guint i = 0; i < probes->len; ++i) {
 			consistencyProbe *p = g_ptr_array_index(probes, i);
 			if (VerifyConsistencyProof(p->snapshot1,
@@ -2502,18 +2500,18 @@ verifierConsistencyCheck(gint64 snapshot1,
 						   p->root2,
 						   p->proof,
 						   error)) {
-				if (wrong++ == 0) {
-					g_set_error(error,
-						    G_IO_ERROR,
-						    G_IO_ERROR_FAILED,
-						    "incorrectly verified");
-				}
-				g_prefix_error(error, "case=%s ", p->desc);
+				g_set_error(
+				    error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_FAILED,
+				    "verifierConsistencyCheck case %s: incorrectly verified",
+				    p->desc);
+				return FALSE;
 			}
+			g_clear_error(error);
 		}
 	}
-	// TODO: check if @error is set here
-	return FALSE;
+	return TRUE;
 }
 
 static void
@@ -2628,6 +2626,7 @@ TestVerifyInclusionProof(void)
 		GBytes *root = g_bytes_ref(g_ptr_array_index(rs, p->snapshot - 1));
 
 		g_autoptr(GError) error = NULL;
+		g_debug("/proof:%u", i);
 		verifierCheck(p->leaf - 1,
 			      p->snapshot,
 			      p->proof,
