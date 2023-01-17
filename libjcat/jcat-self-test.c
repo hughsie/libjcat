@@ -1241,8 +1241,8 @@ bits_Len64(guint64 val)
 	if (val == 0)
 		return 0;
 	for (guint i = 0; i < 64; i++) {
-		if (((guint64)0b1 << i) >= val)
-			return i + 1;
+		if (((guint64)1 << i) > val)
+			return i;
 	}
 	return 64;
 }
@@ -1691,6 +1691,7 @@ jcat_rfc6962_func2(void)
 
 	g_assert_cmpint(bits_Len64(0), ==, 0);
 	g_assert_cmpint(bits_Len64(1), ==, 1);
+	g_assert_cmpint(bits_Len64(7), ==, 3);
 	g_assert_cmpint(bits_Len64(16), ==, 5);
 	g_assert_cmpint(bits_Len64(64), ==, 7);
 	g_assert_cmpint(bits_Len64(0x8000000000000000), ==, 64);
