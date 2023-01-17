@@ -2808,7 +2808,7 @@ inmemoryTreeRecomputePastSnapshot(inmemoryTree *tree,
 {
 	gint64 level = 0;
 	gint64 last_node = snapshot - 1;
-	g_autoptr(GByteArray) subtree_root = NULL;
+	GByteArray *subtree_root = NULL;
 	if (snapshot == tree->leavesProcessed) {
 		if (node != NULL && tree->tree->len > node_level) {
 			GPtrArray *this_level = g_ptr_array_index(tree->tree, node_level);
