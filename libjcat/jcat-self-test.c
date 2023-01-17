@@ -1723,7 +1723,7 @@ static inclusionProofTestVector *
 inclusionProofTestVectorNew(void)
 {
 	inclusionProofTestVector *iptv = g_new0(inclusionProofTestVector, 1);
-	iptv->proof = g_ptr_array_new_with_free_func((GDestroyNotify)g_bytes_unref);
+	iptv->proof = g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref);
 	return iptv;
 }
 
@@ -1788,41 +1788,61 @@ inclusionProofs(void)
 	iptv = inclusionProofTestVectorNew();
 	iptv->leaf = 1;
 	iptv->snapshot = 8;
-	g_ptr_array_add(iptv->proof,
-			dh("96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7", 32));
-	g_ptr_array_add(iptv->proof,
-			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32));
-	g_ptr_array_add(iptv->proof,
-			dh("6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4", 32));
+	g_ptr_array_add(
+	    iptv->proof,
+	    g_bytes_unref_to_array(
+		dh("96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7", 32)));
+	g_ptr_array_add(
+	    iptv->proof,
+	    g_bytes_unref_to_array(
+		dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32)));
+	g_ptr_array_add(
+	    iptv->proof,
+	    g_bytes_unref_to_array(
+		dh("6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4", 32)));
 	g_ptr_array_add(rv, iptv);
 
 	iptv = inclusionProofTestVectorNew();
 	iptv->leaf = 6;
 	iptv->snapshot = 8;
-	g_ptr_array_add(iptv->proof,
-			dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32));
-	g_ptr_array_add(iptv->proof,
-			dh("ca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0", 32));
-	g_ptr_array_add(iptv->proof,
-			dh("d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7", 32));
+	g_ptr_array_add(
+	    iptv->proof,
+	    g_bytes_unref_to_array(
+		dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32)));
+	g_ptr_array_add(
+	    iptv->proof,
+	    g_bytes_unref_to_array(
+		dh("ca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0", 32)));
+	g_ptr_array_add(
+	    iptv->proof,
+	    g_bytes_unref_to_array(
+		dh("d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7", 32)));
 	g_ptr_array_add(rv, iptv);
 
 	iptv = inclusionProofTestVectorNew();
 	iptv->leaf = 3;
 	iptv->snapshot = 3;
-	g_ptr_array_add(iptv->proof,
-			dh("fac54203e7cc696cf0dfcb42c92a1d9dbaf70ad9e621f4bd8d98662f00e3c125", 32));
+	g_ptr_array_add(
+	    iptv->proof,
+	    g_bytes_unref_to_array(
+		dh("fac54203e7cc696cf0dfcb42c92a1d9dbaf70ad9e621f4bd8d98662f00e3c125", 32)));
 	g_ptr_array_add(rv, iptv);
 
 	iptv = inclusionProofTestVectorNew();
 	iptv->leaf = 2;
 	iptv->snapshot = 5;
-	g_ptr_array_add(iptv->proof,
-			dh("6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d", 32));
-	g_ptr_array_add(iptv->proof,
-			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32));
-	g_ptr_array_add(iptv->proof,
-			dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32));
+	g_ptr_array_add(
+	    iptv->proof,
+	    g_bytes_unref_to_array(
+		dh("6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d", 32)));
+	g_ptr_array_add(
+	    iptv->proof,
+	    g_bytes_unref_to_array(
+		dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32)));
+	g_ptr_array_add(
+	    iptv->proof,
+	    g_bytes_unref_to_array(
+		dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32)));
 	g_ptr_array_add(rv, iptv);
 
 	return rv;
@@ -1838,7 +1858,7 @@ static consistencyTestVector *
 consistencyTestVectorNew(void)
 {
 	consistencyTestVector *ctv = g_new0(consistencyTestVector, 1);
-	ctv->proof = g_ptr_array_new_with_free_func((GDestroyNotify)g_bytes_unref);
+	ctv->proof = g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref);
 	return ctv;
 }
 
@@ -1863,32 +1883,48 @@ consistencyProofs(void)
 	ctv = consistencyTestVectorNew();
 	ctv->snapshot1 = 1;
 	ctv->snapshot2 = 8;
-	g_ptr_array_add(ctv->proof,
-			dh("96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7", 32));
-	g_ptr_array_add(ctv->proof,
-			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32));
-	g_ptr_array_add(ctv->proof,
-			dh("6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4", 32));
+	g_ptr_array_add(
+	    ctv->proof,
+	    g_bytes_unref_to_array(
+		dh("96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7", 32)));
+	g_ptr_array_add(
+	    ctv->proof,
+	    g_bytes_unref_to_array(
+		dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32)));
+	g_ptr_array_add(
+	    ctv->proof,
+	    g_bytes_unref_to_array(
+		dh("6b47aaf29ee3c2af9af889bc1fb9254dabd31177f16232dd6aab035ca39bf6e4", 32)));
 	g_ptr_array_add(rv, ctv);
 
 	ctv = consistencyTestVectorNew();
 	ctv->snapshot1 = 6;
 	ctv->snapshot2 = 8;
-	g_ptr_array_add(ctv->proof,
-			dh("0ebc5d3437fbe2db158b9f126a1d118e308181031d0a949f8dededebc558ef6a", 32));
-	g_ptr_array_add(ctv->proof,
-			dh("ca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0", 32));
-	g_ptr_array_add(ctv->proof,
-			dh("d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7", 32));
+	g_ptr_array_add(
+	    ctv->proof,
+	    g_bytes_unref_to_array(
+		dh("0ebc5d3437fbe2db158b9f126a1d118e308181031d0a949f8dededebc558ef6a", 32)));
+	g_ptr_array_add(
+	    ctv->proof,
+	    g_bytes_unref_to_array(
+		dh("ca854ea128ed050b41b35ffc1b87b8eb2bde461e9e3b5596ece6b9d5975a0ae0", 32)));
+	g_ptr_array_add(
+	    ctv->proof,
+	    g_bytes_unref_to_array(
+		dh("d37ee418976dd95753c1c73862b9398fa2a2cf9b4ff0fdfe8b30cd95209614b7", 32)));
 	g_ptr_array_add(rv, ctv);
 
 	ctv = consistencyTestVectorNew();
 	ctv->snapshot1 = 2;
 	ctv->snapshot2 = 5;
-	g_ptr_array_add(ctv->proof,
-			dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32));
-	g_ptr_array_add(ctv->proof,
-			dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32));
+	g_ptr_array_add(
+	    ctv->proof,
+	    g_bytes_unref_to_array(
+		dh("5f083f0a1a33ca076a95279832580db3e0ef4584bdff1f54c8a360f50de3031e", 32)));
+	g_ptr_array_add(
+	    ctv->proof,
+	    g_bytes_unref_to_array(
+		dh("bc1a0643b12e4d2d7c77918f44e0f4f79a838b6cf9ec5b5c283e1f4d88599e6b", 32)));
 	g_ptr_array_add(rv, ctv);
 
 	return rv;
@@ -2088,8 +2124,8 @@ corruptInclusionProof(gint64 leafIndex,
 	ip->root = g_byte_array_ref(root);
 	ip->leafHash = g_byte_array_ref(leafHash);
 	{
-		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
-		g_ptr_array_add(new_proof, dh("", 0));
+		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
+		g_ptr_array_add(new_proof, g_byte_array_new());
 		ip->proof = new_proof;
 	}
 	ip->desc = "trailing garbage";
@@ -2101,9 +2137,9 @@ corruptInclusionProof(gint64 leafIndex,
 	ip->root = g_byte_array_ref(root);
 	ip->leafHash = g_byte_array_ref(leafHash);
 	{
-		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		GByteArray *extra_root = g_byte_array_ref(root);
-		g_ptr_array_add(new_proof, g_byte_array_free_to_bytes(extra_root));
+		g_ptr_array_add(new_proof, extra_root);
 		ip->proof = new_proof;
 	}
 	ip->desc = "trailing root";
@@ -2116,8 +2152,8 @@ corruptInclusionProof(gint64 leafIndex,
 	ip->root = g_byte_array_ref(root);
 	ip->leafHash = g_byte_array_ref(leafHash);
 	{
-		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
-		g_ptr_array_insert(new_proof, 0, dh("", 0));
+		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
+		g_ptr_array_insert(new_proof, 0, g_byte_array_new());
 		ip->proof = new_proof;
 	}
 	ip->desc = "preceding garbage";
@@ -2129,9 +2165,9 @@ corruptInclusionProof(gint64 leafIndex,
 	ip->root = g_byte_array_ref(root);
 	ip->leafHash = g_byte_array_ref(leafHash);
 	{
-		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		GByteArray *extra_root = g_byte_array_ref(root);
-		g_ptr_array_insert(new_proof, 0, g_byte_array_free_to_bytes(extra_root));
+		g_ptr_array_insert(new_proof, 0, extra_root);
 		ip->proof = new_proof;
 	}
 	ip->desc = "preceding root";
@@ -2140,14 +2176,12 @@ corruptInclusionProof(gint64 leafIndex,
 	/* Modify single bit in an element of the proof. */
 	for (guint i = 0; i < ln; ++i) {
 		/* Copy the proof */
-		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		/* And also the data inside */
-		GBytes *b = g_ptr_array_steal_index(wrong_proof, i);
-		GByteArray *ba = g_bytes_unref_to_array(b);
+		GByteArray *ba = g_ptr_array_steal_index(wrong_proof, i);
 		/* Flip the bit. */
 		ba->data[i] ^= 8;
-		b = g_byte_array_free_to_bytes(ba);
-		g_ptr_array_insert(wrong_proof, i, b);
+		g_ptr_array_insert(wrong_proof, i, ba);
 
 		ip = inclusionProbeNew();
 		ip->leafIndex = leafIndex;
@@ -2160,7 +2194,7 @@ corruptInclusionProof(gint64 leafIndex,
 	}
 
 	if (ln > 0) {
-		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		g_ptr_array_remove_index(wrong_proof, ln - 1);
 
 		ip = inclusionProbeNew();
@@ -2174,8 +2208,8 @@ corruptInclusionProof(gint64 leafIndex,
 	}
 
 	if (ln > 1) {
-		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
-		g_ptr_array_insert(wrong_proof, 1, g_bytes_ref(g_ptr_array_index(proof, 0)));
+		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
+		g_ptr_array_insert(wrong_proof, 1, g_bytes_unref_to_array(sha256SomeHash()));
 
 		ip = inclusionProbeNew();
 		ip->leafIndex = leafIndex;
@@ -2298,8 +2332,8 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->root1 = g_byte_array_ref(root1);
 	cp->root2 = g_byte_array_ref(root2);
 	{
-		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
-		g_ptr_array_add(bad_proof, g_bytes_new(NULL, 0));
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
+		g_ptr_array_add(bad_proof, g_byte_array_new());
 		cp->proof = bad_proof;
 	}
 	cp->desc = "trailing garbage";
@@ -2311,7 +2345,7 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->root1 = g_byte_array_ref(root1);
 	cp->root2 = g_byte_array_ref(root2);
 	{
-		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		g_ptr_array_add(bad_proof, g_byte_array_ref(root1));
 		cp->proof = bad_proof;
 	}
@@ -2324,7 +2358,7 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->root1 = g_byte_array_ref(root1);
 	cp->root2 = g_byte_array_ref(root2);
 	{
-		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		g_ptr_array_add(bad_proof, g_byte_array_ref(root2));
 		cp->proof = bad_proof;
 	}
@@ -2338,8 +2372,8 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->root1 = g_byte_array_ref(root1);
 	cp->root2 = g_byte_array_ref(root2);
 	{
-		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
-		g_ptr_array_insert(bad_proof, 0, g_bytes_new(NULL, 0));
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
+		g_ptr_array_insert(bad_proof, 0, g_byte_array_new());
 		cp->proof = bad_proof;
 	}
 	cp->desc = "preceding garbage";
@@ -2351,10 +2385,10 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->root1 = g_byte_array_ref(root1);
 	cp->root2 = g_byte_array_ref(root2);
 	{
-		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		g_ptr_array_insert(bad_proof,
 				   0,
-				   g_byte_array_free_to_bytes(g_byte_array_ref(root1)));
+				   g_byte_array_ref(root1));
 		cp->proof = bad_proof;
 	}
 	cp->desc = "preceding root1";
@@ -2366,10 +2400,10 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->root1 = g_byte_array_ref(root1);
 	cp->root2 = g_byte_array_ref(root2);
 	{
-		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		g_ptr_array_insert(bad_proof,
 				   0,
-				   g_byte_array_free_to_bytes(g_byte_array_ref(root2)));
+				   g_byte_array_ref(root2));
 		cp->proof = bad_proof;
 	}
 	cp->desc = "preceding root2";
@@ -2381,16 +2415,16 @@ corruptConsistencyProof(gint64 snapshot1,
 	cp->root1 = g_byte_array_ref(root1);
 	cp->root2 = g_byte_array_ref(root2);
 	{
-		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
-		GBytes *proof0 = g_ptr_array_index(proof, 0);
-		g_ptr_array_insert(bad_proof, 0, g_bytes_ref(proof0));
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
+		GByteArray *proof0 = g_ptr_array_index(proof, 0);
+		g_ptr_array_insert(bad_proof, 0, g_byte_array_ref(proof0));
 		cp->proof = bad_proof;
 	}
 	cp->desc = "preceding proof[0]";
 	g_ptr_array_add(ret, cp);
 
 	if (ln > 0) {
-		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GPtrArray *bad_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		g_ptr_array_remove_index(bad_proof, ln - 1);
 
 		cp = consistencyProbeNew();
@@ -2405,14 +2439,12 @@ corruptConsistencyProof(gint64 snapshot1,
 
 	for (guint i = 0; i < ln; ++i) {
 		/* copy the proof */
-		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_bytes_ref, NULL);
+		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		/* and also the data inside */
-		GBytes *b = g_ptr_array_steal_index(wrong_proof, i);
-		GByteArray *ba = g_bytes_unref_to_array(b);
+		GByteArray *ba = g_ptr_array_steal_index(wrong_proof, i);
 		/* flip the bit */
 		ba->data[0] ^= 16;
-		b = g_byte_array_free_to_bytes(ba);
-		g_ptr_array_insert(wrong_proof, i, b);
+		g_ptr_array_insert(wrong_proof, i, ba);
 
 		cp = consistencyProbeNew();
 		cp->snapshot1 = snapshot1;
@@ -3073,10 +3105,12 @@ TestVerifyConsistencyProof(void)
 	for (int i = 0; i < 4; ++i) {
 		g_autoptr(GError) error = NULL;
 		consistencyTestVector *p = g_ptr_array_index(cps, i);
+		GBytes *root_snapshot1 = g_bytes_ref(g_ptr_array_index(rs, p->snapshot1 - 1));
+		GBytes *root_snapshot2 = g_bytes_ref(g_ptr_array_index(rs, p->snapshot2 - 1));
 		gboolean ret = verifierConsistencyCheck(p->snapshot1,
 							p->snapshot2,
-							g_ptr_array_index(rs, p->snapshot1 - 1),
-							g_ptr_array_index(rs, p->snapshot2 - 1),
+							g_bytes_unref_to_array(root_snapshot1),
+							g_bytes_unref_to_array(root_snapshot2),
 							p->proof,
 							&error);
 		g_prefix_error(&error, "Failed to verify known good proof: ");
