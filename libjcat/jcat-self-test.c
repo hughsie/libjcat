@@ -1959,6 +1959,7 @@ leaves(void)
 	GPtrArray *rv = g_ptr_array_new_with_free_func((GDestroyNotify)g_bytes_unref);
 	g_ptr_array_add(rv, dh("", 0));
 	g_ptr_array_add(rv, dh("00", 1));
+	g_ptr_array_add(rv, dh("10", 1));
 	g_ptr_array_add(rv, dh("2021", 2));
 	g_ptr_array_add(rv, dh("3031", 2));
 	g_ptr_array_add(rv, dh("40414243", 4));
