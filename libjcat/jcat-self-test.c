@@ -1068,7 +1068,7 @@ jcat_rfc6962_func(void)
 
 	/* RFC6962 Empty Leaf */
 	csum_empty_leaf = jcat_rfc6962_hash_leaf(buf);
-	csum_empty_leaf_str = jcat_rfc6962_decode_string(csum_empty_leaf);
+	csum_empty_leaf_str = jcat_hex_encode_string(csum_empty_leaf);
 	g_assert_cmpstr(csum_empty_leaf_str,
 			==,
 			"6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d");
@@ -1076,7 +1076,7 @@ jcat_rfc6962_func(void)
 	/* RFC6962 Leaf */
 	g_byte_array_append(buf, (const guint8 *)leaf_data, strlen(leaf_data));
 	csum_leaf = jcat_rfc6962_hash_leaf(buf);
-	csum_leaf_str = jcat_rfc6962_decode_string(csum_leaf);
+	csum_leaf_str = jcat_hex_encode_string(csum_leaf);
 	g_assert_cmpstr(csum_leaf_str,
 			==,
 			"395aa064aa4c29f7010acfe3f25db9485bbd4b91897b6ad7ad547639252b4d56");
@@ -1085,14 +1085,14 @@ jcat_rfc6962_func(void)
 	g_byte_array_append(buf_l, (const guint8 *)node_data_l, strlen(node_data_l));
 	g_byte_array_append(buf_r, (const guint8 *)node_data_r, strlen(node_data_r));
 	csum_node = jcat_rfc6962_hash_children(buf_l, buf_r);
-	csum_node_str = jcat_rfc6962_decode_string(csum_node);
+	csum_node_str = jcat_hex_encode_string(csum_node);
 	g_assert_cmpstr(csum_node_str,
 			==,
 			"aa217fe888e47007fa15edab33c2b492a722cb106c64667fc2b044444de66bbb");
 
 	/* RFC6962 Node, swapped */
 	csum_node_swapped = jcat_rfc6962_hash_children(buf_r, buf_l);
-	csum_node_swapped_str = jcat_rfc6962_decode_string(csum_node_swapped);
+	csum_node_swapped_str = jcat_hex_encode_string(csum_node_swapped);
 	g_assert_cmpstr(csum_node_swapped_str,
 			==,
 			"013dee051c2516cf8ba3dfc4fae6bfb016587de88cd448f1e96df99ea575257a");
@@ -1130,15 +1130,15 @@ VerifiedPrefixHashFromInclusionProof(gint64 subSize,
 	if (!jcat_bt_inclusion_proof_verify(leaf, size, proof, root, leafHash, error))
 		return NULL;
 
-	inner = innerProofSize(leaf, size);
-	proof_left = jcat_rfc6962_proof_slice_left(proof, inner, error);
+	inner = jcat_inner_proof_size(leaf, size);
+	proof_left = jcat_byte_arrays_slice_left(proof, inner, error);
 	if (proof_left == NULL)
 		return NULL;
-	proof_right = jcat_rfc6962_proof_slice_right(proof, inner, error);
+	proof_right = jcat_byte_arrays_slice_right(proof, inner, error);
 	if (proof_right == NULL)
 		return NULL;
-	res = jcat_hash_chainInnerRight(leafHash, proof_left, leaf);
-	return jcat_hash_chainBorderRight(res, proof_right);
+	res = jcat_hash_chain_inner_right(leafHash, proof_left, leaf);
+	return jcat_hash_chain_border_right(res, proof_right);
 }
 
 static void
@@ -1149,39 +1149,39 @@ jcat_rfc6962_func2(void)
 	g_autoptr(GPtrArray) proof = NULL;
 	g_autoptr(GPtrArray) proof_right = NULL;
 
-	g_assert_cmpint(bits_OnesCount64(0), ==, 0);
-	g_assert_cmpint(bits_OnesCount64(1), ==, 1);
-	g_assert_cmpint(bits_OnesCount64(5), ==, 2);
-	g_assert_cmpint(bits_OnesCount64(5), ==, 2);
-	g_assert_cmpint(bits_OnesCount64(0x8000000000000000), ==, 1);
-	g_assert_cmpint(bits_OnesCount64(0xFFFFFFFFFFFFFFFF), ==, 64);
+	g_assert_cmpint(jcat_bits_ones_count64(0), ==, 0);
+	g_assert_cmpint(jcat_bits_ones_count64(1), ==, 1);
+	g_assert_cmpint(jcat_bits_ones_count64(5), ==, 2);
+	g_assert_cmpint(jcat_bits_ones_count64(5), ==, 2);
+	g_assert_cmpint(jcat_bits_ones_count64(0x8000000000000000), ==, 1);
+	g_assert_cmpint(jcat_bits_ones_count64(0xFFFFFFFFFFFFFFFF), ==, 64);
 
-	g_assert_cmpint(bits_TrailingZeros64(0), ==, 64);
-	g_assert_cmpint(bits_TrailingZeros64(8), ==, 3);
-	g_assert_cmpint(bits_TrailingZeros64(24), ==, 3);
-	g_assert_cmpint(bits_TrailingZeros64(25), ==, 0);
-	g_assert_cmpint(bits_TrailingZeros64(0x8000000000000000), ==, 63);
-	g_assert_cmpint(bits_TrailingZeros64(0xFFFFFFFFFFFFFFFF), ==, 0);
+	g_assert_cmpint(jcat_bits_trailing_zeros64(0), ==, 64);
+	g_assert_cmpint(jcat_bits_trailing_zeros64(8), ==, 3);
+	g_assert_cmpint(jcat_bits_trailing_zeros64(24), ==, 3);
+	g_assert_cmpint(jcat_bits_trailing_zeros64(25), ==, 0);
+	g_assert_cmpint(jcat_bits_trailing_zeros64(0x8000000000000000), ==, 63);
+	g_assert_cmpint(jcat_bits_trailing_zeros64(0xFFFFFFFFFFFFFFFF), ==, 0);
 
-	g_assert_cmpint(bits_Len64(0), ==, 0);
-	g_assert_cmpint(bits_Len64(1), ==, 1);
-	g_assert_cmpint(bits_Len64(7), ==, 3);
-	g_assert_cmpint(bits_Len64(16), ==, 5);
-	g_assert_cmpint(bits_Len64(64), ==, 7);
-	g_assert_cmpint(bits_Len64(0x8000000000000000), ==, 64);
-	g_assert_cmpint(bits_Len64(0xFFFFFFFFFFFFFFFF), ==, 64);
+	g_assert_cmpint(jcat_bits_bit_length64(0), ==, 0);
+	g_assert_cmpint(jcat_bits_bit_length64(1), ==, 1);
+	g_assert_cmpint(jcat_bits_bit_length64(7), ==, 3);
+	g_assert_cmpint(jcat_bits_bit_length64(16), ==, 5);
+	g_assert_cmpint(jcat_bits_bit_length64(64), ==, 7);
+	g_assert_cmpint(jcat_bits_bit_length64(0x8000000000000000), ==, 64);
+	g_assert_cmpint(jcat_bits_bit_length64(0xFFFFFFFFFFFFFFFF), ==, 64);
 
 	/* left slice */
 	proof = g_ptr_array_new_with_free_func((GDestroyNotify)g_byte_array_unref);
 	for (guint i = 0; i < 9; i++)
 		g_ptr_array_add(proof, g_byte_array_new());
-	proof_left = jcat_rfc6962_proof_slice_left(proof, 3, &error);
+	proof_left = jcat_byte_arrays_slice_left(proof, 3, &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(proof_left);
 	g_assert_cmpint(proof_left->len, ==, 3);
 
 	/* right slice */
-	proof_right = jcat_rfc6962_proof_slice_right(proof, 4, &error);
+	proof_right = jcat_byte_arrays_slice_right(proof, 4, &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(proof_right);
 	g_assert_cmpint(proof_right->len, ==, 5);
@@ -1947,8 +1947,8 @@ verifierCheck(gint64 leafIndex,
 	if (got == NULL)
 		return FALSE;
 	if (!fu_byte_array_compare(got, root, error)) {
-		g_autofree gchar *str1 = jcat_rfc6962_decode_string(got);
-		g_autofree gchar *str2 = jcat_rfc6962_decode_string(root);
+		g_autofree gchar *str1 = jcat_hex_encode_string(got);
+		g_autofree gchar *str2 = jcat_hex_encode_string(root);
 		g_prefix_error(error, "got root: %s, expected %s ", str1, str2);
 		return FALSE;
 	}
@@ -2057,8 +2057,8 @@ TestVerifyInclusionProofSingleEntry(void)
 								      testcases[i].root,
 								      testcases[i].leaf,
 								      &error);
-			g_autofree gchar *str_root = jcat_rfc6962_decode_string(testcases[i].root);
-			g_autofree gchar *str_leaf = jcat_rfc6962_decode_string(testcases[i].leaf);
+			g_autofree gchar *str_root = jcat_hex_encode_string(testcases[i].root);
+			g_autofree gchar *str_leaf = jcat_hex_encode_string(testcases[i].leaf);
 			g_debug("ran test case %u (root=%s, leaf=%s) with ret %d",
 				i,
 				str_root,
@@ -2289,13 +2289,12 @@ inmemoryTreeRecomputePastSnapshot(inmemoryTree *tree,
 	if (snapshot == tree->leavesProcessed) {
 		if (node != NULL && tree->tree->len > node_level) {
 			GPtrArray *this_level = g_ptr_array_index(tree->tree, node_level);
-			if (*node != NULL)
-				g_byte_array_unref(*node);
 			if (node_level > 0) {
-				*node = g_byte_array_ref(
+				_g_set_byte_array(
+				    node,
 				    g_ptr_array_index(this_level, this_level->len - 1));
 			} else {
-				*node = g_byte_array_ref(g_ptr_array_index(this_level, last_node));
+				_g_set_byte_array(node, g_ptr_array_index(this_level, last_node));
 			}
 		}
 		return inmemoryTreeRoot(tree);
@@ -2306,39 +2305,33 @@ inmemoryTreeRecomputePastSnapshot(inmemoryTree *tree,
 	while ((last_node & 1) == 1) {
 		if (node != NULL && node_level == level) {
 			GPtrArray *this_level = g_ptr_array_index(tree->tree, level);
-			if (*node != NULL)
-				g_byte_array_unref(*node);
-			*node = g_byte_array_ref(g_ptr_array_index(this_level, last_node));
+			_g_set_byte_array(node, g_ptr_array_index(this_level, last_node));
 		}
 		last_node >>= 1;
 		level++;
 	}
 
-	subtree_root = g_byte_array_ref(
+	_g_set_byte_array(
+	    &subtree_root,
 	    g_ptr_array_index((GPtrArray *)g_ptr_array_index(tree->tree, level), last_node));
 
 	if (node != NULL && node_level == level) {
-		if (*node != NULL)
-			g_byte_array_unref(*node);
-		*node = g_byte_array_ref(subtree_root);
+		_g_set_byte_array(node, subtree_root);
 	}
 
 	while (last_node != 0) {
 		if ((last_node & 1) == 1) {
 			GPtrArray *this_level = g_ptr_array_index(tree->tree, level);
-			GByteArray *new_subtree_root =
+			g_autoptr(GByteArray) new_subtree_root =
 			    jcat_rfc6962_hash_children(g_ptr_array_index(this_level, last_node - 1),
 						       subtree_root);
-			g_byte_array_unref(subtree_root);
-			subtree_root = new_subtree_root;
+			_g_set_byte_array(&subtree_root, new_subtree_root);
 		}
 
 		last_node >>= 1;
 		level++;
 		if (node != NULL && node_level == level) {
-			if (*node != NULL)
-				g_byte_array_unref(*node);
-			*node = g_byte_array_ref(subtree_root);
+			_g_set_byte_array(node, subtree_root);
 		}
 	}
 	return subtree_root;
@@ -2671,8 +2664,8 @@ TestPrefixHashFromInclusionProofGenerated(void)
 			g_assert_no_error(error);
 			exp = inmemoryTreeRootAtSnapshot(tree, i);
 			if (!fu_byte_array_compare(pRoot, exp, &error)) {
-				g_autofree gchar *str1 = jcat_rfc6962_decode_string(pRoot);
-				g_autofree gchar *str2 = jcat_rfc6962_decode_string(exp);
+				g_autofree gchar *str1 = jcat_hex_encode_string(pRoot);
+				g_autofree gchar *str2 = jcat_hex_encode_string(exp);
 				g_prefix_error(&error,
 					       "Wrong prefix hash: got %s, want %s: ",
 					       str1,

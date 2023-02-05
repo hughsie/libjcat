@@ -45,7 +45,7 @@ jcat_rfc6962_hash_children(GByteArray *lbuf, GByteArray *rbuf)
 }
 
 GByteArray *
-jcat_hash_chainInner(GByteArray *seed, GPtrArray *proof, gint64 index)
+jcat_hash_chain_inner(GByteArray *seed, GPtrArray *proof, gint64 index)
 {
 	g_autoptr(GByteArray) subtree = g_byte_array_ref(seed);
 	for (guint i = 0; i < proof->len; i++) {
@@ -63,7 +63,7 @@ jcat_hash_chainInner(GByteArray *seed, GPtrArray *proof, gint64 index)
 }
 
 GByteArray *
-jcat_hash_chainInnerRight(GByteArray *seed, GPtrArray *proof, gint64 index)
+jcat_hash_chain_inner_right(GByteArray *seed, GPtrArray *proof, gint64 index)
 {
 	g_autoptr(GByteArray) subtree = g_byte_array_ref(seed);
 	for (guint i = 0; i < proof->len; i++) {
@@ -77,7 +77,7 @@ jcat_hash_chainInnerRight(GByteArray *seed, GPtrArray *proof, gint64 index)
 }
 
 GByteArray *
-jcat_hash_chainBorderRight(GByteArray *seed, GPtrArray *proof)
+jcat_hash_chain_border_right(GByteArray *seed, GPtrArray *proof)
 {
 	g_autoptr(GByteArray) subtree = g_byte_array_ref(seed);
 	for (guint i = 0; i < proof->len; i++) {
@@ -96,13 +96,13 @@ jcat_hash_chainBorderRight(GByteArray *seed, GPtrArray *proof)
  * of the two determines the correct length of the inclusion proof.
  */
 static void
-decompInclProof(guint64 index, guint64 size, guint *inner, guint *border)
+jcat_decomp_inclusion_proof(guint64 index, guint64 size, guint *inner, guint *border)
 {
-	guint inner_tmp = innerProofSize(index, size);
+	guint inner_tmp = jcat_inner_proof_size(index, size);
 	if (inner != NULL)
 		*inner = inner_tmp;
 	if (border != NULL)
-		*border = bits_OnesCount64(index >> inner_tmp);
+		*border = jcat_bits_ones_count64(index >> inner_tmp);
 }
 
 /*
@@ -157,7 +157,7 @@ jcat_bt_inclusion_proof_calculate_root(gint64 leafIndex,
 		return FALSE;
 	}
 
-	decompInclProof(leafIndex, treeSize, &inner, &border);
+	jcat_decomp_inclusion_proof(leafIndex, treeSize, &inner, &border);
 	if (proof->len != inner + border) {
 		g_set_error(error,
 			    G_IO_ERROR,
@@ -168,14 +168,14 @@ jcat_bt_inclusion_proof_calculate_root(gint64 leafIndex,
 		return NULL;
 	}
 
-	proof_left = jcat_rfc6962_proof_slice_left(proof, inner, error);
+	proof_left = jcat_byte_arrays_slice_left(proof, inner, error);
 	if (proof_left == NULL)
 		return NULL;
-	proof_right = jcat_rfc6962_proof_slice_right(proof, inner, error);
+	proof_right = jcat_byte_arrays_slice_right(proof, inner, error);
 	if (proof_right == NULL)
 		return NULL;
-	res = jcat_hash_chainInner(leafHash, proof_left, leafIndex);
-	return jcat_hash_chainBorderRight(res, proof_right);
+	res = jcat_hash_chain_inner(leafHash, proof_left, leafIndex);
+	return jcat_hash_chain_border_right(res, proof_right);
 }
 
 /* verifies the correctness of the proof given the passed in information about the tree and leaf */
@@ -195,8 +195,8 @@ jcat_bt_inclusion_proof_verify(gint64 leafIndex,
 		return FALSE;
 
 	if (!fu_byte_array_compare(calcRoot, root, error)) {
-		g_autofree gchar *str1 = jcat_rfc6962_decode_string(calcRoot);
-		g_autofree gchar *str2 = jcat_rfc6962_decode_string(root);
+		g_autofree gchar *str1 = jcat_hex_encode_string(calcRoot);
+		g_autofree gchar *str2 = jcat_hex_encode_string(root);
 		g_prefix_error(error, "CalculatedRoot=%s, ExpectedRoot=%s: ", str1, str2);
 		return FALSE;
 	}
@@ -248,8 +248,8 @@ jcat_bt_consistency_proof_verify(gint64 snapshot1,
 	}
 	if (snapshot1 == snapshot2) {
 		if (!fu_byte_array_compare(root1, root2, error)) {
-			g_autofree gchar *str1 = jcat_rfc6962_decode_string(root1);
-			g_autofree gchar *str2 = jcat_rfc6962_decode_string(root2);
+			g_autofree gchar *str1 = jcat_hex_encode_string(root1);
+			g_autofree gchar *str2 = jcat_hex_encode_string(root2);
 			g_prefix_error(error, "CalculatedRoot=%s, ExpectedRoot=%s: ", str1, str2);
 			return FALSE;
 		}
@@ -283,8 +283,8 @@ jcat_bt_consistency_proof_verify(gint64 snapshot1,
 		return FALSE;
 	}
 
-	decompInclProof(snapshot1 - 1, snapshot2, &inner, &border);
-	shift = bits_TrailingZeros64((guint64)snapshot1);
+	jcat_decomp_inclusion_proof(snapshot1 - 1, snapshot2, &inner, &border);
+	shift = jcat_bits_trailing_zeros64((guint64)snapshot1);
 	inner -= shift; /* note: shift < inner if snapshot1 < snapshot2 */
 
 	/* proof includes the root hash for the sub-tree of size 2^shift */
@@ -305,7 +305,7 @@ jcat_bt_consistency_proof_verify(gint64 snapshot1,
 			    (guint)(start + inner + border));
 		return FALSE;
 	}
-	proof_new = jcat_rfc6962_proof_slice_right(proof, start, error);
+	proof_new = jcat_byte_arrays_slice_right(proof, start, error);
 	if (proof_new == NULL)
 		return FALSE;
 
@@ -318,28 +318,28 @@ jcat_bt_consistency_proof_verify(gint64 snapshot1,
 	//	ch = hashChainer(v)
 	mask = (snapshot1 - 1) >> (guint)shift; /* start chaining from level |shift| */
 
-	proof_left = jcat_rfc6962_proof_slice_left(proof_new, inner, error);
+	proof_left = jcat_byte_arrays_slice_left(proof_new, inner, error);
 	if (proof_left == NULL)
 		return FALSE;
-	proof_right = jcat_rfc6962_proof_slice_right(proof_new, inner, error);
+	proof_right = jcat_byte_arrays_slice_right(proof_new, inner, error);
 	if (proof_right == NULL)
 		return FALSE;
 
-	hash1 = jcat_hash_chainInnerRight(seed, proof_left, mask);
-	hash1 = jcat_hash_chainBorderRight(hash1, proof_right);
+	hash1 = jcat_hash_chain_inner_right(seed, proof_left, mask);
+	hash1 = jcat_hash_chain_border_right(hash1, proof_right);
 	if (!fu_byte_array_compare(hash1, root1, error)) {
-		g_autofree gchar *str1 = jcat_rfc6962_decode_string(hash1);
-		g_autofree gchar *str2 = jcat_rfc6962_decode_string(root1);
+		g_autofree gchar *str1 = jcat_hex_encode_string(hash1);
+		g_autofree gchar *str2 = jcat_hex_encode_string(root1);
 		g_prefix_error(error, "CalculatedRoot=%s, ExpectedRoot=%s: ", str1, str2);
 		return FALSE;
 	}
 
 	/* verify the second root */
-	hash2 = jcat_hash_chainInner(seed, proof_left, mask);
-	hash2 = jcat_hash_chainBorderRight(hash2, proof_right);
+	hash2 = jcat_hash_chain_inner(seed, proof_left, mask);
+	hash2 = jcat_hash_chain_border_right(hash2, proof_right);
 	if (!fu_byte_array_compare(hash2, root2, error)) {
-		g_autofree gchar *str1 = jcat_rfc6962_decode_string(hash2);
-		g_autofree gchar *str2 = jcat_rfc6962_decode_string(root2);
+		g_autofree gchar *str1 = jcat_hex_encode_string(hash2);
+		g_autofree gchar *str2 = jcat_hex_encode_string(root2);
 		g_prefix_error(error, "CalculatedRoot=%s, ExpectedRoot=%s: ", str1, str2);
 		return FALSE;
 	}
