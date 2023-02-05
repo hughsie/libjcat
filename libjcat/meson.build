@@ -12,6 +12,7 @@ install_headers(
 
 jcat_headers = files(
   'jcat-blob.h',
+  'jcat-bt-proof.h',
   'jcat-common.h',
   'jcat-context.h',
   'jcat-engine.h',
@@ -55,6 +56,8 @@ libjcat = library(
     'jcat-result.c',
     'jcat-bt-verifier.c',
     'jcat-bt-checkpoint.c',
+    'jcat-bt-proof.c',
+    'jcat-proof-bits.c',
     'jcat-file.c',
     'jcat-item.c',
     'jcat-version.c',
@@ -246,6 +249,8 @@ if get_option('tests')
       'jcat-file.c',
       'jcat-item.c',
       'jcat-result.c',
+      'jcat-proof-bits.c',
+      'jcat-bt-proof.c',
       'jcat-bt-verifier.c',
       'jcat-bt-checkpoint.c',
       'jcat-sha1-engine.c',
