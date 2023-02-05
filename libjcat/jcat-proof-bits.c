@@ -6,7 +6,7 @@
 
 /* count number of 1's set */
 guint
-bits_OnesCount64(guint64 val)
+jcat_bits_ones_count64(guint64 val)
 {
 #if __has_builtin(__builtin_popcountll)
 	return __builtin_popcountll(val);
@@ -22,7 +22,7 @@ bits_OnesCount64(guint64 val)
 
 /* count number of trailing zeros */
 guint
-bits_TrailingZeros64(guint64 val)
+jcat_bits_trailing_zeros64(guint64 val)
 {
 #if __has_builtin(__builtin_ctzll)
 	if (val == 0)
@@ -39,7 +39,7 @@ bits_TrailingZeros64(guint64 val)
 
 /* minimum number of bits required to represent number */
 guint
-bits_Len64(guint64 val)
+jcat_bits_bit_length64(guint64 val)
 {
 #if __has_builtin(__builtin_clzll)
 	if (val == 0)
@@ -55,9 +55,9 @@ bits_Len64(guint64 val)
 }
 
 guint
-innerProofSize(guint64 index, guint64 size)
+jcat_inner_proof_size(guint64 index, guint64 size)
 {
-	return bits_Len64(index ^ (size - 1));
+	return jcat_bits_bit_length64(index ^ (size - 1));
 }
 
 void
@@ -65,7 +65,8 @@ _g_set_byte_array(GByteArray **buf, GByteArray *buf_new)
 {
 	if (buf_new == *buf)
 		return;
-	g_byte_array_unref(*buf);
+	if (*buf != NULL)
+		g_byte_array_unref(*buf);
 	*buf = g_byte_array_ref(buf_new);
 }
 
@@ -130,7 +131,7 @@ fu_byte_array_compare(GByteArray *buf1, GByteArray *buf2, GError **error)
 }
 
 gchar *
-jcat_rfc6962_decode_string(GByteArray *buf)
+jcat_hex_encode_string(GByteArray *buf)
 {
 	GString *str = g_string_new(NULL);
 	for (guint i = 0; i < buf->len; i++)
@@ -139,7 +140,7 @@ jcat_rfc6962_decode_string(GByteArray *buf)
 }
 
 GPtrArray *
-jcat_rfc6962_proof_slice_left(GPtrArray *src, guint pos, GError **error)
+jcat_byte_arrays_slice_left(GPtrArray *src, guint pos, GError **error)
 {
 	GPtrArray *dst;
 
@@ -148,7 +149,7 @@ jcat_rfc6962_proof_slice_left(GPtrArray *src, guint pos, GError **error)
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_FAILED,
-			    "jcat_rfc6962_proof_slice_left: pos %u of %u",
+			    "jcat_byte_arrays_slice_left: pos %u of %u",
 			    pos,
 			    src->len);
 		return NULL;
@@ -164,7 +165,7 @@ jcat_rfc6962_proof_slice_left(GPtrArray *src, guint pos, GError **error)
 }
 
 GPtrArray *
-jcat_rfc6962_proof_slice_right(GPtrArray *src, guint pos, GError **error)
+jcat_byte_arrays_slice_right(GPtrArray *src, guint pos, GError **error)
 {
 	GPtrArray *dst;
 
@@ -173,7 +174,7 @@ jcat_rfc6962_proof_slice_right(GPtrArray *src, guint pos, GError **error)
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_FAILED,
-			    "jcat_rfc6962_proof_slice_right: pos %u of %u",
+			    "jcat_byte_arrays_slice_right: pos %u of %u",
 			    pos,
 			    src->len);
 		return NULL;

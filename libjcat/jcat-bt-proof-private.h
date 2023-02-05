@@ -14,22 +14,22 @@ jcat_rfc6962_hash_children(GByteArray *lbuf, GByteArray *rbuf);
  * located at the specified `index` on its level.
  */
 GByteArray *
-jcat_hash_chainInner(GByteArray *seed, GPtrArray *proof, gint64 index);
+jcat_hash_chain_inner(GByteArray *seed, GPtrArray *proof, gint64 index);
 
 /*
- * Compute a subtree hash like jcat_hash_chainInner, but only take hashes to the left from the path
+ * Compute a subtree hash like jcat_hash_chain_inner, but only take hashes to the left from the path
  * into consideration, which effectively means the result is a hash of the corresponding earlier
  * version of this subtree.
  */
 GByteArray *
-jcat_hash_chainInnerRight(GByteArray *seed, GPtrArray *proof, gint64 index);
+jcat_hash_chain_inner_right(GByteArray *seed, GPtrArray *proof, gint64 index);
 
 /*
  * Chains proof hashes along tree borders. This differs from inner chaining because `proof`
  * contains only left-side subtree hashes.
  */
 GByteArray *
-jcat_hash_chainBorderRight(GByteArray *seed, GPtrArray *proof);
+jcat_hash_chain_border_right(GByteArray *seed, GPtrArray *proof);
 
 GByteArray *
 jcat_bt_inclusion_proof_calculate_root(gint64 leafIndex,
