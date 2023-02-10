@@ -1099,7 +1099,7 @@ jcat_rfc6962_func(void)
 }
 
 /*
- * Calculates a root hash over leaves [0..subSize), based on the inclusion |proof| and |leafHash|
+ * Calculates a root hash over leaves [0..subSize), based on the inclusion |proof| and |leaf_hash|
  * for a leaf at index |subSize-1| in a tree of the specified |size| with the passed in @root hash.
  * Returns an error if the |proof| verification fails. The resulting smaller tree's root hash is
  * trusted iff the bigger tree's @root hash is trusted.
@@ -1109,7 +1109,7 @@ VerifiedPrefixHashFromInclusionProof(gint64 subSize,
 				     gint64 size,
 				     GPtrArray *proof,
 				     GByteArray *root,
-				     GByteArray *leafHash,
+				     GByteArray *leaf_hash,
 				     GError **error)
 {
 	guint inner;
@@ -1127,7 +1127,7 @@ VerifiedPrefixHashFromInclusionProof(gint64 subSize,
 		return NULL;
 	}
 	leaf = subSize - 1;
-	if (!jcat_bt_inclusion_proof_verify(leaf, size, proof, root, leafHash, error))
+	if (!jcat_bt_inclusion_proof_verify(leaf, size, proof, root, leaf_hash, error))
 		return NULL;
 
 	inner = jcat_inner_proof_size(leaf, size);
@@ -1137,8 +1137,8 @@ VerifiedPrefixHashFromInclusionProof(gint64 subSize,
 	proof_right = jcat_byte_arrays_slice_right(proof, inner, error);
 	if (proof_right == NULL)
 		return NULL;
-	res = jcat_hash_chain_inner_right(leafHash, proof_left, leaf);
-	return jcat_hash_chain_border_right(res, proof_right);
+	res = jcat_bt_hash_chain_inner_right(leaf_hash, proof_left, leaf);
+	return jcat_bt_hash_chain_border_right(res, proof_right);
 }
 
 static void
@@ -1444,10 +1444,10 @@ leaves(void)
 
 /* inclusionProbe is a parameter set for inclusion proof verification. */
 typedef struct {
-	gint64 leafIndex;
-	gint64 treeSize;
+	gint64 leaf_index;
+	gint64 tree_size;
 	GByteArray *root;
-	GByteArray *leafHash;
+	GByteArray *leaf_hash;
 	GPtrArray *proof;
 
 	/* A string literal for the description. Do not free. */
@@ -1466,8 +1466,8 @@ inclusionProbeFree(inclusionProbe *ip)
 {
 	if (ip->root)
 		g_byte_array_unref(ip->root);
-	if (ip->leafHash)
-		g_byte_array_unref(ip->leafHash);
+	if (ip->leaf_hash)
+		g_byte_array_unref(ip->leaf_hash);
 	if (ip->proof)
 		g_ptr_array_unref(ip->proof);
 }
@@ -1503,11 +1503,11 @@ consistencyProbeFree(consistencyProbe *cp)
 }
 
 static GPtrArray *
-corruptInclusionProof(gint64 leafIndex,
-		      gint64 treeSize,
+corruptInclusionProof(gint64 leaf_index,
+		      gint64 tree_size,
 		      GPtrArray *proof,
 		      GByteArray *root,
-		      GByteArray *leafHash)
+		      GByteArray *leaf_hash)
 {
 	GPtrArray *ret = g_ptr_array_new_with_free_func((GDestroyNotify)inclusionProbeFree);
 	inclusionProbe *ip = NULL;
@@ -1515,89 +1515,89 @@ corruptInclusionProof(gint64 leafIndex,
 
 	/* wrong leaf index */
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex - 1;
-	ip->treeSize = treeSize;
+	ip->leaf_index = leaf_index - 1;
+	ip->tree_size = tree_size;
 	ip->root = g_byte_array_ref(root);
-	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->leaf_hash = g_byte_array_ref(leaf_hash);
 	ip->proof = g_ptr_array_ref(proof);
-	ip->desc = "leafIndex - 1";
+	ip->desc = "leaf_index - 1";
 	g_ptr_array_add(ret, ip);
 
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex + 1;
-	ip->treeSize = treeSize;
+	ip->leaf_index = leaf_index + 1;
+	ip->tree_size = tree_size;
 	ip->root = g_byte_array_ref(root);
-	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->leaf_hash = g_byte_array_ref(leaf_hash);
 	ip->proof = g_ptr_array_ref(proof);
-	ip->desc = "leafIndex + 1";
+	ip->desc = "leaf_index + 1";
 	g_ptr_array_add(ret, ip);
 
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex ^ 2;
-	ip->treeSize = treeSize;
+	ip->leaf_index = leaf_index ^ 2;
+	ip->tree_size = tree_size;
 	ip->root = g_byte_array_ref(root);
-	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->leaf_hash = g_byte_array_ref(leaf_hash);
 	ip->proof = g_ptr_array_ref(proof);
-	ip->desc = "leafIndex ^ 2";
+	ip->desc = "leaf_index ^ 2";
 	g_ptr_array_add(ret, ip);
 
 	/* wrong tree height */
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex;
-	ip->treeSize = treeSize * 2;
+	ip->leaf_index = leaf_index;
+	ip->tree_size = tree_size * 2;
 	ip->root = g_byte_array_ref(root);
-	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->leaf_hash = g_byte_array_ref(leaf_hash);
 	ip->proof = g_ptr_array_ref(proof);
-	ip->desc = "treeSize * 2";
+	ip->desc = "tree_size * 2";
 	g_ptr_array_add(ret, ip);
 
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex;
-	ip->treeSize = treeSize / 2;
+	ip->leaf_index = leaf_index;
+	ip->tree_size = tree_size / 2;
 	ip->root = g_byte_array_ref(root);
-	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->leaf_hash = g_byte_array_ref(leaf_hash);
 	ip->proof = g_ptr_array_ref(proof);
-	ip->desc = "treeSize / 2";
+	ip->desc = "tree_size / 2";
 	g_ptr_array_add(ret, ip);
 
 	/* wrong leaf or root */
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex;
-	ip->treeSize = treeSize;
+	ip->leaf_index = leaf_index;
+	ip->tree_size = tree_size;
 	ip->root = g_byte_array_ref(root);
 	{
 		GByteArray *bad = g_byte_array_new();
 		const unsigned char wrong_leaf[] = "WrongLeaf";
-		ip->leafHash = g_byte_array_append(bad, wrong_leaf, sizeof wrong_leaf - 1);
+		ip->leaf_hash = g_byte_array_append(bad, wrong_leaf, sizeof wrong_leaf - 1);
 	}
 	ip->proof = g_ptr_array_ref(proof);
 	ip->desc = "wrong leaf";
 	g_ptr_array_add(ret, ip);
 
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex;
-	ip->treeSize = treeSize;
+	ip->leaf_index = leaf_index;
+	ip->tree_size = tree_size;
 	ip->root = g_bytes_unref_to_array(sha256EmptyTreeHash());
-	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->leaf_hash = g_byte_array_ref(leaf_hash);
 	ip->proof = g_ptr_array_ref(proof);
 	ip->desc = "empty root";
 	g_ptr_array_add(ret, ip);
 
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex;
-	ip->treeSize = treeSize;
+	ip->leaf_index = leaf_index;
+	ip->tree_size = tree_size;
 	ip->root = g_bytes_unref_to_array(sha256SomeHash());
-	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->leaf_hash = g_byte_array_ref(leaf_hash);
 	ip->proof = g_ptr_array_ref(proof);
 	ip->desc = "random root";
 	g_ptr_array_add(ret, ip);
 
 	/* add garbage at the end */
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex;
-	ip->treeSize = treeSize;
+	ip->leaf_index = leaf_index;
+	ip->tree_size = tree_size;
 	ip->root = g_byte_array_ref(root);
-	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->leaf_hash = g_byte_array_ref(leaf_hash);
 	{
 		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		g_ptr_array_add(new_proof, g_byte_array_new());
@@ -1607,10 +1607,10 @@ corruptInclusionProof(gint64 leafIndex,
 	g_ptr_array_add(ret, ip);
 
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex;
-	ip->treeSize = treeSize;
+	ip->leaf_index = leaf_index;
+	ip->tree_size = tree_size;
 	ip->root = g_byte_array_ref(root);
-	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->leaf_hash = g_byte_array_ref(leaf_hash);
 	{
 		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		GByteArray *extra_root = g_byte_array_ref(root);
@@ -1622,10 +1622,10 @@ corruptInclusionProof(gint64 leafIndex,
 
 	/* add garbage at the front */
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex;
-	ip->treeSize = treeSize;
+	ip->leaf_index = leaf_index;
+	ip->tree_size = tree_size;
 	ip->root = g_byte_array_ref(root);
-	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->leaf_hash = g_byte_array_ref(leaf_hash);
 	{
 		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		g_ptr_array_insert(new_proof, 0, g_byte_array_new());
@@ -1635,10 +1635,10 @@ corruptInclusionProof(gint64 leafIndex,
 	g_ptr_array_add(ret, ip);
 
 	ip = inclusionProbeNew();
-	ip->leafIndex = leafIndex;
-	ip->treeSize = treeSize;
+	ip->leaf_index = leaf_index;
+	ip->tree_size = tree_size;
 	ip->root = g_byte_array_ref(root);
-	ip->leafHash = g_byte_array_ref(leafHash);
+	ip->leaf_hash = g_byte_array_ref(leaf_hash);
 	{
 		GPtrArray *new_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		GByteArray *extra_root = g_byte_array_ref(root);
@@ -1661,10 +1661,10 @@ corruptInclusionProof(gint64 leafIndex,
 		g_ptr_array_insert(wrong_proof, i, corrupt);
 
 		ip = inclusionProbeNew();
-		ip->leafIndex = leafIndex;
-		ip->treeSize = treeSize;
+		ip->leaf_index = leaf_index;
+		ip->tree_size = tree_size;
 		ip->root = g_byte_array_ref(root);
-		ip->leafHash = g_byte_array_ref(leafHash);
+		ip->leaf_hash = g_byte_array_ref(leaf_hash);
 		ip->proof = wrong_proof;
 		ip->desc = "modified proof bit 3";
 		g_ptr_array_add(ret, ip);
@@ -1675,10 +1675,10 @@ corruptInclusionProof(gint64 leafIndex,
 		g_ptr_array_remove_index(wrong_proof, ln - 1);
 
 		ip = inclusionProbeNew();
-		ip->leafIndex = leafIndex;
-		ip->treeSize = treeSize;
+		ip->leaf_index = leaf_index;
+		ip->tree_size = tree_size;
 		ip->root = g_byte_array_ref(root);
-		ip->leafHash = g_byte_array_ref(leafHash);
+		ip->leaf_hash = g_byte_array_ref(leaf_hash);
 		ip->proof = wrong_proof;
 		ip->desc = "removed component";
 		g_ptr_array_add(ret, ip);
@@ -1689,10 +1689,10 @@ corruptInclusionProof(gint64 leafIndex,
 		g_ptr_array_insert(wrong_proof, 1, g_bytes_unref_to_array(sha256SomeHash()));
 
 		ip = inclusionProbeNew();
-		ip->leafIndex = leafIndex;
-		ip->treeSize = treeSize;
+		ip->leaf_index = leaf_index;
+		ip->tree_size = tree_size;
 		ip->root = g_byte_array_ref(root);
-		ip->leafHash = g_byte_array_ref(leafHash);
+		ip->leaf_hash = g_byte_array_ref(leaf_hash);
 		ip->proof = wrong_proof;
 		ip->desc = "inserted component";
 		g_ptr_array_add(ret, ip);
@@ -1935,37 +1935,37 @@ corruptConsistencyProof(gint64 snapshot1,
 }
 
 static gboolean
-verifierCheck(gint64 leafIndex,
-	      gint64 treeSize,
+verifierCheck(gint64 leaf_index,
+	      gint64 tree_size,
 	      GPtrArray *proof,
 	      GByteArray *root,
-	      GByteArray *leafHash,
+	      GByteArray *leaf_hash,
 	      GError **error)
 {
 	GByteArray *got =
-	    jcat_bt_inclusion_proof_calculate_root(leafIndex, treeSize, proof, leafHash, error);
+	    jcat_bt_inclusion_proof_calculate_root(leaf_index, tree_size, proof, leaf_hash, error);
 	if (got == NULL)
 		return FALSE;
-	if (!fu_byte_array_compare(got, root, error)) {
+	if (!jcat_byte_array_compare(got, root, error)) {
 		g_autofree gchar *str1 = jcat_hex_encode_string(got);
 		g_autofree gchar *str2 = jcat_hex_encode_string(root);
 		g_prefix_error(error, "got root: %s, expected %s ", str1, str2);
 		return FALSE;
 	}
-	if (!jcat_bt_inclusion_proof_verify(leafIndex, treeSize, proof, root, leafHash, error))
+	if (!jcat_bt_inclusion_proof_verify(leaf_index, tree_size, proof, root, leaf_hash, error))
 		return FALSE;
 
 	{
 		g_autoptr(GPtrArray) probes =
-		    corruptInclusionProof(leafIndex, treeSize, proof, root, leafHash);
+		    corruptInclusionProof(leaf_index, tree_size, proof, root, leaf_hash);
 		for (guint i = 0; i < probes->len; ++i) {
 			inclusionProbe *p = g_ptr_array_index(probes, i);
 			g_debug("testing corruptInclusionProof index %u", i);
-			if (jcat_bt_inclusion_proof_verify(p->leafIndex,
-							   p->treeSize,
+			if (jcat_bt_inclusion_proof_verify(p->leaf_index,
+							   p->tree_size,
 							   p->proof,
 							   p->root,
-							   p->leafHash,
+							   p->leaf_hash,
 							   error)) {
 				g_set_error(error,
 					    G_IO_ERROR,
@@ -2130,7 +2130,7 @@ TestVerifyInclusionProof(void)
 	for (guint i = 1; i < 6; ++i) {
 		inclusionProofTestVector *p = g_ptr_array_index(ips, i);
 		GBytes *leaf = g_bytes_ref(g_ptr_array_index(ls, p->leaf - 1));
-		g_autoptr(GByteArray) leafHash =
+		g_autoptr(GByteArray) leaf_hash =
 		    jcat_rfc6962_hash_leaf(g_bytes_unref_to_array(leaf));
 		GBytes *root = g_bytes_ref(g_ptr_array_index(rs, p->snapshot - 1));
 
@@ -2140,7 +2140,7 @@ TestVerifyInclusionProof(void)
 			      p->snapshot,
 			      p->proof,
 			      g_bytes_unref_to_array(root),
-			      leafHash,
+			      leaf_hash,
 			      &error);
 		g_prefix_error(&error, "verifierCheck() i = %u ", i);
 		g_assert_no_error(error);
@@ -2663,7 +2663,7 @@ TestPrefixHashFromInclusionProofGenerated(void)
 				       i);
 			g_assert_no_error(error);
 			exp = inmemoryTreeRootAtSnapshot(tree, i);
-			if (!fu_byte_array_compare(pRoot, exp, &error)) {
+			if (!jcat_byte_array_compare(pRoot, exp, &error)) {
 				g_autofree gchar *str1 = jcat_hex_encode_string(pRoot);
 				g_autofree gchar *str2 = jcat_hex_encode_string(exp);
 				g_prefix_error(&error,

@@ -1,3 +1,10 @@
+/*
+ * Copyright (C) 2020 Richard Hughes <richard@hughsie.com>
+ * Copyright (C) 2022 Joe Qian <joeqian@google.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1+
+ */
+
 #include "config.h"
 
 #include <gio/gio.h>
@@ -9,6 +16,16 @@
 #define RFC6962_LEAF_HASH_PREFIX 0x00
 #define RFC6962_NODE_HASH_PREFIX 0x01
 
+/**
+ * jcat_rfc6962_hash_leaf:
+ * @buf: (not nullable): the input buffer
+ *
+ * Hashes a leaf node according to RFC6962 (Section 2.1).
+ *
+ * Returns: (transfer full): the hash result
+ *
+ * Since: 0.1.12
+ **/
 GByteArray *
 jcat_rfc6962_hash_leaf(GByteArray *buf)
 {
@@ -26,6 +43,17 @@ jcat_rfc6962_hash_leaf(GByteArray *buf)
 	return g_steal_pointer(&outbuf);
 }
 
+/**
+ * jcat_rfc6962_hash_children:
+ * @lbuf: the buffer for the left child
+ * @rbuf: the buffer for the right child
+ *
+ * Hashes a node with two children according to RFC6962 (Section 2.1).
+ *
+ * Returns: (transfer full): the hash result
+ *
+ * Since: 0.1.12
+ **/
 GByteArray *
 jcat_rfc6962_hash_children(GByteArray *lbuf, GByteArray *rbuf)
 {
@@ -44,8 +72,21 @@ jcat_rfc6962_hash_children(GByteArray *lbuf, GByteArray *rbuf)
 	return g_steal_pointer(&outbuf);
 }
 
+/**
+ * jcat_bt_hash_chain_inner:
+ * @seed: (not nullable): initial subtree/leaf hash
+ * @proof: (not nullable) (element-type GByteArray): hashes in the proof ordered from lower levels
+ *to upper
+ * @index: the location of @seed on its level
+ *
+ * Compute a subtree hash for a node on or below the tree's right border.
+ *
+ * Returns: (transfer full): the computed subtree hash
+ *
+ * Since: 0.1.12
+ **/
 GByteArray *
-jcat_hash_chain_inner(GByteArray *seed, GPtrArray *proof, gint64 index)
+jcat_bt_hash_chain_inner(GByteArray *seed, GPtrArray *proof, gint64 index)
 {
 	g_autoptr(GByteArray) subtree = g_byte_array_ref(seed);
 	for (guint i = 0; i < proof->len; i++) {
@@ -62,8 +103,22 @@ jcat_hash_chain_inner(GByteArray *seed, GPtrArray *proof, gint64 index)
 	return g_steal_pointer(&subtree);
 }
 
+/**
+ * jcat_bt_hash_chain_inner_right:
+ * @seed: (not nullable): initial subtree/leaf hash
+ * @proof: (not nullable) (element-type GByteArray): hashes in the proof
+ * @index: the location of @seed on its level
+ *
+ * Compute a subtree hash like jcat_bt_hash_chain_inner, but only take hashes to the left from the
+ *path into consideration, which effectively means the result is a hash of the corresponding earlier
+ * version of this subtree.
+ *
+ * Returns: (transfer full): the computed subtree hash
+ *
+ * Since: 0.1.12
+ **/
 GByteArray *
-jcat_hash_chain_inner_right(GByteArray *seed, GPtrArray *proof, gint64 index)
+jcat_bt_hash_chain_inner_right(GByteArray *seed, GPtrArray *proof, gint64 index)
 {
 	g_autoptr(GByteArray) subtree = g_byte_array_ref(seed);
 	for (guint i = 0; i < proof->len; i++) {
@@ -76,8 +131,20 @@ jcat_hash_chain_inner_right(GByteArray *seed, GPtrArray *proof, gint64 index)
 	return g_steal_pointer(&subtree);
 }
 
+/**
+ * jcat_bt_hash_chain_border_right:
+ * @seed: (not nullable): initial subtree/leaf hash
+ * @proof: (not nullable) (element-type GByteArray): hashes in the proof
+ *
+ * Chains proof hashes along tree borders. This differs from inner chaining because @proof
+ * contains only left-side subtree hashes.
+ *
+ * Returns: (transfer full): the computed subtree hash
+ *
+ * Since: 0.1.12
+ **/
 GByteArray *
-jcat_hash_chain_border_right(GByteArray *seed, GPtrArray *proof)
+jcat_bt_hash_chain_border_right(GByteArray *seed, GPtrArray *proof)
 {
 	g_autoptr(GByteArray) subtree = g_byte_array_ref(seed);
 	for (guint i = 0; i < proof->len; i++) {
@@ -105,16 +172,25 @@ jcat_decomp_inclusion_proof(guint64 index, guint64 size, guint *inner, guint *bo
 		*border = jcat_bits_ones_count64(index >> inner_tmp);
 }
 
-/*
+/**
+ * jcat_bt_inclusion_proof_calculate_root:
+ * @leaf_index: the index of the leaf
+ * @tree_size: the number of nodes in the tree
+ * @proof: (not nullable) (element-type GByteArray): neighbor nodes from the bottom to the root
+ * @leaf_hash: (not nullable): the leaf hash
+ * @error: (nullable): #GError, or %NULL
+ *
  * This calculates the expected tree root given the proof and leaf.
- * @leafIndex starts at 0. @treeSize is the number of nodes in the tree.
- * @proof is an array of neighbor nodes from the bottom to the root.
- */
+ *
+ * Returns: (transfer full): the root
+ *
+ * Since: 0.1.12
+ **/
 GByteArray *
-jcat_bt_inclusion_proof_calculate_root(gint64 leafIndex,
-				       gint64 treeSize,
+jcat_bt_inclusion_proof_calculate_root(gint64 leaf_index,
+				       gint64 tree_size,
 				       GPtrArray *proof,
-				       GByteArray *leafHash,
+				       GByteArray *leaf_hash,
 				       GError **error)
 {
 	guint inner = 0;
@@ -123,41 +199,41 @@ jcat_bt_inclusion_proof_calculate_root(gint64 leafIndex,
 	g_autoptr(GPtrArray) proof_left = NULL;
 	g_autoptr(GPtrArray) proof_right = NULL;
 
-	if (leafIndex < 0) {
+	if (leaf_index < 0) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_FAILED,
-			    "leafIndex %u < 0",
-			    (guint)leafIndex);
+			    "leaf_index %u < 0",
+			    (guint)leaf_index);
 		return NULL;
 	}
-	if (treeSize < 0) {
+	if (tree_size < 0) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_FAILED,
-			    "treeSize %u < 0",
-			    (guint)treeSize);
+			    "tree_size %u < 0",
+			    (guint)tree_size);
 		return NULL;
 	}
-	if (leafIndex >= treeSize) {
+	if (leaf_index >= tree_size) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_FAILED,
-			    "leafIndex is beyond treeSize: %u >= %u",
-			    (guint)leafIndex,
-			    (guint)treeSize);
+			    "leaf_index is beyond tree_size: %u >= %u",
+			    (guint)leaf_index,
+			    (guint)tree_size);
 		return NULL;
 	}
-	if (leafHash->len != 32) {
+	if (leaf_hash->len != 32) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_FAILED,
-			    "leafHash has unexpected size %u, want 32",
-			    leafHash->len);
+			    "leaf_hash has unexpected size %u, want 32",
+			    leaf_hash->len);
 		return FALSE;
 	}
 
-	jcat_decomp_inclusion_proof(leafIndex, treeSize, &inner, &border);
+	jcat_decomp_inclusion_proof(leaf_index, tree_size, &inner, &border);
 	if (proof->len != inner + border) {
 		g_set_error(error,
 			    G_IO_ERROR,
@@ -174,28 +250,42 @@ jcat_bt_inclusion_proof_calculate_root(gint64 leafIndex,
 	proof_right = jcat_byte_arrays_slice_right(proof, inner, error);
 	if (proof_right == NULL)
 		return NULL;
-	res = jcat_hash_chain_inner(leafHash, proof_left, leafIndex);
-	return jcat_hash_chain_border_right(res, proof_right);
+	res = jcat_bt_hash_chain_inner(leaf_hash, proof_left, leaf_index);
+	return jcat_bt_hash_chain_border_right(res, proof_right);
 }
 
-/* verifies the correctness of the proof given the passed in information about the tree and leaf */
+/**
+ * jcat_bt_inclusion_proof_verify:
+ * @leaf_index: the index of the leaf
+ * @tree_size: the number of nodes in the tree
+ * @proof: (not nullable) (element-type GByteArray): neighbor nodes from the bottom to the root
+ * @leaf_hash: (not nullable): the leaf hash
+ * @root: (not nullable): the root hash
+ * @error: (nullable): #GError, or %NULL
+ *
+ * Verifies the correctness of the proof given the passed in information about the tree and leaf.
+ *
+ * Returns: %TRUE if success, %FALSE if not
+ *
+ * Since: 0.1.12
+ **/
 gboolean
-jcat_bt_inclusion_proof_verify(gint64 leafIndex,
-			       guint64 treeSize,
+jcat_bt_inclusion_proof_verify(gint64 leaf_index,
+			       guint64 tree_size,
 			       GPtrArray *proof,
 			       GByteArray *root,
-			       GByteArray *leafHash,
+			       GByteArray *leaf_hash,
 			       GError **error)
 {
-	g_autoptr(GByteArray) calcRoot = NULL;
+	g_autoptr(GByteArray) calc_root = NULL;
 
-	calcRoot =
-	    jcat_bt_inclusion_proof_calculate_root(leafIndex, treeSize, proof, leafHash, error);
-	if (calcRoot == NULL)
+	calc_root =
+	    jcat_bt_inclusion_proof_calculate_root(leaf_index, tree_size, proof, leaf_hash, error);
+	if (calc_root == NULL)
 		return FALSE;
 
-	if (!fu_byte_array_compare(calcRoot, root, error)) {
-		g_autofree gchar *str1 = jcat_hex_encode_string(calcRoot);
+	if (!jcat_byte_array_compare(calc_root, root, error)) {
+		g_autofree gchar *str1 = jcat_hex_encode_string(calc_root);
 		g_autofree gchar *str2 = jcat_hex_encode_string(root);
 		g_prefix_error(error, "CalculatedRoot=%s, ExpectedRoot=%s: ", str1, str2);
 		return FALSE;
@@ -205,10 +295,22 @@ jcat_bt_inclusion_proof_verify(gint64 leafIndex,
 	return TRUE;
 }
 
-/*
+/**
+ * jcat_bt_consistency_proof_verify:
+ * @snapshot1: the first snapshot
+ * @snapshot2: the second snapshot
+ * @root1: (not nullable): the first root
+ * @root2: (not nullable): the second root
+ * @proof: (not nullable) (element-type GByteArray): the proof hashes
+ * @error: (nullable): #GError, or %NULL
+ *
  * Checks that the passed in consistency proof is valid between the passed in tree snapshots.
- * Snapshots are the respective tree sizes. Accepts @shapshot2 >= @snapshot1 >= 0.
- */
+ * Snapshots are the respective tree sizes. Requires @shapshot2 >= @snapshot1 >= 0.
+ *
+ * Returns: %TRUE if success, %FALSE if not
+ *
+ * Since: 0.1.12
+ **/
 gboolean
 jcat_bt_consistency_proof_verify(gint64 snapshot1,
 				 gint64 snapshot2,
@@ -247,7 +349,7 @@ jcat_bt_consistency_proof_verify(gint64 snapshot1,
 		return FALSE;
 	}
 	if (snapshot1 == snapshot2) {
-		if (!fu_byte_array_compare(root1, root2, error)) {
+		if (!jcat_byte_array_compare(root1, root2, error)) {
 			g_autofree gchar *str1 = jcat_hex_encode_string(root1);
 			g_autofree gchar *str2 = jcat_hex_encode_string(root2);
 			g_prefix_error(error, "CalculatedRoot=%s, ExpectedRoot=%s: ", str1, str2);
@@ -325,9 +427,9 @@ jcat_bt_consistency_proof_verify(gint64 snapshot1,
 	if (proof_right == NULL)
 		return FALSE;
 
-	hash1 = jcat_hash_chain_inner_right(seed, proof_left, mask);
-	hash1 = jcat_hash_chain_border_right(hash1, proof_right);
-	if (!fu_byte_array_compare(hash1, root1, error)) {
+	hash1 = jcat_bt_hash_chain_inner_right(seed, proof_left, mask);
+	hash1 = jcat_bt_hash_chain_border_right(hash1, proof_right);
+	if (!jcat_byte_array_compare(hash1, root1, error)) {
 		g_autofree gchar *str1 = jcat_hex_encode_string(hash1);
 		g_autofree gchar *str2 = jcat_hex_encode_string(root1);
 		g_prefix_error(error, "CalculatedRoot=%s, ExpectedRoot=%s: ", str1, str2);
@@ -335,9 +437,9 @@ jcat_bt_consistency_proof_verify(gint64 snapshot1,
 	}
 
 	/* verify the second root */
-	hash2 = jcat_hash_chain_inner(seed, proof_left, mask);
-	hash2 = jcat_hash_chain_border_right(hash2, proof_right);
-	if (!fu_byte_array_compare(hash2, root2, error)) {
+	hash2 = jcat_bt_hash_chain_inner(seed, proof_left, mask);
+	hash2 = jcat_bt_hash_chain_border_right(hash2, proof_right);
+	if (!jcat_byte_array_compare(hash2, root2, error)) {
 		g_autofree gchar *str1 = jcat_hex_encode_string(hash2);
 		g_autofree gchar *str2 = jcat_hex_encode_string(root2);
 		g_prefix_error(error, "CalculatedRoot=%s, ExpectedRoot=%s: ", str1, str2);

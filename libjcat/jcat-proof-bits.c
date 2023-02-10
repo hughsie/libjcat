@@ -1,10 +1,26 @@
+/*
+ * Copyright (C) 2020 Richard Hughes <richard@hughsie.com>
+ * Copyright (C) 2022 Joe Qian <joeqian@google.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1+
+ */
+
 #include "jcat-proof-bits-private.h"
 
 #ifndef __has_builtin
 #define __has_builtin(x) 0
 #endif
 
-/* count number of 1's set */
+/**
+ * jcat_bits_ones_count64:
+ * @val: input
+ *
+ * Count the number of 1's set.
+ *
+ * Returns: integer
+ *
+ * Since: 0.1.12
+ **/
 guint
 jcat_bits_ones_count64(guint64 val)
 {
@@ -20,7 +36,16 @@ jcat_bits_ones_count64(guint64 val)
 #endif
 }
 
-/* count number of trailing zeros */
+/**
+ * jcat_bits_trailing_zeros64:
+ * @val: input
+ *
+ * Count the number of trailing zero bits.
+ *
+ * Returns: integer
+ *
+ * Since: 0.1.12
+ **/
 guint
 jcat_bits_trailing_zeros64(guint64 val)
 {
@@ -37,7 +62,16 @@ jcat_bits_trailing_zeros64(guint64 val)
 #endif
 }
 
-/* minimum number of bits required to represent number */
+/**
+ * jcat_bits_bit_length64:
+ * @val: input
+ *
+ * Find the minimum number of bits required to represent the number.
+ *
+ * Returns: integer
+ *
+ * Since: 0.1.12
+ **/
 guint
 jcat_bits_bit_length64(guint64 val)
 {
@@ -54,12 +88,32 @@ jcat_bits_bit_length64(guint64 val)
 #endif
 }
 
+/**
+ * jcat_inner_proof_size:
+ * @index: input
+ * @size: input
+ *
+ * Find the inner proof size.
+ *
+ * Returns: integer
+ *
+ * Since: 0.1.12
+ **/
 guint
 jcat_inner_proof_size(guint64 index, guint64 size)
 {
 	return jcat_bits_bit_length64(index ^ (size - 1));
 }
 
+/**
+ * _g_set_byte_array:
+ * @buf: (not nullable) (out): the buffer
+ * @buf_new: (not nullable): the new buffer contents
+ *
+ * Assign a #GByteArray to another #GByteArray.
+ *
+ * Since: 0.1.12
+ **/
 void
 _g_set_byte_array(GByteArray **buf, GByteArray *buf_new)
 {
@@ -121,8 +175,20 @@ fu_common_bytes_compare_raw(const guint8 *buf1,
 	return TRUE;
 }
 
+/**
+ * jcat_byte_array_compare:
+ * @buf1: (not nullable): the first buffer
+ * @buf2: (not nullable): the second buffer
+ * @error: (nullable): #GError, or %NULL
+ *
+ * Compare two instances of #GByteArray
+ *
+ * Returns: Boolean indicating whether they are equal
+ *
+ * Since: 0.1.12
+ **/
 gboolean
-fu_byte_array_compare(GByteArray *buf1, GByteArray *buf2, GError **error)
+jcat_byte_array_compare(GByteArray *buf1, GByteArray *buf2, GError **error)
 {
 	g_return_val_if_fail(buf1 != NULL, FALSE);
 	g_return_val_if_fail(buf2 != NULL, FALSE);
@@ -130,6 +196,16 @@ fu_byte_array_compare(GByteArray *buf1, GByteArray *buf2, GError **error)
 	return fu_common_bytes_compare_raw(buf1->data, buf1->len, buf2->data, buf2->len, error);
 }
 
+/**
+ * jcat_hex_encode_string:
+ * @buf: (not nullable): the buffer
+ *
+ * Hex encode
+ *
+ * Returns: (transfer full): the hex-encoded buffer
+ *
+ * Since: 0.1.12
+ **/
 gchar *
 jcat_hex_encode_string(GByteArray *buf)
 {
@@ -139,10 +215,25 @@ jcat_hex_encode_string(GByteArray *buf)
 	return g_string_free(str, FALSE);
 }
 
+/**
+ * jcat_byte_arrays_slice_left:
+ * @src: (element-type GByteArray) (not nullable): the source array
+ * @pos: integer
+ * @error: (nullable): #GError, or %NULL
+ *
+ * Slices a #GPtrArray of #GByteArray from the left.
+ *
+ * Returns: (element-type GByteArray) (transfer container): returned array
+ *
+ * Since: 0.1.12
+ **/
 GPtrArray *
 jcat_byte_arrays_slice_left(GPtrArray *src, guint pos, GError **error)
 {
 	GPtrArray *dst;
+
+    g_return_val_if_fail(src != NULL, NULL);
+    g_return_val_if_fail(error == NULL || *error == NULL, NULL);
 
 	/* sanity check; but note that pos == src->len is valid */
 	if (pos > src->len) {
