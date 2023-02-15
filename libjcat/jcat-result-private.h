@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "jcat-engine.h"
 #include "jcat-result.h"
 
 void
