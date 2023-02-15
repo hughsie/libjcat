@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <glib-object.h>
+#include "jcat-blob.h"
 
 #define JCAT_TYPE_RESULT (jcat_result_get_type())
 
