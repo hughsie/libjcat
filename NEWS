@@ -1,3 +1,15 @@
+Version 0.1.13
+~~~~~~~~~~~~~~
+Released: 2023-02-22
+
+New Features:
+ - Add support for SHA512 checksums (Richard Hughes)
+ - Add the ability to add and remove support for blob types (#72) (Richard Hughes)
+
+Bugfixes:
+ - Fix header includes for clang-tidy (Richard Hughes)
+ - Show the expected SHA checksum in the error (Richard Hughes)
+
 Version 0.1.12
 ~~~~~~~~~~~~~~
 Released: 2022-09-11
