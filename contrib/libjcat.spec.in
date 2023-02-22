@@ -7,9 +7,9 @@ Summary:   Library for reading Jcat files
 Name:      libjcat
 Version:   #VERSION#
 Release:   0.#BUILD#%{?alphatag}%{?dist}
-License:   LGPLv2+
-URL:       https://github.com/hughsie/libjcat
-Source0:   https://people.freedesktop.org/~hughsient/releases/%{name}-%{version}.tar.xz
+License:   LGPL-2.1-or-later
+URL:       https://github.com/hughsie/%{name}
+Source0:   https://github.com/hughsie/%{name}/releases/download/%{version}/%{name}-%{version}.tar.xz
 
 BuildRequires: gtk-doc
 BuildRequires: meson
@@ -44,7 +44,7 @@ Summary: Files for installed tests
 Executable and data files for installed tests.
 
 %prep
-%setup -q
+%autosetup -p0
 
 %build
 
@@ -90,6 +90,5 @@ Executable and data files for installed tests.
 %dir %{_datadir}/installed-tests/libjcat
 
 %changelog
-* #LONGDATE# Richard Hughes <richard@hughsie.com> #VERSION#-0.#BUILD##ALPHATAG#
-- Update from git
+%autochangelog
 
