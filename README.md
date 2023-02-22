@@ -131,7 +131,7 @@ validate the signatures are valid:
 
 Lets create a Jcat file with a single checksum:
 
-    $ jcat-tool sign test.jcat firmware.bin sha256
+    $ jcat-tool self-sign test.jcat firmware.bin --kind sha256
     $ jcat-tool info test.jcat
     JcatFile:
       Version:               0.1
