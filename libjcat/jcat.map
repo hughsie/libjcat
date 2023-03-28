@@ -108,13 +108,13 @@ LIBJCAT_0.1.11 {
 
 LIBJCAT_0.1.12 {
   global:
-    jcat_rfc6962_hash_leaf;
-    jcat_rfc6962_hash_children;
+    jcat_bt_consistency_proof_verify;
+    jcat_bt_hash_chain_border_right;
     jcat_bt_hash_chain_inner;
     jcat_bt_hash_chain_inner_right;
-    jcat_bt_hash_chain_border_right;
     jcat_bt_inclusion_proof_calculate_root;
     jcat_bt_inclusion_proof_verify;
-    jcat_bt_consistency_proof_verify;
+    jcat_rfc6962_hash_children;
+    jcat_rfc6962_hash_leaf;
   local: *;
 } LIBJCAT_0.1.11;
