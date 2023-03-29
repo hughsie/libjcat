@@ -109,6 +109,7 @@ LIBJCAT_0.1.11 {
 LIBJCAT_0.1.12 {
   global:
     jcat_bt_consistency_proof_verify;
+    jcat_bt_generate_key_pair;
     jcat_bt_hash_chain_border_right;
     jcat_bt_hash_chain_inner;
     jcat_bt_hash_chain_inner_right;

@@ -13,6 +13,7 @@
 #include "jcat-bt-checkpoint-private.h"
 #include "jcat-bt-proof-private.h"
 #include "jcat-bt-proof.h"
+#include "jcat-bt-util.h"
 #include "jcat-bt-verifier-private.h"
 #include "jcat-common-private.h"
 #include "jcat-context.h"
@@ -2746,6 +2747,24 @@ TestPrefixHashFromInclusionProofErrors(void)
 	inmemoryTreeFree(tree);
 }
 
+static void
+jcat_key_gen_func(void)
+{
+	g_autoptr(GBytes) public_key = NULL;
+	g_autoptr(GBytes) private_key = NULL;
+	g_autoptr(GError) error = NULL;
+	gboolean ret;
+
+	ret = jcat_bt_generate_key_pair("test", &public_key, &private_key, &error);
+	g_assert_null(error);
+	g_assert_true(ret);
+
+	/* In general, we cannot check for specific contents, but we can check for the size and
+	 * general format. */
+	g_assert_cmpint(g_bytes_get_size(private_key), ==, 70);
+	g_assert_cmpint(g_bytes_get_size(public_key), ==, 58);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -2787,5 +2806,6 @@ main(int argc, char **argv)
 			TestPrefixHashFromInclusionProofGenerated);
 	g_test_add_func("/jcat/TestPrefixHashFromInclusionProofErrors",
 			TestPrefixHashFromInclusionProofErrors);
+	g_test_add_func("/jcat/key_gen", jcat_key_gen_func);
 	return g_test_run();
 }

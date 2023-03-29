@@ -17,6 +17,7 @@
 #include <glib-unix.h>
 #endif
 
+#include "jcat-bt-util.h"
 #include "jcat-common-private.h"
 #include "jcat-context.h"
 #include "jcat-file.h"
@@ -685,6 +686,30 @@ jcat_tool_verify(JcatToolPrivate *priv, gchar **values, GError **error)
 	return TRUE;
 }
 
+static gboolean
+jcat_tool_bt_generate_key(JcatToolPrivate *priv, gchar **values, GError **error)
+{
+	g_autoptr(GBytes) public_key = NULL;
+	g_autoptr(GBytes) private_key = NULL;
+
+	if (g_strv_length(values) != 3) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_FAILED,
+				    "Incorrect number of arguments; want KEYNAME OUTPRIV OUTPUB");
+		return FALSE;
+	}
+
+	if (!jcat_bt_generate_key_pair(values[0], &public_key, &private_key, error))
+		return FALSE;
+	if (!jcat_set_contents_bytes(values[1], private_key, error))
+		return FALSE;
+	if (!jcat_set_contents_bytes(values[2], public_key, error))
+		return FALSE;
+
+	return TRUE;
+}
+
 #ifdef HAVE_GIO_UNIX
 static gboolean
 jcat_tool_sigint_cb(gpointer user_data)
@@ -835,6 +860,11 @@ main(int argc, char *argv[])
 		      /* TRANSLATORS: command description */
 		      _("Remove an alias for a specific item"),
 		      jcat_tool_remove_alias);
+	jcat_tool_add(priv->cmd_array,
+		      "bt-generate-key",
+		      "NAME OUTPRIV OUTPUB",
+		      _("Generate a key pair for signing"),
+		      jcat_tool_bt_generate_key);
 
 	/* do stuff on ctrl+c */
 	priv->cancellable = g_cancellable_new();
