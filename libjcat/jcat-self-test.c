@@ -2756,13 +2756,85 @@ jcat_key_gen_func(void)
 	gboolean ret;
 
 	ret = jcat_bt_generate_key_pair("test", &public_key, &private_key, &error);
-	g_assert_null(error);
+	g_assert_no_error(error);
 	g_assert_true(ret);
 
 	/* In general, we cannot check for specific contents, but we can check for the size and
 	 * general format. */
 	g_assert_cmpint(g_bytes_get_size(private_key), ==, 70);
 	g_assert_cmpint(g_bytes_get_size(public_key), ==, 58);
+
+	/* Works when public_key and private_key already contains something else. */
+	ret = jcat_bt_generate_key_pair("new-test", &public_key, &private_key, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+}
+
+static void
+jcat_key_parse_func(void)
+{
+	static const gchar *good_key =
+	    "PRIVATE+KEY+test+3d18b207+AXLw43DfQRIa8AB0FwAyP0clTh437+DCXuAg4FUb55LI";
+	static const gchar *good_key_2 =
+	    "PRIVATE+KEY+second-test+7ae2fdbc+AdXTJQ0BuiLXjv+FZXH01LxOtnWP6q4CRymlM13IITJQ";
+	g_autoptr(GByteArray) parsed_private_key = NULL;
+	g_autoptr(GByteArray) parsed_public_key = NULL;
+	g_autofree gchar *parsed_key_name = NULL;
+	g_autofree gchar *parsed_key_hash = 0;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GBytes) input_key = NULL;
+	g_autoptr(GBytes) generated_public_key = NULL;
+	gboolean ret;
+
+	input_key = g_bytes_new_static(good_key, strlen(good_key));
+	ret = jcat_bt_parse_private_key(input_key,
+					&parsed_private_key,
+					&parsed_public_key,
+					&parsed_key_name,
+					&parsed_key_hash,
+					&error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	g_assert_cmpstr(parsed_key_name, ==, "test");
+	g_assert_cmpstr(parsed_key_hash, ==, "\x3d\x18\xb2\x07");
+
+	input_key = g_bytes_new_static(good_key_2, strlen(good_key_2));
+	ret = jcat_bt_parse_private_key(input_key,
+					&parsed_private_key,
+					&parsed_public_key,
+					&parsed_key_name,
+					&parsed_key_hash,
+					&error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	g_assert_cmpstr(parsed_key_name, ==, "second-test");
+	g_assert_cmpstr(parsed_key_hash, ==, "\x7a\xe2\xfd\xbc");
+
+	/* Truncated */
+	input_key = g_bytes_new_static(good_key, strlen(good_key) - 1);
+	ret = jcat_bt_parse_private_key(input_key,
+					&parsed_private_key,
+					&parsed_public_key,
+					&parsed_key_name,
+					&parsed_key_hash,
+					&error);
+	g_assert_nonnull(error);
+	g_assert_false(ret);
+	g_clear_error(&error);
+
+	/* Generated */
+	ret = jcat_bt_generate_key_pair("third-test", &generated_public_key, &input_key, &error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	ret = jcat_bt_parse_private_key(input_key,
+					&parsed_private_key,
+					&parsed_public_key,
+					&parsed_key_name,
+					&parsed_key_hash,
+					&error);
+	g_assert_no_error(error);
+	g_assert_true(ret);
+	g_assert_cmpstr(parsed_key_name, ==, "third-test");
 }
 
 int
@@ -2807,5 +2879,6 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/TestPrefixHashFromInclusionProofErrors",
 			TestPrefixHashFromInclusionProofErrors);
 	g_test_add_func("/jcat/key_gen", jcat_key_gen_func);
+	g_test_add_func("/jcat/key_parse", jcat_key_parse_func);
 	return g_test_run();
 }

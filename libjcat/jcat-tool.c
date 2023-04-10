@@ -710,6 +710,29 @@ jcat_tool_bt_generate_key(JcatToolPrivate *priv, gchar **values, GError **error)
 	return TRUE;
 }
 
+static gboolean
+jcat_tool_bt_integrate_init(JcatToolPrivate *priv, gchar **values, GError **error)
+{
+	g_autoptr(GFile) storage_dir = NULL;
+	g_autoptr(GBytes) private_key_contents = NULL;
+
+	if (g_strv_length(values) != 3) {
+		g_set_error_literal(
+		    error,
+		    G_IO_ERROR,
+		    G_IO_ERROR_FAILED,
+		    "Incorrect number of arguments; want STORAGE_DIR PRIV_KEY ORIGIN");
+		return FALSE;
+	}
+
+	storage_dir = g_file_new_for_path(values[0]);
+	private_key_contents = jcat_get_contents_bytes(values[1], error);
+	if (private_key_contents == NULL)
+		return FALSE;
+
+	return jcat_bt_integrate_init(storage_dir, private_key_contents, values[2], error);
+}
+
 #ifdef HAVE_GIO_UNIX
 static gboolean
 jcat_tool_sigint_cb(gpointer user_data)
@@ -865,6 +888,11 @@ main(int argc, char *argv[])
 		      "NAME OUTPRIV OUTPUB",
 		      _("Generate a key pair for signing"),
 		      jcat_tool_bt_generate_key);
+	jcat_tool_add(priv->cmd_array,
+		      "bt-integrate-init",
+		      "STORAGE_DIR PRIV_KEY_PATH ORIGIN",
+		      _("Initialize an on-disk storage directory with an initial checkpoint"),
+		      jcat_tool_bt_integrate_init);
 
 	/* do stuff on ctrl+c */
 	priv->cancellable = g_cancellable_new();

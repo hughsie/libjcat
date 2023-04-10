@@ -115,6 +115,8 @@ LIBJCAT_0.1.12 {
     jcat_bt_hash_chain_inner_right;
     jcat_bt_inclusion_proof_calculate_root;
     jcat_bt_inclusion_proof_verify;
+    jcat_bt_integrate_init;
+    jcat_bt_parse_private_key;
     jcat_rfc6962_hash_children;
     jcat_rfc6962_hash_leaf;
   local: *;
