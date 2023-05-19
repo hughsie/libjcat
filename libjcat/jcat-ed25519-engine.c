@@ -6,6 +6,8 @@
 
 #include "config.h"
 
+#include <string.h>
+
 #include <gnutls/crypto.h>
 #include <nettle/eddsa.h>
 
