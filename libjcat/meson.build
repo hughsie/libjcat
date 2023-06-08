@@ -172,7 +172,7 @@ if get_option('introspection')
     output: 'jcat.map',
     command: [
       python_interpreter,
-      join_paths(meson.source_root(), 'contrib', 'generate-version-script.py'),
+      join_paths(meson.project_source_root(), 'contrib', 'generate-version-script.py'),
       'LIBJCAT',
       '@INPUT@',
       '@OUTPUT@',
