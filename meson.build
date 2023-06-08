@@ -1,5 +1,5 @@
 project('libjcat', 'c',
-  version : '0.1.14',
+  version : '0.1.15',
   license : 'LGPL-2.1+',
   meson_version : '>=0.56.0',
   default_options : ['warning_level=2', 'c_std=c99'],
