@@ -1,3 +1,12 @@
+Version 0.1.14
+~~~~~~~~~~~~~~
+Released: 2023-06-08
+
+Bugfixes:
+ - Fix header includes (Daisuke Fujimura)
+ - Fix prefix of LIBJCAT_CHECK_VERSION (Richard Hughes)
+ - Use project_source_root to fix building as a subproject (Richard Hughes)
+
 Version 0.1.13
 ~~~~~~~~~~~~~~
 Released: 2023-02-22
