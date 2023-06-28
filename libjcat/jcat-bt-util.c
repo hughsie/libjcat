@@ -84,7 +84,8 @@ static const guint8 ed25519_id = 1;
  * @private_key: (not nullable) (out): the buffer for the private key
  * @error: #GError, or %NULL
  *
- * Create a key pair in the same format as Go's sumdb.
+ * Create a key pair in the same format as Go's sumdb. See
+ *https://cs.opensource.google/go/x/mod/+/refs/tags/v0.9.0:sumdb/note/note.go;l=362;drc=ad6fd61f94f8fdf6926f5dee6e45bdd13add2f9f
  *
  * Since: 0.1.12
  **/
@@ -101,10 +102,6 @@ jcat_bt_generate_key_pair(const gchar *keyname,
 			    __FUNCTION__ " requires Ed25519 support but it is not enabled");
 	return FALSE;
 #else
-
-	/* The generate-key command generates a key in the same format as Go's note package. See
-	 * https://cs.opensource.google/go/x/mod/+/refs/tags/v0.9.0:sumdb/note/note.go;l=362;drc=ad6fd61f94f8fdf6926f5dee6e45bdd13add2f9f
-	 */
 
 	GString *public_key_string = NULL;
 	GString *private_key_string = NULL;
@@ -140,10 +137,6 @@ jcat_bt_generate_key_pair(const gchar *keyname,
 			key_hash,
 			encoded_raw_private_key);
 	g_string_printf(public_key_string, "%s+%s+%s", keyname, key_hash, encoded_raw_public_key);
-	if (*public_key)
-		g_bytes_unref(*public_key);
-	if (*private_key)
-		g_bytes_unref(*private_key);
 	*private_key = g_string_free_to_bytes(private_key_string);
 	*public_key = g_string_free_to_bytes(public_key_string);
 
@@ -248,7 +241,7 @@ validate_parsed_key(GByteArray *parsed_public_key,
 		return FALSE;
 	}
 
-	*parsed_key_hash = g_new(char, 1 + key_hash_size / 2);
+	*parsed_key_hash = g_new0(char, 1 + key_hash_size / 2);
 	for (i = 0; i < key_hash_size / 2; ++i) {
 		(*parsed_key_hash)[i] = (g_ascii_xdigit_value(expected_key_hash[2 * i]) << 4) |
 					g_ascii_xdigit_value(expected_key_hash[2 * i + 1]);
@@ -339,9 +332,7 @@ jcat_bt_parse_private_key(GBytes *private_key_file_content,
 	g_return_val_if_fail(parsed_key_name != NULL, FALSE);
 	g_return_val_if_fail(parsed_key_hash != NULL, FALSE);
 
-	g_free(*parsed_key_name);
 	*parsed_key_name = NULL;
-	g_free(*parsed_key_hash);
 	*parsed_key_hash = NULL;
 
 	data = g_bytes_get_data(private_key_file_content, &size);
@@ -435,9 +426,7 @@ jcat_bt_parse_public_key(GBytes *public_key_file_content,
 	g_return_val_if_fail(parsed_key_name != NULL, FALSE);
 	g_return_val_if_fail(parsed_key_hash != NULL, FALSE);
 
-	g_free(*parsed_key_name);
 	*parsed_key_name = NULL;
-	g_free(*parsed_key_hash);
 	*parsed_key_hash = NULL;
 
 	data = g_bytes_get_data(public_key_file_content, &size);
@@ -485,7 +474,7 @@ sign_note(GString *text,
 	return FALSE;
 #else
 
-	/* Creates a signed note in the Go sumdb format. */
+	/* creates a signed note in the Go sumdb format. */
 	GByteArray *buf = NULL;
 	g_autoptr(GByteArray) raw_signature = g_byte_array_set_size(g_byte_array_new(), 64);
 	g_autofree gchar *encoded_signature = NULL;
@@ -496,7 +485,7 @@ sign_note(GString *text,
 	g_return_val_if_fail(parsed_key_name != NULL, NULL);
 	g_return_val_if_fail(parsed_key_hash != NULL, NULL);
 
-	/* Require the text to end with a newline */
+	/* require the text to end with a newline */
 	if (text->len == 0 || text->str[text->len - 1] != '\n') {
 		g_set_error(error,
 			    G_IO_ERROR,
@@ -511,17 +500,17 @@ sign_note(GString *text,
 			    (const guint8 *)text->str,
 			    raw_signature->data);
 
-	/* Add the key hash prior to the signature */
+	/* add the key hash prior to the signature */
 	g_byte_array_prepend(raw_signature, (const guint8 *)parsed_key_hash, 4);
 
 	encoded_signature = g_base64_encode(raw_signature->data, raw_signature->len);
 
-	/* Add text and an extra new line (need two consecutive newlines) */
+	/* add text and an extra new line (need two consecutive newlines) */
 	buf = g_byte_array_new();
 	g_byte_array_append(buf, (const guint8 *)text->str, text->len);
 	g_byte_array_append(buf, (const guint8 *)"\n", 1);
 
-	/* Format the signature */
+	/* format the signature */
 	g_string_printf(formatted_signature,
 			"\xe2\x80\x94 %s %s\n",
 			parsed_key_name,
@@ -739,35 +728,29 @@ parse_signed_note(GBytes *signed_note,
 static gboolean
 create_storage(GFile *storage_dir, GError **error)
 {
-	gboolean ret;
 	g_autoptr(GFile) seq_dir = NULL;
 	g_autoptr(GFile) tile_dir = NULL;
 	g_autoptr(GFile) leaves_dir = NULL;
 	g_autoptr(GFile) pending_dir = NULL;
 
-	ret = g_file_make_directory_with_parents(storage_dir, NULL, error);
-	if (!ret)
+	if (!g_file_make_directory_with_parents(storage_dir, NULL, error))
 		return FALSE;
 
 	/* Create necessary subdirectories */
 	seq_dir = g_file_get_child(storage_dir, "seq");
-	ret = g_file_make_directory(seq_dir, NULL, error);
-	if (!ret)
+	if (!g_file_make_directory(seq_dir, NULL, error))
 		return FALSE;
 
 	tile_dir = g_file_get_child(storage_dir, "tile");
-	ret = g_file_make_directory(tile_dir, NULL, error);
-	if (!ret)
+	if (!g_file_make_directory(tile_dir, NULL, error))
 		return FALSE;
 
 	leaves_dir = g_file_get_child(storage_dir, "leaves");
-	ret = g_file_make_directory(leaves_dir, NULL, error);
-	if (!ret)
+	if (!g_file_make_directory(leaves_dir, NULL, error))
 		return FALSE;
 
 	pending_dir = g_file_get_child(leaves_dir, "pending");
-	ret = g_file_make_directory(pending_dir, NULL, error);
-	if (!ret)
+	if (!g_file_make_directory(pending_dir, NULL, error))
 		return FALSE;
 
 	return TRUE;
@@ -995,13 +978,13 @@ jcat_bt_integrate_init(GFile *storage_dir,
 		return FALSE;
 	}
 
-	/* When initializing, the checkpoint has an empty root. */
+	/* when initializing the checkpoint has an empty root */
 	cp_hash = g_bytes_new_static(empty_root, sizeof empty_root);
 
-	/* Marshall the checkpoint into a string format */
+	/* marshall the checkpoint into a string format */
 	marshalled_checkpoint = format_checkpoint(cp_origin, cp_size, cp_hash);
 
-	/* Sign it */
+	/* sign it */
 	signed_checkpoint = sign_note(marshalled_checkpoint,
 				      parsed_public_key,
 				      parsed_private_key,
@@ -1013,7 +996,7 @@ jcat_bt_integrate_init(GFile *storage_dir,
 		return FALSE;
 	}
 
-	/* Write the checkpoint to disk safely */
+	/* write the checkpoint to disk safely */
 	checkpoint_file = g_file_get_child(storage_dir, "checkpoint");
 	checkpoint_file_path = g_file_get_path(checkpoint_file);
 	ret = g_file_set_contents_full(checkpoint_file_path,

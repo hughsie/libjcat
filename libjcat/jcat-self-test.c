@@ -2758,6 +2758,10 @@ jcat_key_gen_func(void)
 	ret = jcat_bt_generate_key_pair("test", &public_key, &private_key, &error);
 	g_assert_no_error(error);
 	g_assert_true(ret);
+	g_bytes_unref(public_key);
+	public_key = NULL;
+	g_bytes_unref(private_key);
+	private_key = NULL;
 
 	/* In general, we cannot check for specific contents, but we can check for the size and
 	 * general format. */
@@ -2797,6 +2801,8 @@ jcat_parse_private_key_func(void)
 	g_assert_true(ret);
 	g_assert_cmpstr(parsed_key_name, ==, "test");
 	g_assert_cmpstr(parsed_key_hash, ==, "\x3d\x18\xb2\x07");
+	g_free(parsed_key_name);
+	g_free(parsed_key_hash);
 
 	input_key = g_bytes_new_static(good_key_2, strlen(good_key_2));
 	ret = jcat_bt_parse_private_key(input_key,
@@ -2809,6 +2815,8 @@ jcat_parse_private_key_func(void)
 	g_assert_true(ret);
 	g_assert_cmpstr(parsed_key_name, ==, "second-test");
 	g_assert_cmpstr(parsed_key_hash, ==, "\x7a\xe2\xfd\xbc");
+	g_free(parsed_key_name);
+	g_free(parsed_key_hash);
 
 	/* Truncated */
 	input_key = g_bytes_new_static(good_key, strlen(good_key) - 1);
@@ -2861,6 +2869,8 @@ jcat_parse_public_key_func(void)
 	g_assert_true(ret);
 	g_assert_cmpstr(parsed_key_name, ==, "test");
 	g_assert_cmpstr(parsed_key_hash, ==, "\x69\xfd\x7e\x09");
+	g_free(parsed_key_name);
+	g_free(parsed_key_hash);
 
 	input_key = g_bytes_new_static(good_key_2, strlen(good_key_2));
 	ret = jcat_bt_parse_public_key(input_key,
@@ -2872,6 +2882,8 @@ jcat_parse_public_key_func(void)
 	g_assert_true(ret);
 	g_assert_cmpstr(parsed_key_name, ==, "another-test");
 	g_assert_cmpstr(parsed_key_hash, ==, "\x84\xd4\xc8\xd1");
+	g_free(parsed_key_name);
+	g_free(parsed_key_hash);
 
 	/* Truncated */
 	input_key = g_bytes_new_static(good_key, strlen(good_key) - 1);
