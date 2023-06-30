@@ -21,3 +21,9 @@ void
 jcat_string_append_kv(GString *str, guint idt, const gchar *key, const gchar *value);
 void
 jcat_string_append_kx(GString *str, guint idt, const gchar *key, guint value);
+guint
+jcat_bits_ones_count64(guint64 val);
+guint
+jcat_bits_trailing_zeros64(guint64 val);
+guint
+jcat_bits_length64(guint64 val);

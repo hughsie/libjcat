@@ -117,3 +117,84 @@ jcat_string_append_kx(GString *str, guint idt, const gchar *key, guint value)
 	g_autofree gchar *tmp = g_strdup_printf("0x%x", value);
 	jcat_string_append_kv(str, idt, key, tmp);
 }
+
+#ifndef __has_builtin
+#define __has_builtin(x) 0
+#endif
+
+/**
+ * jcat_bits_ones_count64:
+ * @val: input
+ *
+ * Count the number of 1's set.
+ *
+ * Returns: integer
+ *
+ * Since: 0.2.0
+ **/
+guint
+jcat_bits_ones_count64(guint64 val)
+{
+#if __has_builtin(__builtin_popcountll)
+	return __builtin_popcountll(val);
+#else
+	guint c = 0;
+	for (guint i = 0; i < 64; i++) {
+		if (val & ((guint64)0b1 << i))
+			c += 1;
+	}
+	return c;
+#endif
+}
+
+/**
+ * jcat_bits_trailing_zeros64:
+ * @val: input
+ *
+ * Count the number of trailing zero bits.
+ *
+ * Returns: integer
+ *
+ * Since: 0.2.0
+ **/
+guint
+jcat_bits_trailing_zeros64(guint64 val)
+{
+#if __has_builtin(__builtin_ctzll)
+	if (val == 0)
+		return 64;
+	return __builtin_ctzll(val);
+#else
+	for (guint i = 0; i < 64; i++) {
+		if (val & ((guint64)0b1 << i))
+			return i;
+	}
+	return 64;
+#endif
+}
+
+/**
+ * jcat_bits_length64:
+ * @val: input
+ *
+ * Find the minimum number of bits required to represent a number.
+ *
+ * Returns: integer
+ *
+ * Since: 0.2.0
+ **/
+guint
+jcat_bits_length64(guint64 val)
+{
+#if __has_builtin(__builtin_clzll)
+	if (val == 0)
+		return 0;
+	return 64 - __builtin_clzll(val);
+#else
+	for (guint i = 0; i < 64; i++) {
+		if (((guint64)1 << i) > val)
+			return i;
+	}
+	return 64;
+#endif
+}
