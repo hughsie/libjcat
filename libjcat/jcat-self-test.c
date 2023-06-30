@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2020 Richard Hughes <richard@hughsie.com>
+ * Copyright (C) 2022 Joe Qian <joeqian@google.com>
  *
  * SPDX-License-Identifier: LGPL-2.1+
  */
@@ -934,6 +935,32 @@ jcat_context_verify_item_csum_func(void)
 #endif
 }
 
+static void
+jcat_bits_func(void)
+{
+	g_assert_cmpint(jcat_bits_ones_count64(0), ==, 0);
+	g_assert_cmpint(jcat_bits_ones_count64(1), ==, 1);
+	g_assert_cmpint(jcat_bits_ones_count64(5), ==, 2);
+	g_assert_cmpint(jcat_bits_ones_count64(5), ==, 2);
+	g_assert_cmpint(jcat_bits_ones_count64(0x8000000000000000), ==, 1);
+	g_assert_cmpint(jcat_bits_ones_count64(0xFFFFFFFFFFFFFFFF), ==, 64);
+
+	g_assert_cmpint(jcat_bits_trailing_zeros64(0), ==, 64);
+	g_assert_cmpint(jcat_bits_trailing_zeros64(8), ==, 3);
+	g_assert_cmpint(jcat_bits_trailing_zeros64(24), ==, 3);
+	g_assert_cmpint(jcat_bits_trailing_zeros64(25), ==, 0);
+	g_assert_cmpint(jcat_bits_trailing_zeros64(0x8000000000000000), ==, 63);
+	g_assert_cmpint(jcat_bits_trailing_zeros64(0xFFFFFFFFFFFFFFFF), ==, 0);
+
+	g_assert_cmpint(jcat_bits_length64(0), ==, 0);
+	g_assert_cmpint(jcat_bits_length64(1), ==, 1);
+	g_assert_cmpint(jcat_bits_length64(7), ==, 3);
+	g_assert_cmpint(jcat_bits_length64(16), ==, 5);
+	g_assert_cmpint(jcat_bits_length64(64), ==, 7);
+	g_assert_cmpint(jcat_bits_length64(0x8000000000000000), ==, 64);
+	g_assert_cmpint(jcat_bits_length64(0xFFFFFFFFFFFFFFFF), ==, 64);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -943,6 +970,7 @@ main(int argc, char **argv)
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL);
 	g_setenv("G_MESSAGES_DEBUG", "all", TRUE);
 
+	g_test_add_func("/jcat/bits", jcat_bits_func);
 	g_test_add_func("/jcat/blob", jcat_blob_func);
 	g_test_add_func("/jcat/item", jcat_item_func);
 	g_test_add_func("/jcat/file", jcat_file_func);
