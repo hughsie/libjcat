@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2020 Richard Hughes <richard@hughsie.com>
+ * Copyright (C) 2022 Joe Qian <joeqian@google.com>
  *
  * SPDX-License-Identifier: LGPL-2.1+
  */
@@ -18,3 +19,5 @@ GBytes *
 jcat_get_contents_bytes(const gchar *filename, GError **error);
 void
 jcat_string_append_kv(GString *str, guint idt, const gchar *key, const gchar *value);
+void
+jcat_string_append_kx(GString *str, guint idt, const gchar *key, guint value);
