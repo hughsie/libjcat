@@ -8,13 +8,12 @@ on:
 
 jobs:
   gcc:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v1
     - name: deps
       run: |
-        sudo add-apt-repository ppa:zyga/hughsient-backports
         sudo apt-get update
         sudo apt-get install -y \
         gnutls-bin \
@@ -30,22 +29,22 @@ jobs:
         shared-mime-info \
         valac
     - name: meson
-      uses: BSFishy/meson-build@v1.0.1
+      uses: BSFishy/meson-build@v1.0.3
       with:
         action: test
         directory: _build
         setup-options: -Db_coverage=false
         options: --verbose
-        meson-version: 0.52.1
+        meson-version: 0.56.0
 
   build-freebsd:
-    runs-on: macos-10.15
+    runs-on: macos-12
     steps:
     - name: Checkout
       uses: actions/checkout@v2
     - name: Build
       id: test
-      uses: vmactions/freebsd-vm@v0.1.5
+      uses: vmactions/freebsd-vm@v0.3.1
       with:
         usesh: true
         mem: 8192
