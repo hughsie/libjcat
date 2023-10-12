@@ -330,6 +330,8 @@ jcat_bt_consistency_proof_verify(gint64 snapshot1,
 	g_autoptr(GPtrArray) proof_new = NULL;
 	g_autoptr(GByteArray) hash1 = NULL;
 	g_autoptr(GByteArray) hash2 = NULL;
+	g_autoptr(GByteArray) hash1_tmp = NULL;
+	g_autoptr(GByteArray) hash2_tmp = NULL;
 
 	if (snapshot1 < 0) {
 		g_set_error(error,
@@ -427,8 +429,8 @@ jcat_bt_consistency_proof_verify(gint64 snapshot1,
 	if (proof_right == NULL)
 		return FALSE;
 
-	hash1 = jcat_bt_hash_chain_inner_right(seed, proof_left, mask);
-	hash1 = jcat_bt_hash_chain_border_right(hash1, proof_right);
+	hash1_tmp = jcat_bt_hash_chain_inner_right(seed, proof_left, mask);
+	hash1 = jcat_bt_hash_chain_border_right(hash1_tmp, proof_right);
 	if (!jcat_byte_array_compare(hash1, root1, error)) {
 		g_autofree gchar *str1 = jcat_hex_encode_string(hash1);
 		g_autofree gchar *str2 = jcat_hex_encode_string(root1);
@@ -437,8 +439,8 @@ jcat_bt_consistency_proof_verify(gint64 snapshot1,
 	}
 
 	/* verify the second root */
-	hash2 = jcat_bt_hash_chain_inner(seed, proof_left, mask);
-	hash2 = jcat_bt_hash_chain_border_right(hash2, proof_right);
+	hash2_tmp = jcat_bt_hash_chain_inner(seed, proof_left, mask);
+	hash2 = jcat_bt_hash_chain_border_right(hash2_tmp, proof_right);
 	if (!jcat_byte_array_compare(hash2, root2, error)) {
 		g_autofree gchar *str1 = jcat_hex_encode_string(hash2);
 		g_autofree gchar *str2 = jcat_hex_encode_string(root2);
