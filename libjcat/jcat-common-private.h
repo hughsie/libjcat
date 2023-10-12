@@ -31,6 +31,8 @@ guint
 jcat_inner_proof_size(guint64 index, guint64 size);
 void
 jcat_set_byte_array(GByteArray **buf, GByteArray *buf_new);
+void
+jcat_set_bytes(GBytes **buf, GBytes *buf_new);
 gboolean
 jcat_byte_array_compare(GByteArray *buf1, GByteArray *buf2, GError **error);
 gchar *

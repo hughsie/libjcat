@@ -236,6 +236,25 @@ jcat_set_byte_array(GByteArray **buf, GByteArray *buf_new)
 }
 
 /**
+ * jcat_set_bytes:
+ * @buf: (not nullable) (out): the buffer
+ * @buf_new: (not nullable): the new buffer contents
+ *
+ * Assign a #GBytes to another #GBytes.
+ *
+ * Since: 0.2.0
+ **/
+void
+jcat_set_bytes(GBytes **buf, GBytes *buf_new)
+{
+	if (buf_new == *buf)
+		return;
+	if (*buf != NULL)
+		g_bytes_unref(*buf);
+	*buf = g_bytes_ref(buf_new);
+}
+
+/**
  * jcat_byte_array_compare:
  * @buf1: (not nullable): the first buffer
  * @buf2: (not nullable): the second buffer

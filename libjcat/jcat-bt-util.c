@@ -105,6 +105,8 @@ jcat_bt_generate_key_pair(const gchar *keyname,
 	g_autofree gchar *key_hash = NULL;
 	g_autoptr(GByteArray) raw_private_key = NULL;
 	g_autoptr(GByteArray) raw_public_key = NULL;
+	g_autoptr(GBytes) public_key_result = NULL;
+	g_autoptr(GBytes) private_key_result = NULL;
 
 	g_return_val_if_fail(public_key != NULL, FALSE);
 	g_return_val_if_fail(private_key != NULL, FALSE);
@@ -130,8 +132,10 @@ jcat_bt_generate_key_pair(const gchar *keyname,
 			key_hash,
 			encoded_raw_private_key);
 	g_string_printf(public_key_string, "%s+%s+%s", keyname, key_hash, encoded_raw_public_key);
-	*private_key = g_string_free_to_bytes(private_key_string);
-	*public_key = g_string_free_to_bytes(public_key_string);
+	private_key_result = g_string_free_to_bytes(private_key_string);
+	jcat_set_bytes(private_key, private_key_result);
+	public_key_result = g_string_free_to_bytes(public_key_string);
+	jcat_set_bytes(public_key, public_key_result);
 
 	return TRUE;
 #endif
