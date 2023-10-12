@@ -1939,7 +1939,7 @@ jcat_bt_generate_corrupt_consistency_proof(gint64 snapshot1,
 		/* copy the proof */
 		GPtrArray *wrong_proof = g_ptr_array_copy(proof, (GCopyFunc)g_byte_array_ref, NULL);
 		/* and also the data inside */
-		GByteArray *good = g_ptr_array_steal_index(wrong_proof, i);
+		g_autoptr(GByteArray) good = g_ptr_array_steal_index(wrong_proof, i);
 		GByteArray *corrupt = g_byte_array_new();
 		g_byte_array_append(corrupt, good->data, good->len);
 		/* flip the bit */
