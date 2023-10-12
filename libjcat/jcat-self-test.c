@@ -2756,6 +2756,9 @@ jcat_bt_prefix_hash_from_inclusion_proof_errors_func(void)
 	g_autoptr(GByteArray) leaf301 = NULL;
 	g_autoptr(GPtrArray) proof301 = NULL;
 	g_autoptr(GError) error = NULL;
+	g_autoptr(GByteArray) res1 = NULL;
+	g_autoptr(GByteArray) res2 = NULL;
+	g_autoptr(GByteArray) res3 = NULL;
 
 	struct idxTest {
 		gint64 index;
@@ -2785,25 +2788,33 @@ jcat_bt_prefix_hash_from_inclusion_proof_errors_func(void)
 	jcat_get_leaf_and_proof(tree, 301, &leaf301, &proof301);
 
 	for (int i = 0, end = sizeof idxTests / sizeof(struct idxTest); i < end; ++i) {
-		jcat_bt_verified_prefix_hash_from_inclusion_proof(idxTests[i].index,
-								  idxTests[i].size,
-								  proof2,
-								  root,
-								  leaf2,
-								  &error);
+		g_autoptr(GByteArray) res =
+		    jcat_bt_verified_prefix_hash_from_inclusion_proof(idxTests[i].index,
+								      idxTests[i].size,
+								      proof2,
+								      root,
+								      leaf2,
+								      &error);
 		g_assert_nonnull(error);
 		g_clear_error(&error);
 	}
 
-	jcat_bt_verified_prefix_hash_from_inclusion_proof(3, size, proof2, root, leaf2, &error);
+	res1 =
+	    jcat_bt_verified_prefix_hash_from_inclusion_proof(3, size, proof2, root, leaf2, &error);
 	g_assert_no_error(error);
 
 	/* Proof #3 has the same length, but doesn't verify against index #2.
 	 Neither does proof #301 as it has a different length.*/
-	jcat_bt_verified_prefix_hash_from_inclusion_proof(3, size, proof3, root, leaf2, &error);
+	res2 =
+	    jcat_bt_verified_prefix_hash_from_inclusion_proof(3, size, proof3, root, leaf2, &error);
 	g_assert_nonnull(error);
 	g_clear_error(&error);
-	jcat_bt_verified_prefix_hash_from_inclusion_proof(3, size, proof301, root, leaf2, &error);
+	res3 = jcat_bt_verified_prefix_hash_from_inclusion_proof(3,
+								 size,
+								 proof301,
+								 root,
+								 leaf2,
+								 &error);
 	g_assert_nonnull(error);
 	g_clear_error(&error);
 }
