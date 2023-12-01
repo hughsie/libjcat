@@ -12,8 +12,8 @@
 #include "jcat-item.h"
 
 JcatItem *
-jcat_item_import(JsonObject *obj, JcatImportFlags flags, GError **error);
+jcat_item_import(JsonObject *obj, JcatImportFlags flags, GError **error) G_GNUC_NON_NULL(1);
 void
-jcat_item_export(JcatItem *self, JcatExportFlags flags, JsonBuilder *builder);
+jcat_item_export(JcatItem *self, JcatExportFlags flags, JsonBuilder *builder) G_GNUC_NON_NULL(1, 3);
 void
-jcat_item_add_string(JcatItem *self, guint idt, GString *str);
+jcat_item_add_string(JcatItem *self, guint idt, GString *str) G_GNUC_NON_NULL(1, 3);

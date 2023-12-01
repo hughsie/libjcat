@@ -22,18 +22,18 @@ struct _JcatItemClass {
 JcatItem *
 jcat_item_new(const gchar *id);
 gchar *
-jcat_item_to_string(JcatItem *self);
+jcat_item_to_string(JcatItem *self) G_GNUC_NON_NULL(1);
 GPtrArray *
-jcat_item_get_blobs(JcatItem *self);
+jcat_item_get_blobs(JcatItem *self) G_GNUC_NON_NULL(1);
 GPtrArray *
-jcat_item_get_blobs_by_kind(JcatItem *self, JcatBlobKind kind);
+jcat_item_get_blobs_by_kind(JcatItem *self, JcatBlobKind kind) G_GNUC_NON_NULL(1);
 void
-jcat_item_add_blob(JcatItem *self, JcatBlob *blob);
+jcat_item_add_blob(JcatItem *self, JcatBlob *blob) G_GNUC_NON_NULL(1, 2);
 const gchar *
-jcat_item_get_id(JcatItem *self);
+jcat_item_get_id(JcatItem *self) G_GNUC_NON_NULL(1);
 void
-jcat_item_add_alias_id(JcatItem *self, const gchar *id);
+jcat_item_add_alias_id(JcatItem *self, const gchar *id) G_GNUC_NON_NULL(1, 2);
 void
-jcat_item_remove_alias_id(JcatItem *self, const gchar *id);
+jcat_item_remove_alias_id(JcatItem *self, const gchar *id) G_GNUC_NON_NULL(1, 2);
 GPtrArray *
-jcat_item_get_alias_ids(JcatItem *self);
+jcat_item_get_alias_ids(JcatItem *self) G_GNUC_NON_NULL(1);

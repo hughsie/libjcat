@@ -10,6 +10,7 @@
 
 #include <libjcat/jcat-blob.h>
 #include <libjcat/jcat-common.h>
+#include <libjcat/jcat-compile.h>
 #include <libjcat/jcat-context.h>
 #include <libjcat/jcat-engine.h>
 #include <libjcat/jcat-file.h>

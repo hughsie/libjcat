@@ -14,4 +14,4 @@
 G_DECLARE_FINAL_TYPE(JcatGpgEngine, jcat_gpg_engine, JCAT, GPG_ENGINE, JcatEngine)
 
 JcatEngine *
-jcat_gpg_engine_new(JcatContext *context);
+jcat_gpg_engine_new(JcatContext *context) G_GNUC_NON_NULL(1);

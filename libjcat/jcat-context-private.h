@@ -9,4 +9,4 @@
 #include "jcat-context.h"
 
 GPtrArray *
-jcat_context_get_public_keys(JcatContext *self);
+jcat_context_get_public_keys(JcatContext *self) G_GNUC_NON_NULL(1);

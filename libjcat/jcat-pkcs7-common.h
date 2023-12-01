@@ -6,10 +6,11 @@
 
 #pragma once
 
-#include <gio/gio.h>
 #include <gnutls/abstract.h>
 #include <gnutls/crypto.h>
 #include <gnutls/pkcs7.h>
+
+#include "jcat-compile.h"
 
 typedef guchar gnutls_data_t;
 
@@ -35,15 +36,16 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_datum_t, _gnutls_datum_deinit)
 #pragma clang diagnostic pop
 
 gchar *
-jcat_pkcs7_datum_to_dn_str(const gnutls_datum_t *raw);
+jcat_pkcs7_datum_to_dn_str(const gnutls_datum_t *raw) G_GNUC_NON_NULL(1);
 gnutls_x509_crt_t
-jcat_pkcs7_load_crt_from_blob(GBytes *blob, gnutls_x509_crt_fmt_t format, GError **error);
+jcat_pkcs7_load_crt_from_blob(GBytes *blob, gnutls_x509_crt_fmt_t format, GError **error)
+    G_GNUC_NON_NULL(1);
 gnutls_privkey_t
-jcat_pkcs7_load_privkey_from_blob(GBytes *blob, GError **error);
+jcat_pkcs7_load_privkey_from_blob(GBytes *blob, GError **error) G_GNUC_NON_NULL(1);
 gnutls_pubkey_t
-jcat_pkcs7_load_pubkey_from_privkey(gnutls_privkey_t privkey, GError **error);
+jcat_pkcs7_load_pubkey_from_privkey(gnutls_privkey_t privkey, GError **error) G_GNUC_NON_NULL(1);
 
 GBytes *
 jcat_pkcs7_create_private_key(GError **error);
 GBytes *
-jcat_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **error);
+jcat_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **error) G_GNUC_NON_NULL(1);
