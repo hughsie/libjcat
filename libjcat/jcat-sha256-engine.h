@@ -14,4 +14,4 @@
 G_DECLARE_FINAL_TYPE(JcatSha256Engine, jcat_sha256_engine, JCAT, SHA256_ENGINE, JcatEngine)
 
 JcatEngine *
-jcat_sha256_engine_new(JcatContext *context);
+jcat_sha256_engine_new(JcatContext *context) G_GNUC_NON_NULL(1);

@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include <glib-object.h>
+#include "jcat-compile.h"
 
 #define JCAT_TYPE_BLOB jcat_blob_get_type()
 
@@ -87,24 +87,24 @@ const gchar *
 jcat_blob_kind_to_filename_ext(JcatBlobKind kind);
 
 JcatBlob *
-jcat_blob_new(JcatBlobKind kind, GBytes *data);
+jcat_blob_new(JcatBlobKind kind, GBytes *data) G_GNUC_NON_NULL(2);
 JcatBlob *
-jcat_blob_new_full(JcatBlobKind kind, GBytes *data, JcatBlobFlags flags);
+jcat_blob_new_full(JcatBlobKind kind, GBytes *data, JcatBlobFlags flags) G_GNUC_NON_NULL(2);
 JcatBlob *
-jcat_blob_new_utf8(JcatBlobKind kind, const gchar *data);
+jcat_blob_new_utf8(JcatBlobKind kind, const gchar *data) G_GNUC_NON_NULL(2);
 gchar *
-jcat_blob_to_string(JcatBlob *self);
+jcat_blob_to_string(JcatBlob *self) G_GNUC_NON_NULL(1);
 GBytes *
-jcat_blob_get_data(JcatBlob *self);
+jcat_blob_get_data(JcatBlob *self) G_GNUC_NON_NULL(1);
 gchar *
-jcat_blob_get_data_as_string(JcatBlob *self);
+jcat_blob_get_data_as_string(JcatBlob *self) G_GNUC_NON_NULL(1);
 JcatBlobKind
-jcat_blob_get_kind(JcatBlob *self);
+jcat_blob_get_kind(JcatBlob *self) G_GNUC_NON_NULL(1);
 gint64
-jcat_blob_get_timestamp(JcatBlob *self);
+jcat_blob_get_timestamp(JcatBlob *self) G_GNUC_NON_NULL(1);
 void
-jcat_blob_set_timestamp(JcatBlob *self, gint64 timestamp);
+jcat_blob_set_timestamp(JcatBlob *self, gint64 timestamp) G_GNUC_NON_NULL(1);
 const gchar *
-jcat_blob_get_appstream_id(JcatBlob *self);
+jcat_blob_get_appstream_id(JcatBlob *self) G_GNUC_NON_NULL(1);
 void
-jcat_blob_set_appstream_id(JcatBlob *self, const gchar *appstream_id);
+jcat_blob_set_appstream_id(JcatBlob *self, const gchar *appstream_id) G_GNUC_NON_NULL(1);

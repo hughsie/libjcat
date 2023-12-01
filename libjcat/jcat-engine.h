@@ -42,29 +42,31 @@ struct _JcatEngineClass {
 };
 
 JcatBlobKind
-jcat_engine_get_kind(JcatEngine *self);
+jcat_engine_get_kind(JcatEngine *self) G_GNUC_NON_NULL(1);
 JcatBlobMethod
-jcat_engine_get_method(JcatEngine *self);
+jcat_engine_get_method(JcatEngine *self) G_GNUC_NON_NULL(1);
 JcatResult *
 jcat_engine_pubkey_verify(JcatEngine *self,
 			  GBytes *blob,
 			  GBytes *blob_signature,
 			  JcatVerifyFlags flags,
-			  GError **error);
+			  GError **error) G_GNUC_NON_NULL(1, 2, 3);
 JcatBlob *
 jcat_engine_pubkey_sign(JcatEngine *self,
 			GBytes *blob,
 			GBytes *cert,
 			GBytes *privkey,
 			JcatSignFlags flags,
-			GError **error);
+			GError **error) G_GNUC_NON_NULL(1, 2, 3, 4);
 JcatResult *
 jcat_engine_self_verify(JcatEngine *self,
 			GBytes *blob,
 			GBytes *blob_signature,
 			JcatVerifyFlags flags,
-			GError **error);
+			GError **error) G_GNUC_NON_NULL(1, 2, 3);
 JcatBlob *
-jcat_engine_self_sign(JcatEngine *self, GBytes *blob, JcatSignFlags flags, GError **error);
+jcat_engine_self_sign(JcatEngine *self, GBytes *blob, JcatSignFlags flags, GError **error)
+    G_GNUC_NON_NULL(1, 2);
 gboolean
-jcat_engine_add_public_key_raw(JcatEngine *self, GBytes *blob, GError **error);
+jcat_engine_add_public_key_raw(JcatEngine *self, GBytes *blob, GError **error)
+    G_GNUC_NON_NULL(1, 2);

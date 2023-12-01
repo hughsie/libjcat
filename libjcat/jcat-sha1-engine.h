@@ -14,4 +14,4 @@
 G_DECLARE_FINAL_TYPE(JcatSha1Engine, jcat_sha1_engine, JCAT, SHA1_ENGINE, JcatEngine)
 
 JcatEngine *
-jcat_sha1_engine_new(JcatContext *context);
+jcat_sha1_engine_new(JcatContext *context) G_GNUC_NON_NULL(1);

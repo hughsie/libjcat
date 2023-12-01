@@ -9,4 +9,5 @@
 #include "jcat-bt-checkpoint.h"
 
 void
-jcat_bt_checkpoint_add_string(JcatBtCheckpoint *self, guint idt, GString *str);
+jcat_bt_checkpoint_add_string(JcatBtCheckpoint *self, guint idt, GString *str)
+    G_GNUC_NON_NULL(1, 3);

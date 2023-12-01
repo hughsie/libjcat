@@ -9,4 +9,4 @@
 #include "jcat-file.h"
 
 void
-jcat_file_add_string(JcatFile *self, guint idt, GString *str);
+jcat_file_add_string(JcatFile *self, guint idt, GString *str) G_GNUC_NON_NULL(1, 3);

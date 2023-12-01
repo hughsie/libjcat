@@ -14,4 +14,4 @@
 G_DECLARE_FINAL_TYPE(JcatEd25519Engine, jcat_ed25519_engine, JCAT, ED25519_ENGINE, JcatEngine)
 
 JcatEngine *
-jcat_ed25519_engine_new(JcatContext *context);
+jcat_ed25519_engine_new(JcatContext *context) G_GNUC_NON_NULL(1);

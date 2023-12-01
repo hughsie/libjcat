@@ -14,6 +14,7 @@ jcat_headers = files(
   'jcat-blob.h',
   'jcat-common.h',
   'jcat-context.h',
+  'jcat-compile.h',
   'jcat-engine.h',
   'jcat-file.h',
   'jcat-item.h',

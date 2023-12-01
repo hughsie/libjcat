@@ -14,4 +14,4 @@
 G_DECLARE_FINAL_TYPE(JcatPkcs7Engine, jcat_pkcs7_engine, JCAT, PKCS7_ENGINE, JcatEngine)
 
 JcatEngine *
-jcat_pkcs7_engine_new(JcatContext *context);
+jcat_pkcs7_engine_new(JcatContext *context) G_GNUC_NON_NULL(1);

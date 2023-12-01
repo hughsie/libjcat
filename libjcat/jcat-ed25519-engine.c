@@ -6,10 +6,9 @@
 
 #include "config.h"
 
-#include <string.h>
-
 #include <gnutls/crypto.h>
 #include <nettle/eddsa.h>
+#include <string.h>
 
 #include "jcat-common-private.h"
 #include "jcat-ed25519-engine.h"
