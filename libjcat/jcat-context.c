@@ -12,6 +12,7 @@
 #include "jcat-result-private.h"
 #include "jcat-sha1-engine.h"
 #include "jcat-sha256-engine.h"
+#include "jcat-sha512-engine.h"
 
 #ifdef ENABLE_GPG
 #include "jcat-gpg-engine.h"
@@ -63,6 +64,7 @@ jcat_context_init(JcatContext *self)
 
 	g_ptr_array_add(priv->engines, jcat_sha1_engine_new(self));
 	g_ptr_array_add(priv->engines, jcat_sha256_engine_new(self));
+	g_ptr_array_add(priv->engines, jcat_sha512_engine_new(self));
 #ifdef ENABLE_GPG
 	g_ptr_array_add(priv->engines, jcat_gpg_engine_new(self));
 #endif
