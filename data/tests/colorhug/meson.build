@@ -21,4 +21,19 @@ if get_option('pkcs7')
     install: true,
     install_dir: join_paths(installed_test_bindir, 'colorhug'),
   )
+
+  # generate self-signed detached signature *of the checksum*
+  colorhug_pkcs7_signature_hash = custom_target('firmware.bin.sha256.p7c',
+    input: 'firmware.bin.sha256',
+    output: 'firmware.bin.sha256.p7c',
+    command: [certtool, '--p7-detached-sign',
+                        '--p7-time',
+                        '--load-privkey', pkcs7_privkey,
+                        '--load-certificate', pkcs7_certificate,
+                        '--infile', '@INPUT@',
+                        '--outfile', '@OUTPUT@'],
+    install: true,
+    install_dir: join_paths(installed_test_bindir, 'colorhug'),
+  )
+
 endif

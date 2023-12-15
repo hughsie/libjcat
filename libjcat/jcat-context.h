@@ -45,6 +45,12 @@ jcat_context_verify_item(JcatContext *self,
 			 JcatItem *item,
 			 JcatVerifyFlags flags,
 			 GError **error) G_GNUC_NON_NULL(1, 2, 3);
+GPtrArray *
+jcat_context_verify_target(JcatContext *self,
+			   JcatItem *item_target,
+			   JcatItem *item,
+			   JcatVerifyFlags flags,
+			   GError **error) G_GNUC_NON_NULL(1, 2, 3);
 void
 jcat_context_blob_kind_allow(JcatContext *self, JcatBlobKind kind) G_GNUC_NON_NULL(1);
 void

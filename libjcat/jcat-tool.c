@@ -30,6 +30,7 @@ typedef struct {
 	gchar *prefix;
 	gchar *appstream_id;
 	JcatBlobKind kind;
+	JcatBlobKind target;
 } JcatToolPrivate;
 
 static void
@@ -393,17 +394,25 @@ jcat_tool_self_sign(JcatToolPrivate *priv, gchar **values, GError **error)
 			return FALSE;
 	}
 
-	/* load source */
-	source = jcat_get_contents_bytes(values[1], error);
-	if (source == NULL)
-		return FALSE;
-
-	/* sign the file using the engine */
+	/* create item if required */
 	id_safe = jcat_tool_import_convert_id_safe(priv, values[1]);
 	item = jcat_file_get_item_by_id(file, id_safe, NULL);
 	if (item == NULL) {
 		item = jcat_item_new(id_safe);
 		jcat_file_add_item(file, item);
+	}
+
+	/* load source */
+	if (priv->target == JCAT_BLOB_KIND_UNKNOWN) {
+		source = jcat_get_contents_bytes(values[1], error);
+		if (source == NULL)
+			return FALSE;
+	} else {
+		g_autoptr(JcatBlob) blob_target = NULL;
+		blob_target = jcat_item_get_blob_by_kind(item, priv->target, error);
+		if (blob_target == NULL)
+			return FALSE;
+		source = g_bytes_ref(jcat_blob_get_data(blob_target));
 	}
 
 	/* sign with this kind */
@@ -417,6 +426,8 @@ jcat_tool_self_sign(JcatToolPrivate *priv, gchar **values, GError **error)
 		return FALSE;
 	if (priv->appstream_id != NULL)
 		jcat_blob_set_appstream_id(blob, priv->appstream_id);
+	if (priv->target != JCAT_BLOB_KIND_UNKNOWN)
+		jcat_blob_set_target(blob, priv->target);
 	jcat_item_add_blob(item, blob);
 
 	/* export new file */
@@ -457,24 +468,34 @@ jcat_tool_sign(JcatToolPrivate *priv, gchar **values, GError **error)
 			return FALSE;
 	}
 
-	/* load source, certificate and privatekey */
-	source = jcat_get_contents_bytes(values[1], error);
-	if (source == NULL)
-		return FALSE;
-	cert = jcat_get_contents_bytes(values[2], error);
-	if (cert == NULL)
-		return FALSE;
-	privkey = jcat_get_contents_bytes(values[3], error);
-	if (privkey == NULL)
-		return FALSE;
-
-	/* sign the file using the engine */
+	/* create item if required */
 	id_safe = jcat_tool_import_convert_id_safe(priv, values[1]);
 	item = jcat_file_get_item_by_id(file, id_safe, NULL);
 	if (item == NULL) {
 		item = jcat_item_new(id_safe);
 		jcat_file_add_item(file, item);
 	}
+
+	/* load source */
+	if (priv->target == JCAT_BLOB_KIND_UNKNOWN) {
+		source = jcat_get_contents_bytes(values[1], error);
+		if (source == NULL)
+			return FALSE;
+	} else {
+		g_autoptr(JcatBlob) blob_target = NULL;
+		blob_target = jcat_item_get_blob_by_kind(item, priv->target, error);
+		if (blob_target == NULL)
+			return FALSE;
+		source = g_bytes_ref(jcat_blob_get_data(blob_target));
+	}
+
+	/* certificate and privatekey */
+	cert = jcat_get_contents_bytes(values[2], error);
+	if (cert == NULL)
+		return FALSE;
+	privkey = jcat_get_contents_bytes(values[3], error);
+	if (privkey == NULL)
+		return FALSE;
 
 	/* sign with this kind */
 	if (priv->kind == JCAT_BLOB_KIND_UNKNOWN)
@@ -492,6 +513,8 @@ jcat_tool_sign(JcatToolPrivate *priv, gchar **values, GError **error)
 		return FALSE;
 	if (priv->appstream_id != NULL)
 		jcat_blob_set_appstream_id(blob, priv->appstream_id);
+	if (priv->target != JCAT_BLOB_KIND_UNKNOWN)
+		jcat_blob_set_target(blob, priv->target);
 	jcat_item_add_blob(item, blob);
 
 	/* export new file */
@@ -533,6 +556,8 @@ jcat_tool_verify_item(JcatToolPrivate *priv, JcatItem *item, GError **error)
 		g_set_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "Could not find %s", str);
 		return FALSE;
 	}
+
+	/* load source */
 	source = jcat_get_contents_bytes(fn_safe, error);
 	if (source == NULL)
 		return FALSE;
@@ -540,19 +565,35 @@ jcat_tool_verify_item(JcatToolPrivate *priv, JcatItem *item, GError **error)
 	/* verify blob */
 	for (guint j = 0; j < blobs->len; j++) {
 		JcatBlob *blob = g_ptr_array_index(blobs, j);
+		JcatBlobKind target = jcat_blob_get_target(blob);
 		JcatVerifyFlags flags = JCAT_VERIFY_FLAG_NONE;
 		const gchar *authority;
 		g_autoptr(GError) error_verify = NULL;
 		g_autoptr(JcatResult) result = NULL;
+		g_autoptr(GBytes) blob_source = NULL;
 
 		/* skip */
 		if (priv->kind != JCAT_BLOB_KIND_UNKNOWN && priv->kind != jcat_blob_get_kind(blob))
 			continue;
 
+		/* get correct source */
+		if (target == JCAT_BLOB_KIND_UNKNOWN) {
+			blob_source = g_bytes_ref(source);
+		} else {
+			g_autoptr(JcatBlob) blob_target = NULL;
+			blob_target = jcat_item_get_blob_by_kind(item, target, error);
+			if (blob_target == NULL)
+				return FALSE;
+			blob_source = g_bytes_ref(jcat_blob_get_data(blob_target));
+		}
+
 		if (priv->disable_time_checks)
 			flags |= JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS;
-		result =
-		    jcat_context_verify_blob(priv->context, source, blob, flags, &error_verify);
+		result = jcat_context_verify_blob(priv->context,
+						  blob_source,
+						  blob,
+						  flags,
+						  &error_verify);
 		if (result == NULL) {
 			if (g_error_matches(error_verify, G_IO_ERROR, G_IO_ERROR_NOT_FOUND)) {
 				g_print("    SKIPPED %s: %s\n",
@@ -710,6 +751,7 @@ main(int argc, char *argv[])
 	g_autofree gchar *cmd_descriptions = NULL;
 	g_autofree gchar *keyring_path = NULL;
 	g_autofree gchar *kind = NULL;
+	g_autofree gchar *target = NULL;
 	g_autofree gchar *prefix = NULL;
 	g_autofree gchar *public_key = NULL;
 	g_autofree gchar *public_keys = NULL;
@@ -761,6 +803,13 @@ main(int argc, char *argv[])
 	     _("Prefix for import and output files"),
 	     NULL},
 	    {"kind", '\0', 0, G_OPTION_ARG_STRING, &kind, _("Kind for blob, e.g. `gpg`"), NULL},
+	    {"target",
+	     '\0',
+	     0,
+	     G_OPTION_ARG_STRING,
+	     &target,
+	     _("Target for blob, e.g. `sha256`"),
+	     NULL},
 	    {"appstream-id",
 	     '\0',
 	     0,
@@ -883,6 +932,13 @@ main(int argc, char *argv[])
 			if (tmp->len > 0)
 				g_string_truncate(tmp, tmp->len - 1);
 			g_printerr("Failed to parse '%s', expected %s", kind, tmp->str);
+			return EXIT_FAILURE;
+		}
+	}
+	if (target != NULL) {
+		priv->target = jcat_blob_kind_from_string(target);
+		if (priv->target == JCAT_BLOB_KIND_UNKNOWN) {
+			g_printerr("Failed to parse target '%s', expected checksum", kind);
 			return EXIT_FAILURE;
 		}
 	}

@@ -13,6 +13,7 @@
 
 typedef struct {
 	JcatBlobKind kind;
+	JcatBlobKind target;
 	JcatBlobFlags flags;
 	GBytes *data;
 	gchar *appstream_id;
@@ -161,6 +162,12 @@ jcat_blob_add_string(JcatBlob *self, guint idt, GString *str)
 	JcatBlobPrivate *priv = GET_PRIVATE(self);
 	jcat_string_append_kv(str, idt, G_OBJECT_TYPE_NAME(self), NULL);
 	jcat_string_append_kv(str, idt + 1, "Kind", jcat_blob_kind_to_string(priv->kind));
+	if (priv->target != JCAT_BLOB_KIND_UNKNOWN) {
+		jcat_string_append_kv(str,
+				      idt + 1,
+				      "Target",
+				      jcat_blob_kind_to_string(priv->target));
+	}
 	jcat_string_append_kv(str,
 			      idt + 1,
 			      "Flags",
@@ -228,11 +235,13 @@ jcat_blob_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 	priv->kind = json_object_get_int_member(obj, "Kind");
 	priv->flags = json_object_get_int_member(obj, "Flags");
 
-	/* both optional */
+	/* all optional */
 	if (json_object_has_member(obj, "Timestamp"))
 		priv->timestamp = json_object_get_int_member(obj, "Timestamp");
 	if (json_object_has_member(obj, "AppstreamId"))
 		priv->appstream_id = g_strdup(json_object_get_string_member(obj, "AppstreamId"));
+	if (json_object_has_member(obj, "Target"))
+		priv->target = json_object_get_int_member(obj, "Target");
 
 	/* get compressed data */
 	data_str = json_object_get_string_member(obj, "Data");
@@ -258,6 +267,10 @@ jcat_blob_export(JcatBlob *self, JcatExportFlags flags, JsonBuilder *builder)
 	/* add metadata */
 	json_builder_set_member_name(builder, "Kind");
 	json_builder_add_int_value(builder, priv->kind);
+	if (priv->target != JCAT_BLOB_KIND_UNKNOWN) {
+		json_builder_set_member_name(builder, "Target");
+		json_builder_add_int_value(builder, priv->target);
+	}
 	json_builder_set_member_name(builder, "Flags");
 	json_builder_add_int_value(builder, priv->flags);
 	if (priv->appstream_id != NULL) {
@@ -428,6 +441,41 @@ jcat_blob_new_full(JcatBlobKind kind, GBytes *data, JcatBlobFlags flags)
 	priv->data = g_bytes_ref(data);
 	priv->flags = flags;
 	return self;
+}
+
+/**
+ * jcat_blob_get_target:
+ * @self: #JcatBlob
+ *
+ * Gets the blob target.
+ *
+ * Returns: #JcatBlobKind, e.g. %JCAT_BLOB_KIND_SHA256
+ *
+ * Since: 0.2.0
+ **/
+JcatBlobKind
+jcat_blob_get_target(JcatBlob *self)
+{
+	JcatBlobPrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(JCAT_IS_BLOB(self), 0);
+	return priv->target;
+}
+
+/**
+ * jcat_blob_set_target:
+ * @self: #JcatBlob
+ * @target: a #JcatBlobKind, e.g. %JCAT_BLOB_KIND_SHA256
+ *
+ * Sets the blob target.
+ *
+ * Since: 0.2.0
+ **/
+void
+jcat_blob_set_target(JcatBlob *self, JcatBlobKind target)
+{
+	JcatBlobPrivate *priv = GET_PRIVATE(self);
+	g_return_if_fail(JCAT_IS_BLOB(self));
+	priv->target = target;
 }
 
 /**
