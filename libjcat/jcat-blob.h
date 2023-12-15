@@ -100,6 +100,10 @@ gchar *
 jcat_blob_get_data_as_string(JcatBlob *self) G_GNUC_NON_NULL(1);
 JcatBlobKind
 jcat_blob_get_kind(JcatBlob *self) G_GNUC_NON_NULL(1);
+JcatBlobKind
+jcat_blob_get_target(JcatBlob *self) G_GNUC_NON_NULL(1);
+void
+jcat_blob_set_target(JcatBlob *self, JcatBlobKind target) G_GNUC_NON_NULL(1);
 gint64
 jcat_blob_get_timestamp(JcatBlob *self) G_GNUC_NON_NULL(1);
 void

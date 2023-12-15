@@ -98,6 +98,8 @@ LIBJCAT_0.1.12 {
 
 LIBJCAT_0.2.0 {
   global:
+    jcat_blob_get_target;
+    jcat_blob_set_target;
     jcat_bt_checkpoint_get_hash;
     jcat_bt_checkpoint_get_identity;
     jcat_bt_checkpoint_get_log_size;
@@ -115,5 +117,8 @@ LIBJCAT_0.2.0 {
     jcat_bt_verifier_get_type;
     jcat_bt_verifier_new;
     jcat_bt_verifier_to_string;
+    jcat_context_verify_target;
+    jcat_item_get_blob_by_kind;
+    jcat_item_has_target;
   local: *;
 } LIBJCAT_0.1.12;

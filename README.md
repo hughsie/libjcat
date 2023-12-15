@@ -121,6 +121,42 @@ We can then check the result using
         Signature Algorithm: RSA-SHA256
         Signature status: ok
 
+Large Payloads
+==============
+
+It may be impractical to load the entire binary into RAM for verification.
+For this usercase, jcat supports signing the *checksum of the payload* as the target rather than the payload itself.
+
+    $ jcat-tool self-sign firmware.jcat firmware.bin --kind sha256
+    $ jcat-tool --appstream-id com.redhat.rhughes sign firmware.jcat firmware.bin rhughes_signed.pem rhughes.key --target sha256
+    $ jcat-tool info firmware.jcat
+    JcatFile:
+      Version:               0.1
+      JcatItem:
+        ID:                  firmware.bin
+        JcatBlob:
+          Kind:              sha256
+          Flags:             is-utf8
+          Timestamp:         2023-12-15T16:38:11Z
+          Size:              0x40
+          Data:              a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447
+        JcatBlob:
+          Kind:              pkcs7
+          Target:            sha256
+          Flags:             is-utf8
+          AppstreamId:       com.redhat.rhughes
+          Timestamp:         2023-12-15T16:38:15Z
+          Size:              0xdcc
+          Data:              -----BEGIN PKCS7-----
+                             MIIKCwYJKoZIhvcNAQcCoIIJ/DCCCfgCAQExDTALBglghkgBZQMEAgEwCwYJKoZI
+                             ...
+                             Zjb6fuKL5Rr/ouoImn+x1cYJyqRMmCxpLG9GrXR9Ag==
+                             -----END PKCS7-----
+
+    $ jcat-tool --appstream-id com.redhat.rhughes verify firmware.jcat --public-key ACME-CA.pem
+    firmware.bin:
+        PASSED pkcs7: O=ACME Corp.,CN=ACME CA
+
 Testing
 =======
 

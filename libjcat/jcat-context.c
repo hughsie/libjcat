@@ -419,6 +419,150 @@ jcat_context_verify_item(JcatContext *self,
 }
 
 /**
+ * jcat_context_verify_target:
+ * @self: #JcatContext
+ * @item_target: #JcatItem containing checksums of the data
+ * @item: #JcatItem
+ * @flags: #JcatVerifyFlags, e.g. %JCAT_VERIFY_FLAG_REQUIRE_SIGNATURE
+ * @error: #GError, or %NULL
+ *
+ * Verifies a #JcatItem using the target to an item. At least one `verify=CHECKSUM` (e.g. SHA256)
+ * must exist and all checksum types that do exist must verify correctly.
+ *
+ * Returns: (transfer container) (element-type JcatResult): results, or %NULL for failed
+ *
+ * Since: 0.2.0
+ **/
+GPtrArray *
+jcat_context_verify_target(JcatContext *self,
+			   JcatItem *item_target,
+			   JcatItem *item,
+			   JcatVerifyFlags flags,
+			   GError **error)
+{
+	guint nr_signature = 0;
+	g_autoptr(GPtrArray) blobs = NULL;
+	g_autoptr(GPtrArray) results =
+	    g_ptr_array_new_with_free_func((GDestroyNotify)g_object_unref);
+
+	g_return_val_if_fail(JCAT_IS_CONTEXT(self), NULL);
+	g_return_val_if_fail(JCAT_IS_ITEM(item_target), NULL);
+	g_return_val_if_fail(JCAT_IS_ITEM(item), NULL);
+
+	/* no blobs */
+	blobs = jcat_item_get_blobs(item);
+	if (blobs->len == 0) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "no blobs in item");
+		return NULL;
+	}
+
+	/* all checksum engines must verify */
+	for (guint i = 0; i < blobs->len; i++) {
+		JcatBlob *blob = g_ptr_array_index(blobs, i);
+		g_autoptr(GError) error_local = NULL;
+		g_autoptr(JcatEngine) engine = NULL;
+		g_autoptr(JcatResult) result = NULL;
+		g_autoptr(JcatBlob) blob_target = NULL;
+		g_autofree gchar *checksum = NULL;
+		g_autofree gchar *checksum_target = NULL;
+
+		/* get engine */
+		engine = jcat_context_get_engine(self, jcat_blob_get_kind(blob), &error_local);
+		if (engine == NULL) {
+			g_debug("%s", error_local->message);
+			continue;
+		}
+		if (jcat_engine_get_method(engine) != JCAT_BLOB_METHOD_CHECKSUM)
+			continue;
+		blob_target =
+		    jcat_item_get_blob_by_kind(item_target, jcat_blob_get_kind(blob), &error_local);
+		if (blob_target == NULL) {
+			g_debug("no target value: %s", error_local->message);
+			continue;
+		}
+
+		/* checksum is as expected */
+		checksum = jcat_blob_get_data_as_string(blob);
+		checksum_target = jcat_blob_get_data_as_string(blob_target);
+		if (g_strcmp0(checksum, checksum_target) != 0) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "%s checksum was %s but target is %s",
+				    jcat_blob_kind_to_string(jcat_blob_get_kind(blob)),
+				    checksum,
+				    checksum_target);
+			return NULL;
+		}
+		g_ptr_array_add(results, g_object_new(JCAT_TYPE_RESULT, "engine", engine, NULL));
+	}
+	if (flags & JCAT_VERIFY_FLAG_REQUIRE_CHECKSUM && results->len == 0) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "checksums were required, but none supplied");
+		return NULL;
+	}
+
+	/* we only have to have one non-checksum method to verify */
+	for (guint i = 0; i < blobs->len; i++) {
+		JcatBlob *blob = g_ptr_array_index(blobs, i);
+		g_autofree gchar *result_str = NULL;
+		g_autoptr(GError) error_local = NULL;
+		g_autoptr(JcatBlob) blob_target = NULL;
+		g_autoptr(JcatEngine) engine = NULL;
+		g_autoptr(JcatResult) result = NULL;
+
+		engine = jcat_context_get_engine(self, jcat_blob_get_kind(blob), &error_local);
+		if (engine == NULL) {
+			g_debug("%s", error_local->message);
+			continue;
+		}
+		if (jcat_engine_get_method(engine) != JCAT_BLOB_METHOD_SIGNATURE)
+			continue;
+		if (jcat_blob_get_target(blob) == JCAT_BLOB_KIND_UNKNOWN) {
+			g_debug("blob has no target");
+			continue;
+		}
+		blob_target = jcat_item_get_blob_by_kind(item_target,
+							 jcat_blob_get_target(blob),
+							 &error_local);
+		if (blob_target == NULL) {
+			g_debug("no target for %s: %s",
+				jcat_blob_kind_to_string(jcat_blob_get_target(blob)),
+				error_local->message);
+			continue;
+		}
+		result = jcat_engine_pubkey_verify(engine,
+						   jcat_blob_get_data(blob_target),
+						   jcat_blob_get_data(blob),
+						   flags,
+						   &error_local);
+		if (result == NULL) {
+			g_debug("signature failure: %s", error_local->message);
+			continue;
+		}
+		result_str = jcat_result_to_string(result);
+		g_debug("verified: %s", result_str);
+		g_ptr_array_add(results, g_steal_pointer(&result));
+		nr_signature++;
+	}
+	if (flags & JCAT_VERIFY_FLAG_REQUIRE_SIGNATURE && nr_signature == 0) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "signatures were required, but none supplied");
+		return NULL;
+	}
+
+	/* success */
+	return g_steal_pointer(&results);
+}
+
+/**
  * jcat_context_new:
  *
  * Creates a new context.

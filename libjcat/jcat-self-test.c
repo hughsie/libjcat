@@ -859,6 +859,76 @@ jcat_context_verify_item_sign_func(void)
 }
 
 static void
+jcat_context_verify_item_target_func(void)
+{
+#ifdef ENABLE_PKCS7
+	JcatResult *result;
+	g_autofree gchar *fn_pass = NULL;
+	g_autofree gchar *fn_sig = NULL;
+	g_autofree gchar *pki_dir = NULL;
+	g_autoptr(GBytes) data_fwbin = NULL;
+	g_autoptr(GBytes) data_sig = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(JcatBlob) blob_pkcs7 = NULL;
+	g_autoptr(JcatBlob) blob_target_sha256 = NULL;
+	g_autoptr(JcatItem) item = jcat_item_new("filename.bin");
+	g_autoptr(JcatItem) item_target = jcat_item_new("filename.bin");
+	g_autoptr(JcatContext) context = jcat_context_new();
+	g_autoptr(JcatEngine) engine_sha256 = NULL;
+	g_autoptr(GPtrArray) results_fail = NULL;
+	g_autoptr(GPtrArray) results_pass = NULL;
+
+	/* set up context */
+	jcat_context_set_keyring_path(context, "/tmp");
+	pki_dir = g_test_build_filename(G_TEST_BUILT, "pki", NULL);
+	jcat_context_add_public_keys(context, pki_dir);
+
+	/* get all engines */
+	engine_sha256 = jcat_context_get_engine(context, JCAT_BLOB_KIND_SHA256, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(engine_sha256);
+
+	/* add SHA256 hash as a target blob */
+	fn_pass = g_test_build_filename(G_TEST_DIST, "colorhug", "firmware.bin", NULL);
+	data_fwbin = jcat_get_contents_bytes(fn_pass, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(data_fwbin);
+	blob_target_sha256 =
+	    jcat_engine_self_sign(engine_sha256, data_fwbin, JCAT_SIGN_FLAG_NONE, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(blob_target_sha256);
+	jcat_item_add_blob(item_target, blob_target_sha256);
+
+	/* create the item to verify, with a checksum and the PKCS#7 signature *of the hash* */
+	jcat_item_add_blob(item, blob_target_sha256);
+	fn_sig = g_test_build_filename(G_TEST_BUILT, "colorhug", "firmware.bin.sha256.p7c", NULL);
+	data_sig = jcat_get_contents_bytes(fn_sig, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(data_sig);
+	blob_pkcs7 = jcat_blob_new_full(JCAT_BLOB_KIND_PKCS7, data_sig, JCAT_BLOB_FLAG_IS_UTF8);
+	jcat_blob_set_target(blob_pkcs7, JCAT_BLOB_KIND_SHA256);
+	jcat_item_add_blob(item, blob_pkcs7);
+
+	/* enforce a checksum and signature match */
+	results_pass = jcat_context_verify_target(context,
+						  item_target,
+						  item,
+						  JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS |
+						      JCAT_VERIFY_FLAG_REQUIRE_CHECKSUM |
+						      JCAT_VERIFY_FLAG_REQUIRE_SIGNATURE,
+						  &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(results_pass);
+	g_assert_cmpint(results_pass->len, ==, 2);
+	result = g_ptr_array_index(results_pass, 1);
+	g_assert_cmpint(jcat_result_get_timestamp(result), >=, 1502871248);
+	g_assert_cmpstr(jcat_result_get_authority(result), ==, "O=Hughski Limited");
+#else
+	g_test_skip("no GnuTLS support enabled");
+#endif
+}
+
+static void
 jcat_context_verify_item_csum_func(void)
 {
 #ifdef ENABLE_PKCS7
@@ -1111,5 +1181,6 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/context{verify-blob}", jcat_context_verify_blob_func);
 	g_test_add_func("/jcat/context{verify-item-sign}", jcat_context_verify_item_sign_func);
 	g_test_add_func("/jcat/context{verify-item-csum}", jcat_context_verify_item_csum_func);
+	g_test_add_func("/jcat/context{verify-item-target}", jcat_context_verify_item_target_func);
 	return g_test_run();
 }

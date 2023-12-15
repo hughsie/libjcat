@@ -27,6 +27,8 @@ GPtrArray *
 jcat_item_get_blobs(JcatItem *self) G_GNUC_NON_NULL(1);
 GPtrArray *
 jcat_item_get_blobs_by_kind(JcatItem *self, JcatBlobKind kind) G_GNUC_NON_NULL(1);
+JcatBlob *
+jcat_item_get_blob_by_kind(JcatItem *self, JcatBlobKind kind, GError **error) G_GNUC_NON_NULL(1);
 void
 jcat_item_add_blob(JcatItem *self, JcatBlob *blob) G_GNUC_NON_NULL(1, 2);
 const gchar *
@@ -37,3 +39,5 @@ void
 jcat_item_remove_alias_id(JcatItem *self, const gchar *id) G_GNUC_NON_NULL(1, 2);
 GPtrArray *
 jcat_item_get_alias_ids(JcatItem *self) G_GNUC_NON_NULL(1);
+gboolean
+jcat_item_has_target(JcatItem *self) G_GNUC_NON_NULL(1);

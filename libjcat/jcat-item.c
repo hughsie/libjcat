@@ -233,6 +233,46 @@ jcat_item_get_blobs_by_kind(JcatItem *self, JcatBlobKind kind)
 }
 
 /**
+ * jcat_item_get_blob_by_kind:
+ * @self: #JcatItem
+ * @kind: #JcatBlobKind, e.g. %JCAT_BLOB_KIND_SHA256
+ * @error: #GError, or %NULL
+ *
+ * Gets the item blobs by a specific kind.
+ *
+ * Returns: (transfer full): a blob, or %NULL
+ *
+ * Since: 0.2.0
+ **/
+JcatBlob *
+jcat_item_get_blob_by_kind(JcatItem *self, JcatBlobKind kind, GError **error)
+{
+	g_autoptr(GPtrArray) target_blobs = NULL;
+
+	g_return_val_if_fail(JCAT_IS_ITEM(self), NULL);
+	g_return_val_if_fail(kind != JCAT_BLOB_KIND_UNKNOWN, NULL);
+
+	target_blobs = jcat_item_get_blobs_by_kind(self, kind);
+	if (target_blobs->len == 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "no existing checksum of type %s",
+			    jcat_blob_kind_to_string(kind));
+		return NULL;
+	}
+	if (target_blobs->len > 1) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "multiple checksums of type %s",
+			    jcat_blob_kind_to_string(kind));
+		return NULL;
+	}
+	return g_object_ref(JCAT_BLOB(g_ptr_array_index(target_blobs, 0)));
+}
+
+/**
  * jcat_item_add_blob:
  * @self: #JcatItem
  * @blob: #JcatBlob
@@ -344,6 +384,31 @@ jcat_item_get_alias_ids(JcatItem *self)
 	JcatItemPrivate *priv = GET_PRIVATE(self);
 	g_return_val_if_fail(JCAT_IS_ITEM(self), NULL);
 	return g_ptr_array_ref(priv->alias_ids);
+}
+
+/**
+ * jcat_item_has_target:
+ * @self: #JcatItem
+ *
+ * Finds out if any of the blobs are targeting an internal checksum.
+ * If this returns with success then the caller might be able to use functions like
+ * jcat_context_verify_target() supplying some target checksums.
+ *
+ * Returns: %TRUE on success
+ *
+ * Since: 0.2.0
+ **/
+gboolean
+jcat_item_has_target(JcatItem *self)
+{
+	JcatItemPrivate *priv = GET_PRIVATE(self);
+	g_return_val_if_fail(JCAT_IS_ITEM(self), FALSE);
+	for (guint i = 0; i < priv->blobs->len; i++) {
+		JcatBlob *blob_tmp = g_ptr_array_index(priv->blobs, i);
+		if (jcat_blob_get_target(blob_tmp) != JCAT_BLOB_KIND_UNKNOWN)
+			return TRUE;
+	}
+	return FALSE;
 }
 
 /**

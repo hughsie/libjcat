@@ -232,6 +232,7 @@ if get_option('tests')
   test_deps = []
   if get_option('pkcs7')
     test_deps += colorhug_pkcs7_signature
+    test_deps += colorhug_pkcs7_signature_hash
   endif
   testdatadirs = environment()
   testdatadirs.set('G_TEST_SRCDIR', testdatadir_src)
