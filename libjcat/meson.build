@@ -247,6 +247,10 @@ if get_option('tests')
     include_directories : [
       configinc,
     ],
+    c_args: [
+      '-DSRCDIR="' + testdatadir_src + '"',
+      '-DBUILDDIR="' + testdatadir_dst + '"',
+    ],
     dependencies : [
       libjcat_deps,
     ],
