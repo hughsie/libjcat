@@ -210,6 +210,7 @@ jcat_sha1_engine_func(void)
 	g_autoptr(JcatBlob) blob_sig2 = NULL;
 	g_autoptr(JcatContext) context = jcat_context_new();
 	g_autoptr(JcatEngine) engine = NULL;
+	g_autoptr(JcatEngine) engine_none = NULL;
 	g_autoptr(JcatResult) result_fail = NULL;
 	g_autoptr(JcatResult) result_pass = NULL;
 	const gchar *sig_actual = "7c0ae84b191822bcadbdcbe2f74a011695d783c7";
@@ -254,9 +255,9 @@ jcat_sha1_engine_func(void)
 
 	/* not supported */
 	jcat_context_blob_kind_disallow(context, JCAT_BLOB_KIND_SHA1);
-	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_SHA1, &error);
+	engine_none = jcat_context_get_engine(context, JCAT_BLOB_KIND_SHA1, &error);
 	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED);
-	g_assert_null(engine);
+	g_assert_null(engine_none);
 }
 
 static void
