@@ -1,3 +1,16 @@
+Version 0.2.0
+~~~~~~~~~~~~~
+Released: 2024-01-02
+
+New Features:
+ - Add support for verifying firmware transparency checkpoints (Richard Hughes)
+ - Add various bitcounting functions for future use (Joe Qian)
+ - Allow creating and validating SHA512 checksums (Richard Hughes)
+ - Allow verifying the checksum of a payload (Richard Hughes)
+
+Bugfixes:
+ - Sprinkle __attribute__((nonnull)) to give a little more compile-time safety (Richard Hughes)
+
 Version 0.1.14
 ~~~~~~~~~~~~~~
 Released: 2023-06-08
