@@ -157,6 +157,11 @@ For this usercase, jcat supports signing the *checksum of the payload* as the ta
     firmware.bin:
         PASSED pkcs7: O=ACME Corp.,CN=ACME CA
 
+NOTE: Only JCat v2.0.0 and newer supports the *checksum of the payload* functionality, and you
+should also add signatures **without** using `--target` if you need to support older versions.
+Additionally, older JCat versions deduplicate the blobs by just the blob kind, so you want to make
+sure that the signature added with `--target` is added **before** the signature added without.
+
 Testing
 =======
 
