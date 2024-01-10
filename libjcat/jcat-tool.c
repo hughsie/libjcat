@@ -571,6 +571,7 @@ jcat_tool_verify_item(JcatToolPrivate *priv, JcatItem *item, GError **error)
 		g_autoptr(GError) error_verify = NULL;
 		g_autoptr(JcatResult) result = NULL;
 		g_autoptr(GBytes) blob_source = NULL;
+		g_autoptr(GString) kind_str = g_string_new(NULL);
 
 		/* skip */
 		if (priv->kind != JCAT_BLOB_KIND_UNKNOWN && priv->kind != jcat_blob_get_kind(blob))
@@ -587,6 +588,13 @@ jcat_tool_verify_item(JcatToolPrivate *priv, JcatItem *item, GError **error)
 			blob_source = g_bytes_ref(jcat_blob_get_data(blob_target));
 		}
 
+		g_string_append(kind_str, jcat_blob_kind_to_string(jcat_blob_get_kind(blob)));
+		if (jcat_blob_get_target(blob) != JCAT_BLOB_KIND_UNKNOWN) {
+			g_string_append_printf(
+			    kind_str,
+			    "-of-%s",
+			    jcat_blob_kind_to_string(jcat_blob_get_target(blob)));
+		}
 		if (priv->disable_time_checks)
 			flags |= JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS;
 		result = jcat_context_verify_blob(priv->context,
@@ -597,20 +605,16 @@ jcat_tool_verify_item(JcatToolPrivate *priv, JcatItem *item, GError **error)
 		if (result == NULL) {
 			if (g_error_matches(error_verify, G_IO_ERROR, G_IO_ERROR_NOT_FOUND)) {
 				g_print("    SKIPPED %s: %s\n",
-					jcat_blob_kind_to_string(jcat_blob_get_kind(blob)),
+					kind_str->str,
 					error_verify->message);
 				continue;
 			}
-			g_print("    FAILED %s: %s\n",
-				jcat_blob_kind_to_string(jcat_blob_get_kind(blob)),
-				error_verify->message);
+			g_print("    FAILED %s: %s\n", kind_str->str, error_verify->message);
 			ret = FALSE;
 			continue;
 		}
 		authority = jcat_result_get_authority(result);
-		g_print("    PASSED %s: %s\n",
-			jcat_blob_kind_to_string(jcat_blob_get_kind(blob)),
-			authority != NULL ? authority : "OK");
+		g_print("    PASSED %s: %s\n", kind_str->str, authority != NULL ? authority : "OK");
 	}
 	if (!ret) {
 		g_set_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "Validation failed");
