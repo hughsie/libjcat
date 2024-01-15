@@ -880,7 +880,7 @@ jcat_context_verify_item_target_func(void)
 
 	/* set up context */
 	jcat_context_set_keyring_path(context, "/tmp");
-	pki_dir = g_test_build_filename(G_TEST_BUILT, "pki", NULL);
+	pki_dir = g_test_build_filename(G_TEST_BUILT, "pki", "self", NULL);
 	jcat_context_add_public_keys(context, pki_dir);
 
 	/* get all engines */

@@ -1,3 +1,11 @@
+install_data([
+    'secret.ed25519',
+    'test.btcheckpoint',
+    'test.btverifier',
+  ],
+  install_dir: installed_test_datadir,
+)
+
 configure_file(
   input : 'libjcat.test.in',
   output : 'libjcat.test',
