@@ -159,6 +159,7 @@ endif
 gnome = import('gnome')
 
 conf.set('installed_test_bindir', installed_test_bindir)
+conf.set('installed_test_datadir', installed_test_datadir)
 conf.set_quoted('PACKAGE_NAME', meson.project_name())
 conf.set_quoted('GETTEXT_PACKAGE', meson.project_name())
 conf.set_quoted('JCAT_LOCALSTATEDIR', localstatedir)
