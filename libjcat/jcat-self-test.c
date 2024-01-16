@@ -456,7 +456,7 @@ jcat_pkcs7_engine_func(void)
 	g_autofree gchar *fn_fail = NULL;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
-	g_autofree gchar *pki_dir = NULL;
+	g_autofree gchar *pki_f = NULL;
 	g_autofree gchar *sig_fn2 = NULL;
 	g_autoptr(GBytes) blob_sig2 = NULL;
 	g_autoptr(GBytes) data_fail = NULL;
@@ -470,8 +470,8 @@ jcat_pkcs7_engine_func(void)
 
 	/* set up context */
 	jcat_context_set_keyring_path(context, "/tmp/libjcat-self-test/var");
-	pki_dir = g_test_build_filename(G_TEST_DIST, "pki", NULL);
-	jcat_context_add_public_keys(context, pki_dir);
+	pki_f = g_test_build_filename(G_TEST_DIST, "pki", "LVFS-CA.pem", NULL);
+	jcat_context_add_public_key(context, pki_f);
 
 	/* get engine */
 	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_PKCS7, &error);
@@ -865,7 +865,7 @@ jcat_context_verify_item_target_func(void)
 	JcatResult *result;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
-	g_autofree gchar *pki_dir = NULL;
+	g_autofree gchar *pki_f = NULL;
 	g_autoptr(GBytes) data_fwbin = NULL;
 	g_autoptr(GBytes) data_sig = NULL;
 	g_autoptr(GError) error = NULL;
@@ -880,8 +880,8 @@ jcat_context_verify_item_target_func(void)
 
 	/* set up context */
 	jcat_context_set_keyring_path(context, "/tmp");
-	pki_dir = g_test_build_filename(G_TEST_BUILT, "pki", NULL);
-	jcat_context_add_public_keys(context, pki_dir);
+	pki_f = g_test_build_filename(G_TEST_BUILT, "pki", "test.pem", NULL);
+	jcat_context_add_public_key(context, pki_f);
 
 	/* get all engines */
 	engine_sha256 = jcat_context_get_engine(context, JCAT_BLOB_KIND_SHA256, &error);
