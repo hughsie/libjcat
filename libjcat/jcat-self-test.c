@@ -2422,11 +2422,12 @@ jcat_bt_inmemory_tree_path_from_node_to_root_at_snapshot(JcatBtInmemoryTree *tre
 					    sibling)));
 		} else if (sibling == last_node) {
 			GByteArray *recomputed = NULL;
-			g_byte_array_unref(
+			g_autoptr(GByteArray) root =
 			    jcat_bt_inmemory_tree_recompute_past_snapshot(tree,
 									  snapshot,
 									  level,
-									  &recomputed));
+									  &recomputed);
+			g_assert_nonnull(root);
 			g_assert_nonnull(recomputed);
 			g_ptr_array_add(path, recomputed);
 		}
