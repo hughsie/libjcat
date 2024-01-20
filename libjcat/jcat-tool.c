@@ -319,6 +319,10 @@ jcat_tool_import(JcatToolPrivate *priv, gchar **values, GError **error)
 		blob = jcat_blob_new_full(JCAT_BLOB_KIND_BT_VERIFIER,
 					  data_sig,
 					  JCAT_BLOB_FLAG_IS_UTF8);
+	} else if (g_str_has_suffix(values[2], ".btlogindex")) {
+		blob = jcat_blob_new_full(JCAT_BLOB_KIND_BT_LOGINDEX,
+					  data_sig,
+					  JCAT_BLOB_FLAG_IS_UTF8);
 	} else if (g_str_has_suffix(values[2], ".p7b") || g_str_has_suffix(values[2], ".p7c") ||
 		   g_str_has_suffix(values[2], ".pem")) {
 		blob = jcat_blob_new_full(JCAT_BLOB_KIND_PKCS7, data_sig, JCAT_BLOB_FLAG_IS_UTF8);
