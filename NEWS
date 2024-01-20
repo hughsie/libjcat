@@ -1,3 +1,12 @@
+Version 0.2.1
+~~~~~~~~~~~~~
+Released: 2024-01-20
+
+Bugfixes:
+ - Do not dedupe sig and sig-of-checksum when loading (Richard Hughes)
+ - Fix the installed tests (Mario Limonciello)
+ - Show the sig-of-checksum results clearer on the CLI (Richard Hughes)
+
 Version 0.2.0
 ~~~~~~~~~~~~~
 Released: 2024-01-02
