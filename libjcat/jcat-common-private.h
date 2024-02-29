@@ -18,6 +18,8 @@ gboolean
 jcat_set_contents_bytes(const gchar *filename, GBytes *bytes, GError **error) G_GNUC_NON_NULL(1, 2);
 GBytes *
 jcat_get_contents_bytes(const gchar *filename, GError **error) G_GNUC_NON_NULL(1);
+GByteArray *
+jcat_get_contents_byte_array(const gchar *filename, GError **error);
 void
 jcat_string_append_kv(GString *str, guint idt, const gchar *key, const gchar *value)
     G_GNUC_NON_NULL(1);

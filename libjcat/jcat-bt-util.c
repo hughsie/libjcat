@@ -1201,7 +1201,7 @@ jcat_bt_fs_sequence(GFile *storage_dir,
 		if (!jcat_set_contents_bytes(leaf_file_path, seq_bytes, error)) {
 			/* we probably shouldn't overwrite here */
 			g_file_delete(pending_leaf_file, NULL, NULL);
-			g_prefix_error(error, "failed to create leaf file %s", leaf_file_path);
+			g_prefix_error(error, "failed to create leaf file %s: ", leaf_file_path);
 			return FALSE;
 		}
 		g_file_delete(pending_leaf_file, NULL, NULL);
