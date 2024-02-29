@@ -55,6 +55,18 @@ jcat_get_contents_bytes(const gchar *filename, GError **error)
 	return g_bytes_new_take(data, len);
 }
 
+/* private */
+GByteArray *
+jcat_get_contents_byte_array(const gchar *filename, GError **error)
+{
+	gchar *data = NULL;
+	gsize len = 0;
+	if (!g_file_get_contents(filename, &data, &len, error))
+		return NULL;
+	g_debug("reading %s with %" G_GSIZE_FORMAT " bytes", filename, len);
+	return g_byte_array_new_take(data, len);
+}
+
 static gsize
 jcat_strwidth(const gchar *text)
 {

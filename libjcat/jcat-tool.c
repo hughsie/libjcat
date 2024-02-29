@@ -789,12 +789,11 @@ jcat_tool_bt_integrate_init(JcatToolPrivate *priv, gchar **values, GError **erro
 static gboolean
 jcat_tool_bt_sequence(JcatToolPrivate *priv, gchar **values, GError **error)
 {
+	guint64 cp_size = 0;
+	g_autoptr(GBytes) checkpoint = NULL;
+	g_autoptr(GBytes) cp_hash = NULL;
 	g_autoptr(GBytes) public_key = NULL;
 	g_autoptr(GFile) storage_dir = NULL;
-	g_autoptr(GBytes) checkpoint = NULL;
-	guint64 cp_size = 0;
-	g_autoptr(GBytes) cp_hash = NULL;
-	gsize i;
 
 	if (g_strv_length(values) < 4) {
 		g_set_error_literal(error,
@@ -827,22 +826,25 @@ jcat_tool_bt_sequence(JcatToolPrivate *priv, gchar **values, GError **error)
 	if (!jcat_bt_parse_checkpoint(checkpoint, public_key, values[2], &cp_size, &cp_hash, error))
 		return FALSE;
 
-	/* Here comes the actual work of sequencing. */
-	for (i = 3; i < g_strv_length(values); ++i) {
-		g_autoptr(GBytes) leaf_hash = NULL;
-		g_autoptr(GBytes) entry_contents = jcat_get_contents_bytes(values[i], error);
+	/* the actual work of sequencing */
+	for (guint i = 3; i < g_strv_length(values); i++) {
 		guint64 assigned_seq = 0;
-		if (entry_contents == NULL) {
-			g_prefix_error(error, "Cannot sequence %s: ", values[i]);
+		g_autoptr(GBytes) leaf_hash = NULL;
+		g_autoptr(GByteArray) entry_buf = NULL;
+		g_autoptr(GBytes) entry_bytes = NULL;
+
+		entry_buf = jcat_get_contents_byte_array(values[i], error);
+		if (entry_buf == NULL) {
+			g_prefix_error(error, "cannot sequence %s: ", values[i]);
 			return FALSE;
 		}
-		leaf_hash = g_byte_array_free_to_bytes(
-		    jcat_rfc6962_hash_leaf(g_bytes_unref_to_array(g_bytes_ref(entry_contents))));
+		leaf_hash = g_byte_array_free_to_bytes(jcat_rfc6962_hash_leaf(entry_buf));
 
+		entry_bytes = g_bytes_new(entry_buf->data, entry_buf->len);
 		if (!jcat_bt_fs_sequence(storage_dir,
 					 &cp_size,
 					 leaf_hash,
-					 entry_contents,
+					 entry_bytes,
 					 &assigned_seq,
 					 error))
 			return FALSE;
