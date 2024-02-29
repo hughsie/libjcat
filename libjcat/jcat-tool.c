@@ -846,9 +846,7 @@ jcat_tool_bt_sequence(JcatToolPrivate *priv, gchar **values, GError **error)
 					 &assigned_seq,
 					 error))
 			return FALSE;
-		g_info("assigned sequence number %llu to %s",
-		       (unsigned long long)assigned_seq,
-		       values[i]);
+		g_print("%s,seqnum=%llu\n", values[i], (unsigned long long)assigned_seq);
 	}
 	return TRUE;
 }
