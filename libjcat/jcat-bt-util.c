@@ -1157,17 +1157,22 @@ jcat_bt_fs_sequence(GFile *storage_dir,
 		guint64 seq = *next_seq;
 		g_autoptr(GBytes) seq_bytes = NULL;
 		g_autoptr(GError) error_local = NULL;
+		g_autoptr(GError) error_mkdir = NULL;
 		g_autoptr(GFile) seq_file = get_seq_path(storage_dir, seq);
 		g_autofree gchar *seq_file_path = g_file_get_path(seq_file);
 		g_autoptr(GFile) seq_file_parent = g_file_get_parent(seq_file);
 		g_autoptr(GString) seq_str = g_string_new(NULL);
 
-		if (!g_file_make_directory_with_parents(seq_file_parent, NULL, error)) {
-			g_file_delete(pending_leaf_file, NULL, NULL);
-			g_prefix_error(error,
-				       "failed to create parent directory for seq file %s: ",
-				       seq_file_path);
-			return FALSE;
+		if (!g_file_make_directory_with_parents(seq_file_parent, NULL, &error_mkdir)) {
+			if (!g_error_matches(error_mkdir, G_IO_ERROR, G_IO_ERROR_EXISTS)) {
+				g_file_delete(pending_leaf_file, NULL, NULL);
+				g_propagate_prefixed_error(
+				    error,
+				    g_steal_pointer(&error_mkdir),
+				    "failed to create parent directory for seq file %s: ",
+				    seq_file_path);
+				return FALSE;
+			}
 		}
 
 		/* the original code makes a hard link:
