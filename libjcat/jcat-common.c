@@ -25,7 +25,7 @@ jcat_mkdir_parent(const gchar *filename, GError **error)
 
 /* private */
 gboolean
-jcat_set_contents_bytes(const gchar *filename, GBytes *bytes, GError **error)
+jcat_set_contents_bytes(const gchar *filename, GBytes *bytes, gint mode, GError **error)
 {
 	const gchar *data;
 	gsize size;
@@ -40,7 +40,16 @@ jcat_set_contents_bytes(const gchar *filename, GBytes *bytes, GError **error)
 	}
 	data = g_bytes_get_data(bytes, &size);
 	g_debug("writing %s with %" G_GSIZE_FORMAT " bytes", filename, size);
+#if GLIB_CHECK_VERSION(2,66,0)
+	return g_file_set_contents_full(filename,
+					data,
+					size,
+					G_FILE_SET_CONTENTS_CONSISTENT,
+					mode,
+					error);
+#else
 	return g_file_set_contents(filename, data, size, error);
+#endif
 }
 
 /* private */

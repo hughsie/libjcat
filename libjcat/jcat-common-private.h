@@ -15,7 +15,7 @@
 gboolean
 jcat_mkdir_parent(const gchar *filename, GError **error) G_GNUC_NON_NULL(1);
 gboolean
-jcat_set_contents_bytes(const gchar *filename, GBytes *bytes, GError **error) G_GNUC_NON_NULL(1, 2);
+jcat_set_contents_bytes(const gchar *filename, GBytes *bytes, gint mode, GError **error) G_GNUC_NON_NULL(1, 2);
 GBytes *
 jcat_get_contents_bytes(const gchar *filename, GError **error) G_GNUC_NON_NULL(1);
 void
