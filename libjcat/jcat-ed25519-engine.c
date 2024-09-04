@@ -229,10 +229,10 @@ jcat_ed25519_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags fl
 		if (!jcat_mkdir_parent(fn_privkey, error))
 			return NULL;
 		blob_privkey = jcat_ed25519_sig_to_bytes(privkey);
-		if (!jcat_set_contents_bytes(fn_privkey, blob_privkey, error))
+		if (!jcat_set_contents_bytes(fn_privkey, blob_privkey, 0600, error))
 			return NULL;
 		blob_pubkey = jcat_ed25519_key_to_bytes(pubkey);
-		if (!jcat_set_contents_bytes(fn_pubkey, blob_pubkey, error))
+		if (!jcat_set_contents_bytes(fn_pubkey, blob_pubkey, 0666, error))
 			return NULL;
 	} else {
 		blob_privkey = jcat_get_contents_bytes(fn_privkey, error);

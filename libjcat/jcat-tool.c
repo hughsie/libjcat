@@ -676,7 +676,7 @@ jcat_tool_export(JcatToolPrivate *priv, gchar **values, GError **error)
 			    ".%s",
 			    jcat_blob_kind_to_filename_ext(jcat_blob_get_kind(blob)));
 			fn = g_build_filename(priv->prefix, str->str, NULL);
-			if (!jcat_set_contents_bytes(fn, jcat_blob_get_data(blob), error))
+			if (!jcat_set_contents_bytes(fn, jcat_blob_get_data(blob), 0666, error))
 				return FALSE;
 			g_print("Wrote %s\n", fn);
 		}

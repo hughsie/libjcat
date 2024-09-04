@@ -418,7 +418,7 @@ jcat_pkcs7_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags flag
 			return NULL;
 		if (!jcat_mkdir_parent(fn_privkey, error))
 			return NULL;
-		if (!jcat_set_contents_bytes(fn_privkey, privkey, error))
+		if (!jcat_set_contents_bytes(fn_privkey, privkey, 0600, error))
 			return NULL;
 	}
 
@@ -438,7 +438,7 @@ jcat_pkcs7_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags flag
 			return NULL;
 		if (!jcat_mkdir_parent(fn_cert, error))
 			return NULL;
-		if (!jcat_set_contents_bytes(fn_cert, cert, error))
+		if (!jcat_set_contents_bytes(fn_cert, cert, 0666, error))
 			return NULL;
 	}
 
