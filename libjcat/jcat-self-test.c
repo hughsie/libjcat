@@ -644,12 +644,9 @@ jcat_ed25519_engine_self_signed_func(void)
 {
 #ifdef ENABLE_ED25519
 	static const char payload_str[] = "Hello, world!";
-	g_autofree gchar *str = NULL;
-	g_autoptr(JcatBlob) signature = NULL;
+	g_autofree gchar *tmp_dir = NULL;
 	g_autoptr(JcatContext) context = jcat_context_new();
 	g_autoptr(JcatEngine) engine = NULL;
-	g_autoptr(JcatEngine) engine2 = NULL;
-	g_autoptr(JcatResult) result = NULL;
 	g_autoptr(GBytes) payload = NULL;
 	g_autoptr(GError) error = NULL;
 	const gchar *str_perfect = "JcatResult:\n"
@@ -659,7 +656,9 @@ jcat_ed25519_engine_self_signed_func(void)
 				   "    VerifyKind:          signature\n";
 
 	/* set up context */
-	jcat_context_set_keyring_path(context, "/tmp");
+	tmp_dir = g_dir_make_tmp(NULL, &error);
+	g_assert_no_error(error);
+	jcat_context_set_keyring_path(context, tmp_dir);
 
 	/* get engine */
 	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_ED25519, &error);
@@ -668,26 +667,39 @@ jcat_ed25519_engine_self_signed_func(void)
 
 	payload = g_bytes_new_static(payload_str, sizeof(payload_str));
 	g_assert_nonnull(payload);
-	signature = jcat_engine_self_sign(engine, payload, JCAT_SIGN_FLAG_ADD_TIMESTAMP, &error);
-	g_assert_no_error(error);
-	g_assert_nonnull(signature);
-	result = jcat_engine_self_verify(engine,
-					 payload,
-					 jcat_blob_get_data(signature),
-					 JCAT_VERIFY_FLAG_NONE,
-					 &error);
-	g_assert_no_error(error);
-	g_assert_nonnull(result);
 
-	/* verify engine set */
-	engine2 = jcat_result_get_engine(result);
-	g_assert(engine == engine2);
+	/* do signing and verification twice: first with no keys exist
+	 * (thus new keys are generated), secondly with keys already
+	 * exist. */
+	for (gsize i = 0; i < 2; i++) {
+		g_autofree gchar *str = NULL;
+		g_autoptr(JcatBlob) signature = NULL;
+		g_autoptr(JcatEngine) engine2 = NULL;
+		g_autoptr(JcatResult) result = NULL;
+		g_autoptr(JcatResult) result2 = NULL;
 
-	/* to string */
-	g_object_set(result, "timestamp", (gint64)12345, NULL);
-	str = jcat_result_to_string(result);
-	g_print("%s", str);
-	g_assert_cmpstr(str, ==, str_perfect);
+		signature =
+		    jcat_engine_self_sign(engine, payload, JCAT_SIGN_FLAG_ADD_TIMESTAMP, &error);
+		g_assert_no_error(error);
+		g_assert_nonnull(signature);
+		result = jcat_engine_self_verify(engine,
+						 payload,
+						 jcat_blob_get_data(signature),
+						 JCAT_VERIFY_FLAG_NONE,
+						 &error);
+		g_assert_no_error(error);
+		g_assert_nonnull(result);
+
+		/* verify engine set */
+		engine2 = jcat_result_get_engine(result);
+		g_assert(engine == engine2);
+
+		/* to string */
+		g_object_set(result, "timestamp", (gint64)12345, NULL);
+		str = jcat_result_to_string(result);
+		g_print("%s", str);
+		g_assert_cmpstr(str, ==, str_perfect);
+	}
 #else
 	g_test_skip("no GnuTLS support enabled");
 #endif
