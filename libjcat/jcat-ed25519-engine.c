@@ -6,8 +6,9 @@
 
 #include "config.h"
 
+#include <gnutls/abstract.h>
 #include <gnutls/crypto.h>
-#include <nettle/eddsa.h>
+#include <gnutls/gnutls.h>
 #include <string.h>
 
 #include "jcat-common-private.h"
@@ -16,51 +17,105 @@
 
 struct _JcatEd25519Engine {
 	JcatEngine parent_instance;
-	GPtrArray *pubkeys; /* of Ed25519Key */
+	GPtrArray *pubkeys; /* of gnutls_pubkey_t */
 };
-
-typedef unsigned char Ed25519Key[ED25519_KEY_SIZE];
-typedef unsigned char Ed25519Sig[ED25519_SIGNATURE_SIZE];
 
 G_DEFINE_TYPE(JcatEd25519Engine, jcat_ed25519_engine, JCAT_TYPE_ENGINE)
 
-static GBytes *
-jcat_ed25519_sig_to_bytes(const Ed25519Sig privkey)
+static void
+jcat_ed25519_datum_clear(gnutls_datum_t *data)
 {
-	return g_bytes_new(privkey, sizeof(Ed25519Sig));
+	gnutls_free(data->data);
+}
+
+G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_pubkey_t, gnutls_pubkey_deinit, NULL)
+G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_privkey_t, gnutls_privkey_deinit, NULL)
+G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(gnutls_datum_t, jcat_ed25519_datum_clear)
+
+static GBytes *
+jcat_ed25519_pubkey_to_bytes(const gnutls_pubkey_t pubkey, GError **error)
+{
+	gint rc;
+	g_auto(gnutls_datum_t) x = {NULL, 0};
+
+	rc = gnutls_pubkey_export_ecc_raw(pubkey, NULL, &x, NULL);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "unable to export pubkey: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+	return g_bytes_new(x.data, x.size);
 }
 
 static gboolean
-jcat_ed25519_sig_from_bytes(GBytes *blob, Ed25519Sig privkey, GError **error)
+jcat_ed25519_pubkey_from_bytes(GBytes *blob, gnutls_pubkey_t pubkey, GError **error)
 {
-	if (g_bytes_get_size(blob) != sizeof(Ed25519Sig)) {
-		g_set_error_literal(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_DATA,
-				    "invalid privkey size");
+	gint rc;
+	gnutls_datum_t x = {NULL, 0};
+
+	x.data = g_bytes_get_data(blob, NULL);
+	x.size = g_bytes_get_size(blob);
+
+	rc = gnutls_pubkey_import_ecc_raw(pubkey, GNUTLS_ECC_CURVE_ED25519, &x, NULL);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "unable to import pubkey: %s",
+			    gnutls_strerror(rc));
 		return FALSE;
 	}
-	memcpy(privkey, g_bytes_get_data(blob, NULL), sizeof(Ed25519Sig));
+
 	return TRUE;
 }
 
 static GBytes *
-jcat_ed25519_key_to_bytes(const Ed25519Key pubkey)
+jcat_ed25519_privkey_to_bytes(const gnutls_privkey_t privkey, GError **error)
 {
-	return g_bytes_new(pubkey, sizeof(Ed25519Key));
+	gint rc;
+	g_auto(gnutls_datum_t) k = {NULL, 0};
+
+	rc = gnutls_privkey_export_ecc_raw2(privkey, NULL, NULL, NULL, &k, 0);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "unable to export pubkey: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+	return g_bytes_new(k.data, k.size);
 }
 
 static gboolean
-jcat_ed25519_key_from_bytes(GBytes *blob, Ed25519Key pubkey, GError **error)
+jcat_ed25519_privkey_from_bytes(GBytes *blob_public,
+				GBytes *blob_privkey,
+				gnutls_privkey_t privkey,
+				GError **error)
 {
-	if (g_bytes_get_size(blob) != sizeof(Ed25519Key)) {
-		g_set_error_literal(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_DATA,
-				    "invalid pubkey size");
+	gint rc;
+	gnutls_datum_t x = {NULL, 0};
+	gnutls_datum_t k = {NULL, 0};
+
+	x.data = g_bytes_get_data(blob_public, NULL);
+	x.size = g_bytes_get_size(blob_public);
+
+	k.data = g_bytes_get_data(blob_privkey, NULL);
+	k.size = g_bytes_get_size(blob_privkey);
+
+	rc = gnutls_privkey_import_ecc_raw(privkey, GNUTLS_ECC_CURVE_ED25519, &x, NULL, &k);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "unable to import privkey: %s",
+			    gnutls_strerror(rc));
 		return FALSE;
 	}
-	memcpy(pubkey, g_bytes_get_data(blob, NULL), sizeof(Ed25519Key));
+
 	return TRUE;
 }
 
@@ -68,9 +123,22 @@ static gboolean
 jcat_ed25519_engine_add_public_key_raw(JcatEngine *engine, GBytes *blob, GError **error)
 {
 	JcatEd25519Engine *self = JCAT_ED25519_ENGINE(engine);
-	g_autofree Ed25519Key *pubkey = g_new0(Ed25519Key, 1);
-	if (!jcat_ed25519_key_from_bytes(blob, *pubkey, error))
+	gint rc;
+	g_auto(gnutls_pubkey_t) pubkey = NULL;
+
+	rc = gnutls_pubkey_init(&pubkey);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "unable to allocate pubkey: %s",
+			    gnutls_strerror(rc));
 		return FALSE;
+	}
+
+	if (!jcat_ed25519_pubkey_from_bytes(blob, pubkey, error))
+		return FALSE;
+
 	g_ptr_array_add(self->pubkeys, g_steal_pointer(&pubkey));
 	return TRUE;
 }
@@ -98,25 +166,27 @@ jcat_ed25519_engine_pubkey_verify(JcatEngine *engine,
 				  GError **error)
 {
 	JcatEd25519Engine *self = JCAT_ED25519_ENGINE(engine);
-	Ed25519Sig sig = {0};
 
 	/* sanity check */
 	if (self->pubkeys->len == 0) {
 		g_set_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "no keys in keyring");
 		return NULL;
 	}
-	if (!jcat_ed25519_sig_from_bytes(blob_signature, sig, error))
-		return NULL;
 
 	/* verifies against any of the public keys */
 	for (guint i = 0; i < self->pubkeys->len; i++) {
-		Ed25519Key *pubkey = g_ptr_array_index(self->pubkeys, i);
-		if (ed25519_sha512_verify(*pubkey,
-					  g_bytes_get_size(blob),
-					  g_bytes_get_data(blob, NULL),
-					  sig) != 0) {
+		gint rc;
+		gnutls_pubkey_t pubkey = g_ptr_array_index(self->pubkeys, i);
+		gnutls_datum_t data = {NULL, 0};
+		gnutls_datum_t sig = {NULL, 0};
+
+		data.data = g_bytes_get_data(blob, NULL);
+		data.size = g_bytes_get_size(blob);
+		sig.data = g_bytes_get_data(blob_signature, NULL);
+		sig.size = g_bytes_get_size(blob_signature);
+		rc = gnutls_pubkey_verify_data2(pubkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
+		if (rc == GNUTLS_E_SUCCESS)
 			return JCAT_RESULT(g_object_new(JCAT_TYPE_RESULT, "engine", engine, NULL));
-		}
 	}
 
 	/* nothing found */
@@ -132,10 +202,12 @@ jcat_ed25519_engine_pubkey_sign(JcatEngine *engine,
 				JcatSignFlags flags,
 				GError **error)
 {
-	Ed25519Key pubkey = {0};
-	Ed25519Sig privkey = {0};
-	Ed25519Sig sig = {0};
+	gint rc;
+	gnutls_datum_t data = {NULL, 0};
 	g_autoptr(GBytes) blob_sig = NULL;
+	g_auto(gnutls_pubkey_t) pubkey = NULL;
+	g_auto(gnutls_privkey_t) privkey = NULL;
+	g_auto(gnutls_datum_t) sig = {NULL, 0};
 
 	/* nothing to do */
 	if (g_bytes_get_size(blob) == 0) {
@@ -144,18 +216,31 @@ jcat_ed25519_engine_pubkey_sign(JcatEngine *engine,
 	}
 
 	/* load */
-	if (!jcat_ed25519_sig_from_bytes(blob_privkey, privkey, error))
+	rc = gnutls_privkey_init(&privkey);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "unable to allocate privkey: %s",
+			    gnutls_strerror(rc));
 		return NULL;
-	if (!jcat_ed25519_key_from_bytes(blob_cert, pubkey, error))
+	}
+	if (!jcat_ed25519_privkey_from_bytes(blob_cert, blob_privkey, privkey, error))
 		return NULL;
 
-	/* simple */
-	ed25519_sha512_sign(pubkey,
-			    privkey,
-			    g_bytes_get_size(blob),
-			    g_bytes_get_data(blob, NULL),
-			    sig);
-	blob_sig = jcat_ed25519_sig_to_bytes(sig);
+	/* sign */
+	data.data = g_bytes_get_data(blob, NULL);
+	data.size = g_bytes_get_size(blob);
+	rc = gnutls_privkey_sign_data2(privkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "unable to sign data: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+	blob_sig = g_bytes_new(sig.data, sig.size);
 	return jcat_blob_new(JCAT_BLOB_KIND_ED25519, blob_sig);
 }
 
@@ -166,28 +251,41 @@ jcat_ed25519_engine_self_verify(JcatEngine *engine,
 				JcatVerifyFlags flags,
 				GError **error)
 {
-	Ed25519Key pubkey = {0};
-	Ed25519Sig sig = {0};
+	gint rc;
+	gnutls_datum_t data = {NULL, 0};
+	gnutls_datum_t sig = {NULL, 0};
 	const gchar *keyring_path = jcat_engine_get_keyring_path(engine);
 	g_autofree gchar *fn_pubkey = NULL;
 	g_autoptr(GBytes) blob_pubkey = NULL;
+	g_auto(gnutls_pubkey_t) pubkey = NULL;
 
 	fn_pubkey = g_build_filename(keyring_path, "pki", "public.ed25519", NULL);
 	blob_pubkey = jcat_get_contents_bytes(fn_pubkey, error);
 	if (blob_pubkey == NULL)
 		return NULL;
-	if (!jcat_ed25519_key_from_bytes(blob_pubkey, pubkey, error))
+	rc = gnutls_pubkey_init(&pubkey);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "unable to allocate pubkey: %s",
+			    gnutls_strerror(rc));
 		return NULL;
-	if (!jcat_ed25519_sig_from_bytes(blob_signature, sig, error))
+	}
+	if (!jcat_ed25519_pubkey_from_bytes(blob_pubkey, pubkey, error))
 		return NULL;
-	if (ed25519_sha512_verify(pubkey,
-				  g_bytes_get_size(blob),
-				  g_bytes_get_data(blob, NULL),
-				  sig) == 0) {
-		g_set_error_literal(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_DATA,
-				    "failed to verify data");
+
+	data.data = g_bytes_get_data(blob, NULL);
+	data.size = g_bytes_get_size(blob);
+	sig.data = g_bytes_get_data(blob_signature, NULL);
+	sig.size = g_bytes_get_size(blob_signature);
+	rc = gnutls_pubkey_verify_data2(pubkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "failed to verify data: %s",
+			    gnutls_strerror(rc));
 		return NULL;
 	}
 
@@ -198,24 +296,43 @@ jcat_ed25519_engine_self_verify(JcatEngine *engine,
 static JcatBlob *
 jcat_ed25519_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags flags, GError **error)
 {
-	Ed25519Key pubkey = {0};
-	Ed25519Sig privkey = {0};
-	Ed25519Sig sig = {0};
+	gint rc;
+	gnutls_datum_t data = {NULL, 0};
 	const gchar *keyring_path = jcat_engine_get_keyring_path(engine);
 	g_autofree gchar *fn_privkey = NULL;
 	g_autofree gchar *fn_pubkey = NULL;
 	g_autoptr(GBytes) blob_privkey = NULL;
 	g_autoptr(GBytes) blob_pubkey = NULL;
+	g_auto(gnutls_pubkey_t) pubkey = NULL;
+	g_auto(gnutls_privkey_t) privkey = NULL;
 	g_autoptr(GBytes) blob_sig = NULL;
+	g_auto(gnutls_datum_t) sig = {NULL, 0};
+
+	rc = gnutls_privkey_init(&privkey);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "unable to allocate privkey: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+
+	rc = gnutls_pubkey_init(&pubkey);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "unable to allocate pubkey: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
 
 	/* check keypair exists, otherwise generate and save */
 	fn_privkey = g_build_filename(keyring_path, "pki", "secret.ed25519", NULL);
 	fn_pubkey = g_build_filename(keyring_path, "pki", "public.ed25519", NULL);
 	if (!g_file_test(fn_privkey, G_FILE_TEST_EXISTS)) {
-		gint rc;
-
-		/* randomize contents */
-		rc = gnutls_rnd(GNUTLS_RND_KEY, privkey, sizeof(Ed25519Sig));
+		rc = gnutls_privkey_generate2(privkey, GNUTLS_PK_EDDSA_ED25519, 0, 0, NULL, 0);
 		if (rc < 0) {
 			g_set_error(error,
 				    G_IO_ERROR,
@@ -225,35 +342,52 @@ jcat_ed25519_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags fl
 				    rc);
 			return NULL;
 		}
-		ed25519_sha512_public_key(pubkey, privkey);
+		rc = gnutls_pubkey_import_privkey(pubkey, privkey, 0, 0);
+		if (rc < 0) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_FAILED,
+				    "unable to import pubkey from privkey: %s",
+				    gnutls_strerror(rc));
+			return NULL;
+		}
 		if (!jcat_mkdir_parent(fn_privkey, error))
 			return NULL;
-		blob_privkey = jcat_ed25519_sig_to_bytes(privkey);
-		if (!jcat_set_contents_bytes(fn_privkey, blob_privkey, 0600, error))
+		blob_pubkey = jcat_ed25519_pubkey_to_bytes(pubkey, error);
+		if (!blob_pubkey)
 			return NULL;
-		blob_pubkey = jcat_ed25519_key_to_bytes(pubkey);
 		if (!jcat_set_contents_bytes(fn_pubkey, blob_pubkey, 0666, error))
 			return NULL;
+		blob_privkey = jcat_ed25519_privkey_to_bytes(privkey, error);
+		if (!blob_privkey)
+			return NULL;
+		if (!jcat_set_contents_bytes(fn_privkey, blob_privkey, 0600, error))
+			return NULL;
 	} else {
-		blob_privkey = jcat_get_contents_bytes(fn_privkey, error);
-		if (blob_privkey == NULL)
-			return NULL;
-		if (!jcat_ed25519_sig_from_bytes(blob_privkey, privkey, error))
-			return NULL;
 		blob_pubkey = jcat_get_contents_bytes(fn_pubkey, error);
 		if (blob_pubkey == NULL)
 			return NULL;
-		if (!jcat_ed25519_key_from_bytes(blob_pubkey, pubkey, error))
+		if (!jcat_ed25519_pubkey_from_bytes(blob_pubkey, pubkey, error))
+			return NULL;
+		blob_privkey = jcat_get_contents_bytes(fn_privkey, error);
+		if (blob_privkey == NULL)
+			return NULL;
+		if (!jcat_ed25519_privkey_from_bytes(blob_pubkey, blob_privkey, privkey, error))
 			return NULL;
 	}
 
-	/* simple */
-	ed25519_sha512_sign(pubkey,
-			    privkey,
-			    g_bytes_get_size(blob),
-			    g_bytes_get_data(blob, NULL),
-			    sig);
-	blob_sig = jcat_ed25519_sig_to_bytes(sig);
+	data.data = g_bytes_get_data(blob, NULL);
+	data.size = g_bytes_get_size(blob);
+	rc = gnutls_privkey_sign_data2(privkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_FAILED,
+			    "unable to sign data: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+	blob_sig = g_bytes_new(sig.data, sig.size);
 	return jcat_blob_new(JCAT_BLOB_KIND_ED25519, blob_sig);
 }
 
