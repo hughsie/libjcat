@@ -144,7 +144,6 @@ endif
 
 if get_option('ed25519')
   conf.set('ENABLE_ED25519', '1')
-  libjcat_deps += dependency('hogweed')
   libjcat_deps += dependency('gnutls')
 endif
 
