@@ -1142,6 +1142,7 @@ jcat_bt_common_func(void)
 	g_assert_no_error(error);
 	g_assert_nonnull(btcheckpoint);
 
+#ifdef ENABLE_ED25519
 	/* get engine */
 	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_ED25519, &error);
 	g_assert_no_error(error);
@@ -1162,6 +1163,7 @@ jcat_bt_common_func(void)
 					   &error);
 	g_assert_no_error(error);
 	g_assert_nonnull(result);
+#endif
 }
 
 int
