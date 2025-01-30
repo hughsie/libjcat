@@ -209,6 +209,8 @@ jcat_file_import_stream(JcatFile *self,
 
 	conv = G_CONVERTER(g_zlib_decompressor_new(G_ZLIB_COMPRESSOR_FORMAT_GZIP));
 	istream_uncompressed = g_converter_input_stream_new(istream, conv);
+	g_filter_input_stream_set_close_base_stream(G_FILTER_INPUT_STREAM(istream_uncompressed),
+						    FALSE);
 	if (!json_parser_load_from_stream(parser, istream_uncompressed, cancellable, error))
 		return FALSE;
 	return jcat_file_import_parser(self, parser, flags, error);
