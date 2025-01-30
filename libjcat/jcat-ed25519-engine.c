@@ -56,7 +56,7 @@ jcat_ed25519_pubkey_from_bytes(GBytes *blob, gnutls_pubkey_t pubkey, GError **er
 	gint rc;
 	gnutls_datum_t x = {NULL, 0};
 
-	x.data = g_bytes_get_data(blob, NULL);
+	x.data = (guchar *)g_bytes_get_data(blob, NULL);
 	x.size = g_bytes_get_size(blob);
 
 	rc = gnutls_pubkey_import_ecc_raw(pubkey, GNUTLS_ECC_CURVE_ED25519, &x, NULL);
@@ -100,10 +100,10 @@ jcat_ed25519_privkey_from_bytes(GBytes *blob_public,
 	gnutls_datum_t x = {NULL, 0};
 	gnutls_datum_t k = {NULL, 0};
 
-	x.data = g_bytes_get_data(blob_public, NULL);
+	x.data = (guchar *)g_bytes_get_data(blob_public, NULL);
 	x.size = g_bytes_get_size(blob_public);
 
-	k.data = g_bytes_get_data(blob_privkey, NULL);
+	k.data = (guchar *)g_bytes_get_data(blob_privkey, NULL);
 	k.size = g_bytes_get_size(blob_privkey);
 
 	rc = gnutls_privkey_import_ecc_raw(privkey, GNUTLS_ECC_CURVE_ED25519, &x, NULL, &k);
@@ -180,9 +180,9 @@ jcat_ed25519_engine_pubkey_verify(JcatEngine *engine,
 		gnutls_datum_t data = {NULL, 0};
 		gnutls_datum_t sig = {NULL, 0};
 
-		data.data = g_bytes_get_data(blob, NULL);
+		data.data = (guchar *)g_bytes_get_data(blob, NULL);
 		data.size = g_bytes_get_size(blob);
-		sig.data = g_bytes_get_data(blob_signature, NULL);
+		sig.data = (guchar *)g_bytes_get_data(blob_signature, NULL);
 		sig.size = g_bytes_get_size(blob_signature);
 		rc = gnutls_pubkey_verify_data2(pubkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
 		if (rc == GNUTLS_E_SUCCESS)
@@ -229,7 +229,7 @@ jcat_ed25519_engine_pubkey_sign(JcatEngine *engine,
 		return NULL;
 
 	/* sign */
-	data.data = g_bytes_get_data(blob, NULL);
+	data.data = (guchar *)g_bytes_get_data(blob, NULL);
 	data.size = g_bytes_get_size(blob);
 	rc = gnutls_privkey_sign_data2(privkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
 	if (rc < 0) {
@@ -275,9 +275,9 @@ jcat_ed25519_engine_self_verify(JcatEngine *engine,
 	if (!jcat_ed25519_pubkey_from_bytes(blob_pubkey, pubkey, error))
 		return NULL;
 
-	data.data = g_bytes_get_data(blob, NULL);
+	data.data = (guchar *)g_bytes_get_data(blob, NULL);
 	data.size = g_bytes_get_size(blob);
-	sig.data = g_bytes_get_data(blob_signature, NULL);
+	sig.data = (guchar *)g_bytes_get_data(blob_signature, NULL);
 	sig.size = g_bytes_get_size(blob_signature);
 	rc = gnutls_pubkey_verify_data2(pubkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
 	if (rc < 0) {
@@ -376,7 +376,7 @@ jcat_ed25519_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags fl
 			return NULL;
 	}
 
-	data.data = g_bytes_get_data(blob, NULL);
+	data.data = (guchar *)g_bytes_get_data(blob, NULL);
 	data.size = g_bytes_get_size(blob);
 	rc = gnutls_privkey_sign_data2(privkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
 	if (rc < 0) {
