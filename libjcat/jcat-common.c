@@ -40,7 +40,7 @@ jcat_set_contents_bytes(const gchar *filename, GBytes *bytes, gint mode, GError 
 	}
 	data = g_bytes_get_data(bytes, &size);
 	g_debug("writing %s with %" G_GSIZE_FORMAT " bytes", filename, size);
-#if GLIB_CHECK_VERSION(2,66,0)
+#if GLIB_CHECK_VERSION(2, 66, 0)
 	return g_file_set_contents_full(filename,
 					data,
 					size,
