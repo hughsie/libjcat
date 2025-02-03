@@ -1,3 +1,11 @@
+Version 0.2.3
+~~~~~~~~~~~~~
+Released: 2025-02-03
+
+Bugfixes:
+ - Do not close the base stream when using jcat_file_import_stream() (Richard Hughes)
+ - Skip ed25519 part of a test with -Ded25519=false (Heiko Becker)
+
 Version 0.2.2
 ~~~~~~~~~~~~~
 Released: 2024-10-14
