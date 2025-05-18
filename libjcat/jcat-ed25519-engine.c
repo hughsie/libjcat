@@ -416,7 +416,7 @@ jcat_ed25519_engine_class_init(JcatEd25519EngineClass *klass)
 static void
 jcat_ed25519_engine_init(JcatEd25519Engine *self)
 {
-	self->pubkeys = g_ptr_array_new_with_free_func(g_free);
+	self->pubkeys = g_ptr_array_new_with_free_func((GDestroyNotify)gnutls_pubkey_deinit);
 }
 
 JcatEngine *
