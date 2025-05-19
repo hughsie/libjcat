@@ -134,6 +134,48 @@ jcat_gnutls_pkcs7_engine_build_trust_list(JcatGnutlsPkcs7Engine *self, GError **
 	return g_steal_pointer(&tl);
 }
 
+#ifdef HAVE_GNUTLS_PQC
+static gnutls_x509_trust_list_t
+jcat_gnutls_pkcs7_engine_build_trust_list_only_pq(JcatGnutlsPkcs7Engine *self, GError **error)
+{
+	int rc;
+	g_auto(gnutls_x509_trust_list_t) tl = NULL;
+
+	rc = gnutls_x509_trust_list_init(&tl, 0);
+	if (rc != GNUTLS_E_SUCCESS) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "failed to create trust list: %s [%i]",
+			    gnutls_strerror(rc),
+			    rc);
+		return FALSE;
+	}
+	for (guint i = 0; i < self->pubkeys_crts->len; i++) {
+		gnutls_x509_crt_t crt = g_ptr_array_index(self->pubkeys_crts, i);
+		gnutls_sign_algorithm_t algo = gnutls_x509_crt_get_signature_algorithm(crt);
+
+		if (algo != GNUTLS_SIGN_MLDSA44 && algo != GNUTLS_SIGN_MLDSA65 &&
+		    algo != GNUTLS_SIGN_MLDSA87)
+			continue;
+		rc = gnutls_x509_trust_list_add_cas(tl, &crt, 1, 0);
+		if (rc < 0) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "failed to add to trust list: %s [%i]",
+				    gnutls_strerror(rc),
+				    rc);
+			return FALSE;
+		}
+		g_debug("loaded %i certificates", rc);
+	}
+
+	/* success */
+	return g_steal_pointer(&tl);
+}
+#endif
+
 /* verifies a detached signature just like:
  *  `certtool --p7-verify --load-certificate client.pem --infile=test.p7b` */
 static JcatResult *
@@ -222,8 +264,23 @@ jcat_gnutls_pkcs7_engine_verify(JcatEngine *engine,
 		} else {
 			g_auto(gnutls_x509_trust_list_t) tl = NULL;
 			tl = jcat_gnutls_pkcs7_engine_build_trust_list(self, error);
-			if (tl == NULL)
+			if (flags & JCAT_VERIFY_FLAG_ONLY_PQ) {
+#ifdef HAVE_GNUTLS_PQC
+				tl = jcat_gnutls_pkcs7_engine_build_trust_list_only_pq(self, error);
+				if (tl == NULL)
+					return FALSE;
+#else
+				g_set_error_literal(error,
+						    G_IO_ERROR,
+						    G_IO_ERROR_INVALID_DATA,
+						    "GnuTLS too old for PQC support");
 				return FALSE;
+#endif
+			} else {
+				tl = jcat_gnutls_pkcs7_engine_build_trust_list(self, error);
+				if (tl == NULL)
+					return FALSE;
+			}
 			if (!jcat_gnutls_ensure_trust_list_valid(tl, error))
 				return FALSE;
 			rc = gnutls_pkcs7_verify(pkcs7,
@@ -289,15 +346,29 @@ jcat_gnutls_pkcs7_engine_self_verify(JcatEngine *engine,
 	g_auto(gnutls_x509_crt_t) crt = NULL;
 	g_autoptr(GBytes) cert_blob = NULL;
 
-	filename =
-	    g_build_filename(jcat_engine_get_keyring_path(engine), "pki", "client.pem", NULL);
+	if (flags & JCAT_VERIFY_FLAG_ONLY_PQ) {
+		filename = g_build_filename(jcat_engine_get_keyring_path(engine),
+					    "pki",
+					    "client-mldsa87.pem",
+					    NULL);
+	} else {
+		filename = g_build_filename(jcat_engine_get_keyring_path(engine),
+					    "pki",
+					    "client.pem",
+					    NULL);
+	}
 	cert_blob = jcat_get_contents_bytes(filename, error);
 	if (cert_blob == NULL)
 		return NULL;
 	crt = jcat_gnutls_pkcs7_load_crt_from_blob(cert_blob, GNUTLS_X509_FMT_PEM, error);
 	if (crt == NULL)
 		return NULL;
-
+	if (flags & JCAT_SIGN_FLAG_USE_PQ) {
+		if (!jcat_gnutls_pkcs7_ensure_sign_algo_pq_safe(
+			gnutls_x509_crt_get_signature_algorithm(crt),
+			error))
+			return FALSE;
+	}
 	return jcat_gnutls_pkcs7_engine_verify(engine, blob, blob_signature, crt, flags, error);
 }
 
@@ -435,16 +506,39 @@ jcat_gnutls_pkcs7_engine_self_sign(JcatEngine *engine,
 	g_autoptr(GBytes) privkey = NULL;
 
 	/* check private key exists, otherwise generate and save */
-	fn_privkey =
-	    g_build_filename(jcat_engine_get_keyring_path(engine), "pki", "secret.key", NULL);
+	if (flags & JCAT_SIGN_FLAG_USE_PQ) {
+		fn_privkey = g_build_filename(jcat_engine_get_keyring_path(engine),
+					      "pki",
+					      "secret-mldsa87.key",
+					      NULL);
+	} else {
+		fn_privkey = g_build_filename(jcat_engine_get_keyring_path(engine),
+					      "pki",
+					      "secret.key",
+					      NULL);
+	}
 	if (g_file_test(fn_privkey, G_FILE_TEST_EXISTS)) {
 		privkey = jcat_get_contents_bytes(fn_privkey, error);
 		if (privkey == NULL)
 			return NULL;
 	} else {
-		privkey = jcat_gnutls_pkcs7_create_private_key(GNUTLS_PK_RSA, error);
-		if (privkey == NULL)
+		if (flags & JCAT_SIGN_FLAG_USE_PQ) {
+#ifdef HAVE_GNUTLS_PQC
+			privkey = jcat_gnutls_pkcs7_create_private_key(GNUTLS_PK_MLDSA87, error);
+			if (privkey == NULL)
+				return NULL;
+#else
+			g_set_error_literal(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_INVALID_DATA,
+					    "GnuTLS too old for PQC support");
 			return NULL;
+#endif
+		} else {
+			privkey = jcat_gnutls_pkcs7_create_private_key(GNUTLS_PK_RSA, error);
+			if (privkey == NULL)
+				return NULL;
+		}
 		if (!jcat_mkdir_parent(fn_privkey, error))
 			return NULL;
 		if (!jcat_set_contents_bytes(fn_privkey, privkey, 0600, error))
@@ -452,7 +546,17 @@ jcat_gnutls_pkcs7_engine_self_sign(JcatEngine *engine,
 	}
 
 	/* check client certificate exists, otherwise generate and save */
-	fn_cert = g_build_filename(jcat_engine_get_keyring_path(engine), "pki", "client.pem", NULL);
+	if (flags & JCAT_SIGN_FLAG_USE_PQ) {
+		fn_cert = g_build_filename(jcat_engine_get_keyring_path(engine),
+					   "pki",
+					   "client-mldsa87.pem",
+					   NULL);
+	} else {
+		fn_cert = g_build_filename(jcat_engine_get_keyring_path(engine),
+					   "pki",
+					   "client.pem",
+					   NULL);
+	}
 	if (g_file_test(fn_cert, G_FILE_TEST_EXISTS)) {
 		cert = jcat_get_contents_bytes(fn_cert, error);
 		if (cert == NULL)

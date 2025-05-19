@@ -69,6 +69,8 @@ jcat_gnutls_ensure_trust_list_valid(gnutls_x509_trust_list_t tl, GError **error)
 
 GBytes *
 jcat_gnutls_pkcs7_create_private_key(gnutls_pk_algorithm_t algo, GError **error);
+gboolean
+jcat_gnutls_pkcs7_ensure_sign_algo_pq_safe(gnutls_sign_algorithm_t algo, GError **error);
 
 GBytes *
 jcat_gnutls_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **error)
