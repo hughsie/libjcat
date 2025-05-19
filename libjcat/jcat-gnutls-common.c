@@ -237,6 +237,28 @@ jcat_gnutls_pkcs7_create_private_key(gnutls_pk_algorithm_t algo, GError **error)
 	return g_bytes_new(d_payload, d.size);
 }
 
+gboolean
+jcat_gnutls_pkcs7_ensure_sign_algo_pq_safe(gnutls_sign_algorithm_t algo, GError **error)
+{
+#ifdef HAVE_GNUTLS_PQC
+	if (algo == GNUTLS_SIGN_MLDSA44 || algo == GNUTLS_SIGN_MLDSA65 ||
+	    algo == GNUTLS_SIGN_MLDSA87)
+		return TRUE;
+	g_set_error(error,
+		    G_IO_ERROR,
+		    G_IO_ERROR_INVALID_DATA,
+		    "%s is not PQ safe",
+		    gnutls_sign_get_name(algo));
+	return FALSE;
+#else
+	g_set_error_literal(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "GnuTLS too old for PQC support");
+	return FALSE;
+#endif
+}
+
 /* generates a self signed certificate just like:
  *  `certtool --generate-self-signed --load-privkey priv.pem` */
 GBytes *
@@ -438,6 +460,9 @@ jcat_gnutls_global_log_cb(int level, const char *msg)
 void
 jcat_gnutls_global_init(void)
 {
+#ifdef HAVE_GNUTLS_PQC
+	gnutls_sign_set_secure(GNUTLS_SIGN_MLDSA87, GNUTLS_SIGN_FLAG_SECURE_FOR_CERTS);
+#endif
 	gnutls_global_set_log_level(3);
 	gnutls_global_set_log_function(jcat_gnutls_global_log_cb);
 }

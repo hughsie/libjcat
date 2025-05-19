@@ -140,7 +140,13 @@ if get_option('gnutls_pkcs7')
   gnutls = dependency('gnutls', version : '>= 3.6.0')
   conf.set('HAVE_PKCS7', '1')
   conf.set('HAVE_GNUTLS_PKCS7', '1')
+  if cc.has_header_symbol('gnutls/gnutls.h', 'GNUTLS_SIGN_MLDSA87', dependencies: gnutls)
+    conf.set('HAVE_GNUTLS_PQC', '1')
+  endif
   libjcat_deps += gnutls
+  summary({
+    'gnutls': gnutls.version(),
+  }, section: 'Dependencies')
 endif
 if get_option('openssl_pkcs7')
   libcrypto = dependency('libcrypto')

@@ -633,6 +633,63 @@ jcat_pkcs7_engine_self_signed_func(gconstpointer test_data)
 #endif
 }
 
+#ifdef HAVE_GNUTLS_PQC
+static void
+jcat_pkcs7_engine_self_signed_pq_func(gconstpointer test_data)
+{
+	static const char payload_str[] = "Hello, world!";
+	g_autofree gchar *str = NULL;
+	g_autoptr(JcatBlob) signature = NULL;
+	g_autoptr(JcatContext) context = jcat_context_new();
+	g_autoptr(JcatEngine) engine = NULL;
+	g_autoptr(JcatEngine) engine2 = NULL;
+	g_autoptr(JcatResult) result = NULL;
+	g_autoptr(GBytes) payload = NULL;
+	g_autoptr(GError) error = NULL;
+	const gchar *str_perfect = "JcatResult:\n"
+				   "  Timestamp:             1970-01-01T03:25:45Z\n"
+				   "  JcatGnutlsPkcs7Engine:\n"
+				   "    Kind:                pkcs7\n"
+				   "    VerifyKind:          signature\n";
+
+	/* set up context */
+	jcat_context_set_keyring_path(context, "/tmp");
+
+	/* get engine */
+	if (test_data == NULL) {
+		engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_PKCS7, &error);
+	} else {
+		engine = ((EngineNewFunc)test_data)(context);
+	}
+
+	payload = g_bytes_new_static(payload_str, sizeof(payload_str));
+	g_assert_nonnull(payload);
+	signature = jcat_engine_self_sign(engine,
+					  payload,
+					  JCAT_SIGN_FLAG_ADD_TIMESTAMP | JCAT_SIGN_FLAG_USE_PQ,
+					  &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(signature);
+	result = jcat_engine_self_verify(engine,
+					 payload,
+					 jcat_blob_get_data(signature),
+					 JCAT_VERIFY_FLAG_ONLY_PQ,
+					 &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(result);
+
+	/* verify engine set */
+	engine2 = jcat_result_get_engine(result);
+	g_assert(engine == engine2);
+
+	/* to string */
+	g_object_set(result, "timestamp", (gint64)12345, NULL);
+	str = jcat_result_to_string(result);
+	g_print("%s", str);
+	g_assert_cmpstr(str, ==, str_perfect);
+}
+#endif
+
 static void
 jcat_ed25519_engine_func(gconstpointer test_data)
 {
@@ -1260,6 +1317,11 @@ main(int argc, char **argv)
 	g_test_add_data_func("/jcat/engine{pkcs7-self-signed-gnutls}",
 			     &jcat_gnutls_pkcs7_engine_new,
 			     jcat_pkcs7_engine_self_signed_func);
+#endif
+#ifdef HAVE_GNUTLS_PQC
+	g_test_add_data_func("/jcat/engine{pkcs7-self-signed-pq-gnutls}",
+			     &jcat_gnutls_pkcs7_engine_new,
+			     jcat_pkcs7_engine_self_signed_pq_func);
 #endif
 	g_test_add_data_func("/jcat/engine{ed25519}", NULL, jcat_ed25519_engine_func);
 	g_test_add_data_func("/jcat/engine{ed25519-self-signed}",
