@@ -13,7 +13,7 @@
 
 struct _JcatPkcs7Engine {
 	JcatEngine parent_instance;
-	gnutls_x509_trust_list_t tl;
+	GPtrArray *pubkeys_crts; /* element-type gnutls_x509_crt_t */
 };
 
 G_DEFINE_TYPE(JcatPkcs7Engine, jcat_pkcs7_engine, JCAT_TYPE_ENGINE)
@@ -51,20 +51,7 @@ jcat_pkcs7_engine_add_pubkey_blob_fmt(JcatPkcs7Engine *self,
 			    key_usage);
 		return FALSE;
 	}
-	rc = gnutls_x509_trust_list_add_cas(self->tl, &crt, 1, 0);
-	if (rc < 0) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "failed to add to trust list: %s [%i]",
-			    gnutls_strerror(rc),
-			    rc);
-		return FALSE;
-	}
-	g_debug("loaded %i certificates", rc);
-
-	/* confusingly the trust list does not copy the certificate */
-	crt = NULL;
+	g_ptr_array_add(self->pubkeys_crts, g_steal_pointer(&crt));
 	return TRUE;
 }
 
@@ -101,17 +88,13 @@ jcat_pkcs7_engine_add_public_key(JcatEngine *engine, const gchar *filename, GErr
 	return TRUE;
 }
 
-static gboolean
-jcat_pkcs7_engine_setup(JcatEngine *engine, GError **error)
+static gnutls_x509_trust_list_t
+jcat_pkcs7_engine_build_trust_list(JcatPkcs7Engine *self, GError **error)
 {
-	JcatPkcs7Engine *self = JCAT_PKCS7_ENGINE(engine);
 	int rc;
+	g_auto(gnutls_x509_trust_list_t) tl = NULL;
 
-	if (self->tl != NULL)
-		return TRUE;
-
-	/* create trust list, a bit like a engine */
-	rc = gnutls_x509_trust_list_init(&self->tl, 0);
+	rc = gnutls_x509_trust_list_init(&tl, 0);
 	if (rc != GNUTLS_E_SUCCESS) {
 		g_set_error(error,
 			    G_IO_ERROR,
@@ -121,7 +104,64 @@ jcat_pkcs7_engine_setup(JcatEngine *engine, GError **error)
 			    rc);
 		return FALSE;
 	}
-	return TRUE;
+	rc = gnutls_x509_trust_list_add_cas(tl,
+					    (const gnutls_x509_crt_t *)self->pubkeys_crts->pdata,
+					    self->pubkeys_crts->len,
+					    0);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "failed to add to trust list: %s [%i]",
+			    gnutls_strerror(rc),
+			    rc);
+		return FALSE;
+	}
+	g_debug("loaded %i certificates", rc);
+
+	/* success */
+	return g_steal_pointer(&tl);
+}
+
+static gnutls_x509_trust_list_t
+jcat_pkcs7_engine_build_trust_list_only_pq(JcatPkcs7Engine *self, GError **error)
+{
+	int rc;
+	g_auto(gnutls_x509_trust_list_t) tl = NULL;
+
+	rc = gnutls_x509_trust_list_init(&tl, 0);
+	if (rc != GNUTLS_E_SUCCESS) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "failed to create trust list: %s [%i]",
+			    gnutls_strerror(rc),
+			    rc);
+		return FALSE;
+	}
+	for (guint i = 0; i < self->pubkeys_crts->len; i++) {
+		gnutls_x509_crt_t crt = g_ptr_array_index(self->pubkeys_crts, i);
+		gnutls_sign_algorithm_t algo = gnutls_x509_crt_get_signature_algorithm(crt);
+		g_error("MOO");
+
+		if (algo != GNUTLS_SIGN_MLDSA44 && algo != GNUTLS_SIGN_MLDSA65 &&
+		    algo != GNUTLS_SIGN_MLDSA87)
+			continue;
+		rc = gnutls_x509_trust_list_add_cas(tl, &crt, 1, 0);
+		if (rc < 0) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "failed to add to trust list: %s [%i]",
+				    gnutls_strerror(rc),
+				    rc);
+			return FALSE;
+		}
+		g_debug("loaded %i certificates", rc);
+	}
+
+	/* success */
+	return g_steal_pointer(&tl);
 }
 
 /* verifies a detached signature just like:
@@ -206,12 +246,30 @@ jcat_pkcs7_engine_verify(JcatEngine *engine,
 			return NULL;
 		}
 
+		/* FIXME: fishy */
+		if (flags & JCAT_VERIFY_FLAG_ONLY_PQ)
+			verify_flags |= GNUTLS_VERIFY_ALLOW_BROKEN;
+
 		/* verify the data against the detached signature */
 		if (crt != NULL) {
-			rc = gnutls_pkcs7_verify_direct(pkcs7, crt, i, &datum, 0);
+			rc = gnutls_pkcs7_verify_direct(pkcs7,
+							crt,
+							i,
+							&datum,
+							GNUTLS_VERIFY_ALLOW_BROKEN);
 		} else {
+			g_auto(gnutls_x509_trust_list_t) tl = NULL;
+			if (flags & JCAT_VERIFY_FLAG_ONLY_PQ) {
+				tl = jcat_pkcs7_engine_build_trust_list_only_pq(self, error);
+				if (tl == NULL)
+					return FALSE;
+			} else {
+				tl = jcat_pkcs7_engine_build_trust_list(self, error);
+				if (tl == NULL)
+					return FALSE;
+			}
 			rc = gnutls_pkcs7_verify(pkcs7,
-						 self->tl,
+						 tl,
 						 NULL,	 /* vdata */
 						 0,	 /* vdata_size */
 						 i,	 /* index */
@@ -264,15 +322,29 @@ jcat_pkcs7_engine_self_verify(JcatEngine *engine,
 	g_auto(gnutls_x509_crt_t) crt = NULL;
 	g_autoptr(GBytes) cert_blob = NULL;
 
-	filename =
-	    g_build_filename(jcat_engine_get_keyring_path(engine), "pki", "client.pem", NULL);
+	if (flags & JCAT_VERIFY_FLAG_ONLY_PQ) {
+		filename = g_build_filename(jcat_engine_get_keyring_path(engine),
+					    "pki",
+					    "client-mldsa87.pem",
+					    NULL);
+	} else {
+		filename = g_build_filename(jcat_engine_get_keyring_path(engine),
+					    "pki",
+					    "client.pem",
+					    NULL);
+	}
 	cert_blob = jcat_get_contents_bytes(filename, error);
 	if (cert_blob == NULL)
 		return NULL;
 	crt = jcat_pkcs7_load_crt_from_blob(cert_blob, GNUTLS_X509_FMT_PEM, error);
 	if (crt == NULL)
 		return NULL;
-
+	if (flags & JCAT_SIGN_FLAG_USE_PQ) {
+		if (!jcat_pkcs7_ensure_sign_algo_pq_safe(
+			gnutls_x509_crt_get_signature_algorithm(crt),
+			error))
+			return FALSE;
+	}
 	return jcat_pkcs7_engine_verify(engine, blob, blob_signature, crt, flags, error);
 }
 
@@ -335,6 +407,7 @@ jcat_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 			    rc);
 		return NULL;
 	}
+	g_debug("preferred_hash_algorithm=%s", gnutls_digest_get_name(dig));
 
 	/* create container */
 	rc = gnutls_pkcs7_init(&pkcs7);
@@ -351,8 +424,8 @@ jcat_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 	/* sign data */
 	d.data = (unsigned char *)g_bytes_get_data(blob, NULL);
 	d.size = g_bytes_get_size(blob);
-	if (flags & JCAT_SIGN_FLAG_ADD_TIMESTAMP)
-		gnutls_flags |= GNUTLS_PKCS7_INCLUDE_TIME;
+	//	if (flags & JCAT_SIGN_FLAG_ADD_TIMESTAMP)
+	//		gnutls_flags |= GNUTLS_PKCS7_INCLUDE_TIME;
 	if (flags & JCAT_SIGN_FLAG_ADD_CERT)
 		gnutls_flags |= GNUTLS_PKCS7_INCLUDE_CERT;
 	rc = gnutls_pkcs7_sign(pkcs7, crt, key, &d, NULL, NULL, dig, gnutls_flags);
@@ -406,16 +479,31 @@ jcat_pkcs7_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags flag
 	g_autoptr(GBytes) privkey = NULL;
 
 	/* check private key exists, otherwise generate and save */
-	fn_privkey =
-	    g_build_filename(jcat_engine_get_keyring_path(engine), "pki", "secret.key", NULL);
+	if (flags & JCAT_SIGN_FLAG_USE_PQ) {
+		fn_privkey = g_build_filename(jcat_engine_get_keyring_path(engine),
+					      "pki",
+					      "secret-mldsa87.key",
+					      NULL);
+	} else {
+		fn_privkey = g_build_filename(jcat_engine_get_keyring_path(engine),
+					      "pki",
+					      "secret.key",
+					      NULL);
+	}
 	if (g_file_test(fn_privkey, G_FILE_TEST_EXISTS)) {
 		privkey = jcat_get_contents_bytes(fn_privkey, error);
 		if (privkey == NULL)
 			return NULL;
 	} else {
-		privkey = jcat_pkcs7_create_private_key(error);
-		if (privkey == NULL)
-			return NULL;
+		if (flags & JCAT_SIGN_FLAG_USE_PQ) {
+			privkey = jcat_pkcs7_create_private_key(GNUTLS_PK_MLDSA87, error);
+			if (privkey == NULL)
+				return NULL;
+		} else {
+			privkey = jcat_pkcs7_create_private_key(GNUTLS_PK_RSA, error);
+			if (privkey == NULL)
+				return NULL;
+		}
 		if (!jcat_mkdir_parent(fn_privkey, error))
 			return NULL;
 		if (!jcat_set_contents_bytes(fn_privkey, privkey, 0600, error))
@@ -423,7 +511,17 @@ jcat_pkcs7_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags flag
 	}
 
 	/* check client certificate exists, otherwise generate and save */
-	fn_cert = g_build_filename(jcat_engine_get_keyring_path(engine), "pki", "client.pem", NULL);
+	if (flags & JCAT_SIGN_FLAG_USE_PQ) {
+		fn_cert = g_build_filename(jcat_engine_get_keyring_path(engine),
+					   "pki",
+					   "client-mldsa87.pem",
+					   NULL);
+	} else {
+		fn_cert = g_build_filename(jcat_engine_get_keyring_path(engine),
+					   "pki",
+					   "client.pem",
+					   NULL);
+	}
 	if (g_file_test(fn_cert, G_FILE_TEST_EXISTS)) {
 		cert = jcat_get_contents_bytes(fn_cert, error);
 		if (cert == NULL)
@@ -450,7 +548,7 @@ static void
 jcat_pkcs7_engine_finalize(GObject *object)
 {
 	JcatPkcs7Engine *self = JCAT_PKCS7_ENGINE(object);
-	gnutls_x509_trust_list_deinit(self->tl, 1);
+	g_ptr_array_unref(self->pubkeys_crts);
 	G_OBJECT_CLASS(jcat_pkcs7_engine_parent_class)->finalize(object);
 }
 
@@ -459,7 +557,6 @@ jcat_pkcs7_engine_class_init(JcatPkcs7EngineClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS(klass);
-	klass_app->setup = jcat_pkcs7_engine_setup;
 	klass_app->add_public_key = jcat_pkcs7_engine_add_public_key;
 	klass_app->add_public_key_raw = jcat_pkcs7_engine_add_public_key_raw;
 	klass_app->pubkey_verify = jcat_pkcs7_engine_pubkey_verify;
@@ -472,6 +569,7 @@ jcat_pkcs7_engine_class_init(JcatPkcs7EngineClass *klass)
 static void
 jcat_pkcs7_engine_init(JcatPkcs7Engine *self)
 {
+	self->pubkeys_crts = g_ptr_array_new_with_free_func((GDestroyNotify)gnutls_x509_crt_deinit);
 }
 
 JcatEngine *

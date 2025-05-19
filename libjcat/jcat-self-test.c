@@ -582,6 +582,63 @@ jcat_pkcs7_engine_self_signed_func(void)
 }
 
 static void
+jcat_pkcs7_engine_self_signed_pq_func(void)
+{
+#ifdef ENABLE_PKCS7
+	static const char payload_str[] = "Hello, world!";
+	g_autofree gchar *str = NULL;
+	g_autoptr(JcatBlob) signature = NULL;
+	g_autoptr(JcatContext) context = jcat_context_new();
+	g_autoptr(JcatEngine) engine = NULL;
+	g_autoptr(JcatEngine) engine2 = NULL;
+	g_autoptr(JcatResult) result = NULL;
+	g_autoptr(GBytes) payload = NULL;
+	g_autoptr(GError) error = NULL;
+	const gchar *str_perfect = "JcatResult:\n"
+				   "  Timestamp:             1970-01-01T03:25:45Z\n"
+				   "  JcatPkcs7Engine:\n"
+				   "    Kind:                pkcs7\n"
+				   "    VerifyKind:          signature\n";
+
+	/* set up context */
+	jcat_context_set_keyring_path(context, "/tmp");
+
+	/* get engine */
+	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_PKCS7, &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(engine);
+
+	payload = g_bytes_new_static(payload_str, sizeof(payload_str));
+	g_assert_nonnull(payload);
+	signature = jcat_engine_self_sign(engine,
+					  payload,
+					  JCAT_SIGN_FLAG_ADD_TIMESTAMP | JCAT_SIGN_FLAG_USE_PQ,
+					  &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(signature);
+	result = jcat_engine_self_verify(engine,
+					 payload,
+					 jcat_blob_get_data(signature),
+					 JCAT_VERIFY_FLAG_ONLY_PQ,
+					 &error);
+	g_assert_no_error(error);
+	g_assert_nonnull(result);
+
+	/* verify engine set */
+	engine2 = jcat_result_get_engine(result);
+	g_assert(engine == engine2);
+
+	/* to string */
+	g_object_set(result, "timestamp", (gint64)12345, NULL);
+	str = jcat_result_to_string(result);
+	g_print("%s", str);
+	g_assert_cmpstr(str, ==, str_perfect);
+#else
+	g_test_skip("no GnuTLS support enabled");
+#endif
+}
+
+static void
 jcat_ed25519_engine_func(void)
 {
 #ifdef ENABLE_ED25519
@@ -1190,6 +1247,8 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/engine{gpg-msg}", jcat_gpg_engine_msg_func);
 	g_test_add_func("/jcat/engine{pkcs7}", jcat_pkcs7_engine_func);
 	g_test_add_func("/jcat/engine{pkcs7-self-signed}", jcat_pkcs7_engine_self_signed_func);
+	g_test_add_func("/jcat/engine{pkcs7-self-signed-pq}",
+			jcat_pkcs7_engine_self_signed_pq_func);
 	g_test_add_func("/jcat/engine{ed25519}", jcat_ed25519_engine_func);
 	g_test_add_func("/jcat/engine{ed25519-self-signed}", jcat_ed25519_engine_self_signed_func);
 	g_test_add_func("/jcat/context{verify-blob}", jcat_context_verify_blob_func);

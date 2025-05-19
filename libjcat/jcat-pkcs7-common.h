@@ -21,6 +21,12 @@ _gnutls_datum_deinit(gnutls_datum_t *d)
 	gnutls_free(d);
 }
 
+static void
+_gnutls_x509_trust_list_deinit(gnutls_x509_trust_list_t tl)
+{
+	gnutls_x509_trust_list_deinit(tl, 0);
+}
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_pkcs7_t, gnutls_pkcs7_deinit, NULL)
@@ -33,6 +39,7 @@ G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_spki_t, gnutls_x509_spki_deinit, NUL
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_data_t, gnutls_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_pkcs7_signature_info_st, gnutls_pkcs7_signature_info_deinit)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_datum_t, _gnutls_datum_deinit)
+G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_trust_list_t, _gnutls_x509_trust_list_deinit, NULL)
 #pragma clang diagnostic pop
 
 gchar *
@@ -46,6 +53,9 @@ gnutls_pubkey_t
 jcat_pkcs7_load_pubkey_from_privkey(gnutls_privkey_t privkey, GError **error) G_GNUC_NON_NULL(1);
 
 GBytes *
-jcat_pkcs7_create_private_key(GError **error);
+jcat_pkcs7_create_private_key(gnutls_pk_algorithm_t algo, GError **error);
+gboolean
+jcat_pkcs7_ensure_sign_algo_pq_safe(gnutls_sign_algorithm_t algo, GError **error);
+
 GBytes *
 jcat_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **error) G_GNUC_NON_NULL(1);
