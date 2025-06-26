@@ -33,8 +33,10 @@ if get_option('gpg')
   jcat_src += 'jcat-gpg-engine.c'
 endif
 if get_option('pkcs7')
-  jcat_src += 'jcat-pkcs7-common.c'
-  jcat_src += 'jcat-pkcs7-engine.c'
+  #jcat_src += 'jcat-pkcs7-common.c'
+  #jcat_src += 'jcat-pkcs7-engine.c'
+  jcat_src += 'jcat-pkcs7-crypto-common.c'
+  jcat_src += 'jcat-pkcs7-crypto-engine.c'
 endif
 if get_option('ed25519')
   jcat_src += 'jcat-ed25519-engine.c'

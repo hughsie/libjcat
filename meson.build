@@ -137,9 +137,11 @@ libjcat_deps = [
 ]
 
 if get_option('pkcs7')
-  gnutls = dependency('gnutls', version : '>= 3.6.0')
+  libcrypto = dependency('libcrypto')
+  libjcat_deps += libcrypto
+  #gnutls = dependency('gnutls', version : '>= 3.6.0')
   conf.set('ENABLE_PKCS7', '1')
-  libjcat_deps += gnutls
+  #libjcat_deps += gnutls
 endif
 
 if get_option('ed25519')

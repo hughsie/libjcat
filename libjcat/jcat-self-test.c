@@ -523,7 +523,7 @@ jcat_pkcs7_engine_func(void)
 	g_assert_null(result_fail);
 	g_clear_error(&error);
 #else
-	g_test_skip("no GnuTLS support enabled");
+	g_test_skip("no PKCS7 support enabled");
 #endif
 }
 
@@ -577,7 +577,7 @@ jcat_pkcs7_engine_self_signed_func(void)
 	g_print("%s", str);
 	g_assert_cmpstr(str, ==, str_perfect);
 #else
-	g_test_skip("no GnuTLS support enabled");
+	g_test_skip("no PKCS7 support enabled");
 #endif
 }
 
@@ -635,7 +635,7 @@ jcat_ed25519_engine_func(void)
 	g_assert_null(result_fail);
 	g_clear_error(&error);
 #else
-	g_test_skip("no GnuTLS support enabled");
+	g_test_skip("no ED25519 support enabled");
 #endif
 }
 
@@ -701,7 +701,7 @@ jcat_ed25519_engine_self_signed_func(void)
 		g_assert_cmpstr(str, ==, str_perfect);
 	}
 #else
-	g_test_skip("no GnuTLS support enabled");
+	g_test_skip("no ED25519 support enabled");
 #endif
 }
 
@@ -780,7 +780,7 @@ jcat_context_verify_blob_func(void)
 	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED);
 	g_assert_null(result_disallow);
 #else
-	g_test_skip("no GnuTLS support enabled");
+	g_test_skip("no PKCS7 support enabled");
 #endif
 }
 
@@ -866,7 +866,7 @@ jcat_context_verify_item_sign_func(void)
 	g_assert_null(results_fail);
 	g_clear_error(&error);
 #else
-	g_test_skip("no GnuTLS support enabled");
+	g_test_skip("no PKCS7 support enabled");
 #endif
 }
 
@@ -936,7 +936,7 @@ jcat_context_verify_item_target_func(void)
 	g_assert_cmpint(jcat_result_get_timestamp(result), >=, 1502871248);
 	g_assert_cmpstr(jcat_result_get_authority(result), ==, "O=Hughski Limited");
 #else
-	g_test_skip("no GnuTLS support enabled");
+	g_test_skip("no PKCS7 support enabled");
 #endif
 }
 
@@ -1016,7 +1016,7 @@ jcat_context_verify_item_csum_func(void)
 	g_assert_null(results_fail);
 	g_clear_error(&error);
 #else
-	g_test_skip("no GnuTLS support enabled");
+	g_test_skip("no PKCS7 support enabled");
 #endif
 }
 
