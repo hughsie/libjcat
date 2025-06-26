@@ -20,6 +20,9 @@
 #ifdef HAVE_GNUTLS_PKCS7
 #include "jcat-gnutls-pkcs7-engine.h"
 #endif
+#ifdef HAVE_LIBCRYPTO_PKCS7
+#include "jcat-libcrypto-pkcs7-engine.h"
+#endif
 #ifdef HAVE_GNUTLS_ED25519
 #include "jcat-gnutls-ed25519-engine.h"
 #endif
@@ -70,6 +73,9 @@ jcat_context_init(JcatContext *self)
 #endif
 #ifdef HAVE_GNUTLS_PKCS7
 	g_ptr_array_add(priv->engines, jcat_gnutls_pkcs7_engine_new(self));
+#endif
+#ifdef HAVE_LIBCRYPTO_PKCS7
+	g_ptr_array_add(priv->engines, jcat_libcrypto_pkcs7_engine_new(self));
 #endif
 #ifdef HAVE_GNUTLS_ED25519
 	g_ptr_array_add(priv->engines, jcat_gnutls_ed25519_engine_new(self));
