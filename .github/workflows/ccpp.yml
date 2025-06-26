@@ -33,6 +33,6 @@ jobs:
       with:
         action: test
         directory: _build
-        setup-options: -Db_coverage=false
+        setup-options: -Db_coverage=false -Dopenssl_pkcs7=true
         options: --verbose
         meson-version: 0.56.0
