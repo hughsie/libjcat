@@ -142,6 +142,12 @@ if get_option('gnutls_pkcs7')
   conf.set('HAVE_GNUTLS_PKCS7', '1')
   libjcat_deps += gnutls
 endif
+if get_option('openssl_pkcs7')
+  libcrypto = dependency('libcrypto')
+  conf.set('HAVE_PKCS7', '1')
+  conf.set('HAVE_LIBCRYPTO_PKCS7', '1')
+  libjcat_deps += libcrypto
+endif
 
 if get_option('gnutls_ed25519')
   conf.set('HAVE_ED25519', '1')
