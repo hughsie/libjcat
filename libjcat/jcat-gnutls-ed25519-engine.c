@@ -413,6 +413,7 @@ jcat_gnutls_ed25519_engine_class_init(JcatGnutlsEd25519EngineClass *klass)
 static void
 jcat_gnutls_ed25519_engine_init(JcatGnutlsEd25519Engine *self)
 {
+	jcat_gnutls_global_init();
 	self->pubkeys = g_ptr_array_new_with_free_func((GDestroyNotify)gnutls_pubkey_deinit);
 }
 
