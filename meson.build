@@ -136,14 +136,16 @@ libjcat_deps = [
   libjsonglib,
 ]
 
-if get_option('pkcs7')
+if get_option('gnutls_pkcs7')
   gnutls = dependency('gnutls', version : '>= 3.6.0')
-  conf.set('ENABLE_PKCS7', '1')
+  conf.set('HAVE_PKCS7', '1')
+  conf.set('HAVE_GNUTLS_PKCS7', '1')
   libjcat_deps += gnutls
 endif
 
-if get_option('ed25519')
-  conf.set('ENABLE_ED25519', '1')
+if get_option('gnutls_ed25519')
+  conf.set('HAVE_ED25519', '1')
+  conf.set('HAVE_GNUTLS_ED25519', '1')
   libjcat_deps += dependency('gnutls')
 endif
 

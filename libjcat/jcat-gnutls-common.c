@@ -6,10 +6,10 @@
 
 #include "config.h"
 
-#include "jcat-pkcs7-common.h"
+#include "jcat-gnutls-common.h"
 
 gnutls_x509_crt_t
-jcat_pkcs7_load_crt_from_blob(GBytes *blob, gnutls_x509_crt_fmt_t format, GError **error)
+jcat_gnutls_pkcs7_load_crt_from_blob(GBytes *blob, gnutls_x509_crt_fmt_t format, GError **error)
 {
 	gnutls_datum_t d = {0};
 	int rc;
@@ -44,7 +44,7 @@ jcat_pkcs7_load_crt_from_blob(GBytes *blob, gnutls_x509_crt_fmt_t format, GError
 }
 
 gnutls_privkey_t
-jcat_pkcs7_load_privkey_from_blob(GBytes *blob, GError **error)
+jcat_gnutls_pkcs7_load_privkey_from_blob(GBytes *blob, GError **error)
 {
 	int rc;
 	gnutls_datum_t d = {0};
@@ -77,7 +77,7 @@ jcat_pkcs7_load_privkey_from_blob(GBytes *blob, GError **error)
 }
 
 gnutls_pubkey_t
-jcat_pkcs7_load_pubkey_from_privkey(gnutls_privkey_t privkey, GError **error)
+jcat_gnutls_pkcs7_load_pubkey_from_privkey(gnutls_privkey_t privkey, GError **error)
 {
 	g_auto(gnutls_pubkey_t) pubkey = NULL;
 	int rc;
@@ -109,7 +109,7 @@ jcat_pkcs7_load_pubkey_from_privkey(gnutls_privkey_t privkey, GError **error)
 }
 
 gchar *
-jcat_pkcs7_datum_to_dn_str(const gnutls_datum_t *raw)
+jcat_gnutls_pkcs7_datum_to_dn_str(const gnutls_datum_t *raw)
 {
 	g_auto(gnutls_x509_dn_t) dn = NULL;
 	g_autoptr(gnutls_datum_t) str = NULL;
@@ -130,7 +130,7 @@ jcat_pkcs7_datum_to_dn_str(const gnutls_datum_t *raw)
 
 /* generates a private key just like `certtool --generate-privkey` */
 GBytes *
-jcat_pkcs7_create_private_key(GError **error)
+jcat_gnutls_pkcs7_create_private_key(GError **error)
 {
 	gnutls_datum_t d = {0};
 	int bits;
@@ -206,7 +206,7 @@ jcat_pkcs7_create_private_key(GError **error)
 /* generates a self signed certificate just like:
  *  `certtool --generate-self-signed --load-privkey priv.pem` */
 GBytes *
-jcat_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **error)
+jcat_gnutls_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **error)
 {
 	int rc;
 	gnutls_datum_t d = {0};
@@ -217,7 +217,7 @@ jcat_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **error)
 	g_autoptr(gnutls_data_t) d_payload = NULL;
 
 	/* load the public key from the private key */
-	pubkey = jcat_pkcs7_load_pubkey_from_privkey(privkey, error);
+	pubkey = jcat_gnutls_pkcs7_load_pubkey_from_privkey(privkey, error);
 	if (pubkey == NULL)
 		return NULL;
 

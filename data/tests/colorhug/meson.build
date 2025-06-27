@@ -7,7 +7,7 @@ install_data([
   install_dir: join_paths(installed_test_datadir, 'colorhug'),
 )
 
-if get_option('pkcs7')
+if certtool.found()
   # generate self-signed detached signature
   colorhug_pkcs7_signature = custom_target('firmware.bin.p7c',
     input: 'firmware.bin',

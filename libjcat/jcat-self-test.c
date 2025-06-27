@@ -452,7 +452,7 @@ jcat_gpg_engine_msg_func(void)
 static void
 jcat_pkcs7_engine_func(void)
 {
-#ifdef ENABLE_PKCS7
+#ifdef HAVE_PKCS7
 	g_autofree gchar *fn_fail = NULL;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
@@ -530,7 +530,7 @@ jcat_pkcs7_engine_func(void)
 static void
 jcat_pkcs7_engine_self_signed_func(void)
 {
-#ifdef ENABLE_PKCS7
+#ifdef HAVE_PKCS7
 	static const char payload_str[] = "Hello, world!";
 	g_autofree gchar *str = NULL;
 	g_autoptr(JcatBlob) signature = NULL;
@@ -542,7 +542,7 @@ jcat_pkcs7_engine_self_signed_func(void)
 	g_autoptr(GError) error = NULL;
 	const gchar *str_perfect = "JcatResult:\n"
 				   "  Timestamp:             1970-01-01T03:25:45Z\n"
-				   "  JcatPkcs7Engine:\n"
+				   "  Jcat*Pkcs7Engine:\n"
 				   "    Kind:                pkcs7\n"
 				   "    VerifyKind:          signature\n";
 
@@ -575,7 +575,7 @@ jcat_pkcs7_engine_self_signed_func(void)
 	g_object_set(result, "timestamp", (gint64)12345, NULL);
 	str = jcat_result_to_string(result);
 	g_print("%s", str);
-	g_assert_cmpstr(str, ==, str_perfect);
+	g_assert_true(g_pattern_match_simple(str_perfect, str));
 #else
 	g_test_skip("no GnuTLS support enabled");
 #endif
@@ -584,7 +584,7 @@ jcat_pkcs7_engine_self_signed_func(void)
 static void
 jcat_ed25519_engine_func(void)
 {
-#ifdef ENABLE_ED25519
+#ifdef HAVE_ED25519
 	g_autofree gchar *fn_fail = NULL;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
@@ -642,7 +642,7 @@ jcat_ed25519_engine_func(void)
 static void
 jcat_ed25519_engine_self_signed_func(void)
 {
-#ifdef ENABLE_ED25519
+#ifdef HAVE_ED25519
 	static const char payload_str[] = "Hello, world!";
 	g_autofree gchar *tmp_dir = NULL;
 	g_autoptr(JcatContext) context = jcat_context_new();
@@ -651,7 +651,7 @@ jcat_ed25519_engine_self_signed_func(void)
 	g_autoptr(GError) error = NULL;
 	const gchar *str_perfect = "JcatResult:\n"
 				   "  Timestamp:             1970-01-01T03:25:45Z\n"
-				   "  JcatEd25519Engine:\n"
+				   "  Jcat*Ed25519Engine:\n"
 				   "    Kind:                ed25519\n"
 				   "    VerifyKind:          signature\n";
 
@@ -698,7 +698,7 @@ jcat_ed25519_engine_self_signed_func(void)
 		g_object_set(result, "timestamp", (gint64)12345, NULL);
 		str = jcat_result_to_string(result);
 		g_print("%s", str);
-		g_assert_cmpstr(str, ==, str_perfect);
+		g_assert_true(g_pattern_match_simple(str_perfect, str));
 	}
 #else
 	g_test_skip("no GnuTLS support enabled");
@@ -708,7 +708,7 @@ jcat_ed25519_engine_self_signed_func(void)
 static void
 jcat_context_verify_blob_func(void)
 {
-#ifdef ENABLE_PKCS7
+#ifdef HAVE_PKCS7
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
 	g_autofree gchar *pki_dir = NULL;
@@ -787,7 +787,7 @@ jcat_context_verify_blob_func(void)
 static void
 jcat_context_verify_item_sign_func(void)
 {
-#ifdef ENABLE_PKCS7
+#ifdef HAVE_PKCS7
 	JcatResult *result;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
@@ -873,7 +873,7 @@ jcat_context_verify_item_sign_func(void)
 static void
 jcat_context_verify_item_target_func(void)
 {
-#ifdef ENABLE_PKCS7
+#ifdef HAVE_PKCS7
 	JcatResult *result;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *fn_sig = NULL;
@@ -943,7 +943,7 @@ jcat_context_verify_item_target_func(void)
 static void
 jcat_context_verify_item_csum_func(void)
 {
-#ifdef ENABLE_PKCS7
+#ifdef HAVE_PKCS7
 	JcatResult *result;
 	g_autofree gchar *fn_pass = NULL;
 	g_autofree gchar *pki_dir = NULL;
@@ -1112,7 +1112,9 @@ jcat_bt_checkpoint_func(void)
 static void
 jcat_bt_common_func(void)
 {
+#ifdef HAVE_ED25519
 	gboolean ret;
+#endif
 	g_autofree gchar *fn_btcheckpoint = NULL;
 	g_autofree gchar *fn_btverifier = NULL;
 	g_autoptr(GBytes) blob_btcheckpoint = NULL;
@@ -1142,7 +1144,7 @@ jcat_bt_common_func(void)
 	g_assert_no_error(error);
 	g_assert_nonnull(btcheckpoint);
 
-#ifdef ENABLE_ED25519
+#ifdef HAVE_ED25519
 	/* get engine */
 	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_ED25519, &error);
 	g_assert_no_error(error);
