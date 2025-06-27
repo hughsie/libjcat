@@ -21,6 +21,12 @@ _gnutls_datum_deinit(gnutls_datum_t *d)
 	gnutls_free(d);
 }
 
+static void
+_gnutls_x509_trust_list_deinit(gnutls_x509_trust_list_t tl)
+{
+	gnutls_x509_trust_list_deinit(tl, 0);
+}
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_pkcs7_t, gnutls_pkcs7_deinit, NULL)
@@ -33,6 +39,7 @@ G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_spki_t, gnutls_x509_spki_deinit, NUL
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_data_t, gnutls_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_pkcs7_signature_info_st, gnutls_pkcs7_signature_info_deinit)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_datum_t, _gnutls_datum_deinit)
+G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_trust_list_t, _gnutls_x509_trust_list_deinit, NULL)
 #pragma clang diagnostic pop
 
 gchar *
