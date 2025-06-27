@@ -40,6 +40,9 @@ G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_data_t, gnutls_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_pkcs7_signature_info_st, gnutls_pkcs7_signature_info_deinit)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_datum_t, _gnutls_datum_deinit)
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_trust_list_t, _gnutls_x509_trust_list_deinit, NULL)
+G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_trust_list_iter_t,
+				gnutls_x509_trust_list_iter_deinit,
+				NULL)
 #pragma clang diagnostic pop
 
 gchar *
@@ -52,6 +55,8 @@ jcat_gnutls_pkcs7_load_privkey_from_blob(GBytes *blob, GError **error) G_GNUC_NO
 gnutls_pubkey_t
 jcat_gnutls_pkcs7_load_pubkey_from_privkey(gnutls_privkey_t privkey, GError **error)
     G_GNUC_NON_NULL(1);
+gboolean
+jcat_gnutls_ensure_trust_list_valid(gnutls_x509_trust_list_t tl, GError **error) G_GNUC_NON_NULL(1);
 
 GBytes *
 jcat_gnutls_pkcs7_create_private_key(gnutls_pk_algorithm_t algo, GError **error);
