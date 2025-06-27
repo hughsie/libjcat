@@ -236,11 +236,20 @@ jcat_gnutls_pkcs7_engine_verify(JcatEngine *engine,
 		}
 		if (rc < 0) {
 			dn = jcat_gnutls_pkcs7_datum_to_dn_str(&info->issuer_dn);
+			if (dn != NULL) {
+				g_set_error(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_INVALID_DATA,
+					    "failed to verify data for %s: %s [%i]",
+					    dn,
+					    gnutls_strerror(rc),
+					    rc);
+				return NULL;
+			}
 			g_set_error(error,
 				    G_IO_ERROR,
 				    G_IO_ERROR_INVALID_DATA,
-				    "failed to verify data for %s: %s [%i]",
-				    dn,
+				    "failed to verify data: %s [%i]",
 				    gnutls_strerror(rc),
 				    rc);
 			return NULL;
