@@ -130,11 +130,10 @@ jcat_gnutls_pkcs7_datum_to_dn_str(const gnutls_datum_t *raw)
 
 /* generates a private key just like `certtool --generate-privkey` */
 GBytes *
-jcat_gnutls_pkcs7_create_private_key(GError **error)
+jcat_gnutls_pkcs7_create_private_key(gnutls_pk_algorithm_t algo, GError **error)
 {
 	gnutls_datum_t d = {0};
 	int bits;
-	int key_type = GNUTLS_PK_RSA;
 	int rc;
 	g_auto(gnutls_x509_privkey_t) key = NULL;
 	g_auto(gnutls_x509_spki_t) spki = NULL;
@@ -163,11 +162,9 @@ jcat_gnutls_pkcs7_create_private_key(GError **error)
 	}
 
 	/* generate key */
-	bits = gnutls_sec_param_to_pk_bits(key_type, GNUTLS_SEC_PARAM_HIGH);
-	g_debug("generating a %d bit %s private key...",
-		bits,
-		gnutls_pk_algorithm_get_name(key_type));
-	rc = gnutls_x509_privkey_generate2(key, key_type, bits, 0, NULL, 0);
+	bits = gnutls_sec_param_to_pk_bits(algo, GNUTLS_SEC_PARAM_HIGH);
+	g_debug("generating a %d bit %s private key...", bits, gnutls_pk_algorithm_get_name(algo));
+	rc = gnutls_x509_privkey_generate2(key, algo, bits, 0, NULL, 0);
 	if (rc < 0) {
 		g_set_error(error,
 			    G_IO_ERROR,
@@ -212,6 +209,7 @@ jcat_gnutls_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **e
 	gnutls_datum_t d = {0};
 	guchar sha1buf[20];
 	gsize sha1bufsz = sizeof(sha1buf);
+	gnutls_digest_algorithm_t digest_alg = GNUTLS_DIG_NULL;
 	g_auto(gnutls_pubkey_t) pubkey = NULL;
 	g_auto(gnutls_x509_crt_t) crt = NULL;
 	g_autoptr(gnutls_data_t) d_payload = NULL;
@@ -220,6 +218,18 @@ jcat_gnutls_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **e
 	pubkey = jcat_gnutls_pkcs7_load_pubkey_from_privkey(privkey, error);
 	if (pubkey == NULL)
 		return NULL;
+
+	rc = gnutls_pubkey_get_preferred_hash_algorithm(pubkey, &digest_alg, NULL);
+	if (rc < 0) {
+		g_set_error(error,
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "preferred_hash_algorithm: %s [%i]",
+			    gnutls_strerror(rc),
+			    rc);
+		return NULL;
+	}
+	g_debug("preferred_hash_algorithm=%s", gnutls_digest_get_name(digest_alg));
 
 	/* create certificate */
 	rc = gnutls_x509_crt_init(&crt);
@@ -351,7 +361,7 @@ jcat_gnutls_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **e
 	}
 
 	/* self-sign certificate */
-	rc = gnutls_x509_crt_privkey_sign(crt, crt, privkey, GNUTLS_DIG_SHA256, 0);
+	rc = gnutls_x509_crt_privkey_sign(crt, crt, privkey, digest_alg, 0);
 	if (rc < 0) {
 		g_set_error(error,
 			    G_IO_ERROR,

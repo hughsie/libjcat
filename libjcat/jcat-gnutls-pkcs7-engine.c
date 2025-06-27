@@ -346,6 +346,7 @@ jcat_gnutls_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 			    rc);
 		return NULL;
 	}
+	g_debug("preferred_hash_algorithm=%s", gnutls_digest_get_name(dig));
 
 	/* create container */
 	rc = gnutls_pkcs7_init(&pkcs7);
@@ -427,7 +428,7 @@ jcat_gnutls_pkcs7_engine_self_sign(JcatEngine *engine,
 		if (privkey == NULL)
 			return NULL;
 	} else {
-		privkey = jcat_gnutls_pkcs7_create_private_key(error);
+		privkey = jcat_gnutls_pkcs7_create_private_key(GNUTLS_PK_RSA, error);
 		if (privkey == NULL)
 			return NULL;
 		if (!jcat_mkdir_parent(fn_privkey, error))

@@ -47,7 +47,8 @@ jcat_gnutls_pkcs7_load_pubkey_from_privkey(gnutls_privkey_t privkey, GError **er
     G_GNUC_NON_NULL(1);
 
 GBytes *
-jcat_gnutls_pkcs7_create_private_key(GError **error);
+jcat_gnutls_pkcs7_create_private_key(gnutls_pk_algorithm_t algo, GError **error);
+
 GBytes *
 jcat_gnutls_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **error)
     G_GNUC_NON_NULL(1);
