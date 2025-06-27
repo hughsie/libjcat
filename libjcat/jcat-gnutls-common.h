@@ -22,6 +22,12 @@ _gnutls_datum_deinit(gnutls_datum_t *d)
 }
 
 static void
+jcat_gnutls_ed25519_datum_clear(gnutls_datum_t *d)
+{
+	gnutls_free(d->data);
+}
+
+static void
 _gnutls_x509_trust_list_deinit(gnutls_x509_trust_list_t tl)
 {
 	gnutls_x509_trust_list_deinit(tl, 0);
@@ -39,6 +45,7 @@ G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_spki_t, gnutls_x509_spki_deinit, NUL
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_data_t, gnutls_free)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_pkcs7_signature_info_st, gnutls_pkcs7_signature_info_deinit)
 G_DEFINE_AUTOPTR_CLEANUP_FUNC(gnutls_datum_t, _gnutls_datum_deinit)
+G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(gnutls_datum_t, jcat_gnutls_ed25519_datum_clear)
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_trust_list_t, _gnutls_x509_trust_list_deinit, NULL)
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_trust_list_iter_t,
 				gnutls_x509_trust_list_iter_deinit,
