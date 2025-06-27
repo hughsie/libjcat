@@ -500,6 +500,7 @@ jcat_gnutls_pkcs7_engine_class_init(JcatGnutlsPkcs7EngineClass *klass)
 static void
 jcat_gnutls_pkcs7_engine_init(JcatGnutlsPkcs7Engine *self)
 {
+	jcat_gnutls_global_init();
 	self->pubkeys_crts = g_ptr_array_new_with_free_func((GDestroyNotify)gnutls_x509_crt_deinit);
 }
 

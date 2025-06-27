@@ -423,3 +423,21 @@ jcat_gnutls_pkcs7_create_client_certificate(gnutls_privkey_t privkey, GError **e
 	d_payload = d.data;
 	return g_bytes_new(d_payload, d.size);
 }
+
+static void
+jcat_gnutls_global_log_cb(int level, const char *msg)
+{
+	g_auto(GStrv) lines = g_strsplit(msg, "\n", -1);
+	for (guint i = 0; lines[i] != NULL; i++) {
+		if (lines[i][0] == '\0')
+			continue;
+		g_debug("GnuTLS: %s", lines[i]);
+	}
+}
+
+void
+jcat_gnutls_global_init(void)
+{
+	gnutls_global_set_log_level(3);
+	gnutls_global_set_log_function(jcat_gnutls_global_log_cb);
+}

@@ -52,6 +52,8 @@ G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_x509_trust_list_iter_t,
 				NULL)
 #pragma clang diagnostic pop
 
+void
+jcat_gnutls_global_init(void);
 gchar *
 jcat_gnutls_pkcs7_datum_to_dn_str(const gnutls_datum_t *raw) G_GNUC_NON_NULL(1);
 gnutls_x509_crt_t
