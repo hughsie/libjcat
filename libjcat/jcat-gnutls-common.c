@@ -8,6 +8,43 @@
 
 #include "jcat-gnutls-common.h"
 
+gboolean
+jcat_gnutls_ensure_trust_list_valid(gnutls_x509_trust_list_t tl, GError **error)
+{
+	guint cnt = 0;
+	g_auto(gnutls_x509_trust_list_iter_t) iter = NULL;
+
+	/* check we have more than zero certs */
+	while (1) {
+		int rc;
+		g_auto(gnutls_x509_crt_t) cert = NULL;
+
+		rc = gnutls_x509_trust_list_iter_get_ca(tl, &iter, &cert);
+		if (rc == GNUTLS_E_REQUESTED_DATA_NOT_AVAILABLE)
+			break;
+		if (rc != GNUTLS_E_SUCCESS) {
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "failed to get ca from trust list: %s [%i]",
+				    gnutls_strerror(rc),
+				    rc);
+			return FALSE;
+		}
+		cnt++;
+	}
+	if (cnt == 0) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "no certificates in trust list");
+		return FALSE;
+	}
+
+	/* success */
+	return TRUE;
+}
+
 gnutls_x509_crt_t
 jcat_gnutls_pkcs7_load_crt_from_blob(GBytes *blob, gnutls_x509_crt_fmt_t format, GError **error)
 {

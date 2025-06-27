@@ -224,6 +224,8 @@ jcat_gnutls_pkcs7_engine_verify(JcatEngine *engine,
 			tl = jcat_gnutls_pkcs7_engine_build_trust_list(self, error);
 			if (tl == NULL)
 				return FALSE;
+			if (!jcat_gnutls_ensure_trust_list_valid(tl, error))
+				return FALSE;
 			rc = gnutls_pkcs7_verify(pkcs7,
 						 tl,
 						 NULL,	 /* vdata */
