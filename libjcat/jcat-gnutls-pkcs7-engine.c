@@ -472,14 +472,14 @@ static void
 jcat_gnutls_pkcs7_engine_class_init(JcatGnutlsPkcs7EngineClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
-	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS(klass);
-	klass_app->setup = jcat_gnutls_pkcs7_engine_setup;
-	klass_app->add_public_key = jcat_gnutls_pkcs7_engine_add_public_key;
-	klass_app->add_public_key_raw = jcat_gnutls_pkcs7_engine_add_public_key_raw;
-	klass_app->pubkey_verify = jcat_gnutls_pkcs7_engine_pubkey_verify;
-	klass_app->pubkey_sign = jcat_gnutls_pkcs7_engine_pubkey_sign;
-	klass_app->self_verify = jcat_gnutls_pkcs7_engine_self_verify;
-	klass_app->self_sign = jcat_gnutls_pkcs7_engine_self_sign;
+	JcatEngineClass *engine_class = JCAT_ENGINE_CLASS(klass);
+	engine_class->setup = jcat_gnutls_pkcs7_engine_setup;
+	engine_class->add_public_key = jcat_gnutls_pkcs7_engine_add_public_key;
+	engine_class->add_public_key_raw = jcat_gnutls_pkcs7_engine_add_public_key_raw;
+	engine_class->pubkey_verify = jcat_gnutls_pkcs7_engine_pubkey_verify;
+	engine_class->pubkey_sign = jcat_gnutls_pkcs7_engine_pubkey_sign;
+	engine_class->self_verify = jcat_gnutls_pkcs7_engine_self_verify;
+	engine_class->self_sign = jcat_gnutls_pkcs7_engine_self_sign;
 	object_class->finalize = jcat_gnutls_pkcs7_engine_finalize;
 }
 

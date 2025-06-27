@@ -61,9 +61,9 @@ static void
 jcat_sha1_engine_class_init(JcatSha1EngineClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
-	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS(klass);
-	klass_app->self_sign = jcat_sha1_engine_self_sign;
-	klass_app->self_verify = jcat_sha1_engine_self_verify;
+	JcatEngineClass *engine_class = JCAT_ENGINE_CLASS(klass);
+	engine_class->self_sign = jcat_sha1_engine_self_sign;
+	engine_class->self_verify = jcat_sha1_engine_self_verify;
 	object_class->finalize = jcat_sha1_engine_finalize;
 }
 

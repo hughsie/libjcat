@@ -296,10 +296,10 @@ static void
 jcat_gpg_engine_class_init(JcatGpgEngineClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
-	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS(klass);
-	klass_app->setup = jcat_gpg_engine_setup;
-	klass_app->add_public_key = jcat_gpg_engine_add_public_key;
-	klass_app->pubkey_verify = jcat_gpg_engine_pubkey_verify;
+	JcatEngineClass *engine_class = JCAT_ENGINE_CLASS(klass);
+	engine_class->setup = jcat_gpg_engine_setup;
+	engine_class->add_public_key = jcat_gpg_engine_add_public_key;
+	engine_class->pubkey_verify = jcat_gpg_engine_pubkey_verify;
 	object_class->finalize = jcat_gpg_engine_finalize;
 }
 
