@@ -17,11 +17,11 @@
 #ifdef ENABLE_GPG
 #include "jcat-gpg-engine.h"
 #endif
-#ifdef ENABLE_PKCS7
-#include "jcat-pkcs7-engine.h"
+#ifdef HAVE_GNUTLS_PKCS7
+#include "jcat-gnutls-pkcs7-engine.h"
 #endif
-#ifdef ENABLE_ED25519
-#include "jcat-ed25519-engine.h"
+#ifdef HAVE_GNUTLS_ED25519
+#include "jcat-gnutls-ed25519-engine.h"
 #endif
 
 typedef struct {
@@ -68,11 +68,11 @@ jcat_context_init(JcatContext *self)
 #ifdef ENABLE_GPG
 	g_ptr_array_add(priv->engines, jcat_gpg_engine_new(self));
 #endif
-#ifdef ENABLE_PKCS7
-	g_ptr_array_add(priv->engines, jcat_pkcs7_engine_new(self));
+#ifdef HAVE_GNUTLS_PKCS7
+	g_ptr_array_add(priv->engines, jcat_gnutls_pkcs7_engine_new(self));
 #endif
-#ifdef ENABLE_ED25519
-	g_ptr_array_add(priv->engines, jcat_ed25519_engine_new(self));
+#ifdef HAVE_GNUTLS_ED25519
+	g_ptr_array_add(priv->engines, jcat_gnutls_ed25519_engine_new(self));
 #endif
 }
 

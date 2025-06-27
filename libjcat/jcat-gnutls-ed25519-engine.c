@@ -12,28 +12,28 @@
 #include <string.h>
 
 #include "jcat-common-private.h"
-#include "jcat-ed25519-engine.h"
 #include "jcat-engine-private.h"
+#include "jcat-gnutls-ed25519-engine.h"
 
-struct _JcatEd25519Engine {
+struct _JcatGnutlsEd25519Engine {
 	JcatEngine parent_instance;
 	GPtrArray *pubkeys; /* of gnutls_pubkey_t */
 };
 
-G_DEFINE_TYPE(JcatEd25519Engine, jcat_ed25519_engine, JCAT_TYPE_ENGINE)
+G_DEFINE_TYPE(JcatGnutlsEd25519Engine, jcat_gnutls_ed25519_engine, JCAT_TYPE_ENGINE)
 
 static void
-jcat_ed25519_datum_clear(gnutls_datum_t *data)
+jcat_gnutls_ed25519_datum_clear(gnutls_datum_t *data)
 {
 	gnutls_free(data->data);
 }
 
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_pubkey_t, gnutls_pubkey_deinit, NULL)
 G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_privkey_t, gnutls_privkey_deinit, NULL)
-G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(gnutls_datum_t, jcat_ed25519_datum_clear)
+G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(gnutls_datum_t, jcat_gnutls_ed25519_datum_clear)
 
 static GBytes *
-jcat_ed25519_pubkey_to_bytes(const gnutls_pubkey_t pubkey, GError **error)
+jcat_gnutls_ed25519_pubkey_to_bytes(const gnutls_pubkey_t pubkey, GError **error)
 {
 	gint rc;
 	g_auto(gnutls_datum_t) x = {NULL, 0};
@@ -51,7 +51,7 @@ jcat_ed25519_pubkey_to_bytes(const gnutls_pubkey_t pubkey, GError **error)
 }
 
 static gboolean
-jcat_ed25519_pubkey_from_bytes(GBytes *blob, gnutls_pubkey_t pubkey, GError **error)
+jcat_gnutls_ed25519_pubkey_from_bytes(GBytes *blob, gnutls_pubkey_t pubkey, GError **error)
 {
 	gint rc;
 	gnutls_datum_t x = {NULL, 0};
@@ -73,7 +73,7 @@ jcat_ed25519_pubkey_from_bytes(GBytes *blob, gnutls_pubkey_t pubkey, GError **er
 }
 
 static GBytes *
-jcat_ed25519_privkey_to_bytes(const gnutls_privkey_t privkey, GError **error)
+jcat_gnutls_ed25519_privkey_to_bytes(const gnutls_privkey_t privkey, GError **error)
 {
 	gint rc;
 	g_auto(gnutls_datum_t) k = {NULL, 0};
@@ -91,10 +91,10 @@ jcat_ed25519_privkey_to_bytes(const gnutls_privkey_t privkey, GError **error)
 }
 
 static gboolean
-jcat_ed25519_privkey_from_bytes(GBytes *blob_public,
-				GBytes *blob_privkey,
-				gnutls_privkey_t privkey,
-				GError **error)
+jcat_gnutls_ed25519_privkey_from_bytes(GBytes *blob_public,
+				       GBytes *blob_privkey,
+				       gnutls_privkey_t privkey,
+				       GError **error)
 {
 	gint rc;
 	gnutls_datum_t x = {NULL, 0};
@@ -120,9 +120,9 @@ jcat_ed25519_privkey_from_bytes(GBytes *blob_public,
 }
 
 static gboolean
-jcat_ed25519_engine_add_public_key_raw(JcatEngine *engine, GBytes *blob, GError **error)
+jcat_gnutls_ed25519_engine_add_public_key_raw(JcatEngine *engine, GBytes *blob, GError **error)
 {
-	JcatEd25519Engine *self = JCAT_ED25519_ENGINE(engine);
+	JcatGnutlsEd25519Engine *self = JCAT_GNUTLS_ED25519_ENGINE(engine);
 	gint rc;
 	g_auto(gnutls_pubkey_t) pubkey = NULL;
 
@@ -136,7 +136,7 @@ jcat_ed25519_engine_add_public_key_raw(JcatEngine *engine, GBytes *blob, GError 
 		return FALSE;
 	}
 
-	if (!jcat_ed25519_pubkey_from_bytes(blob, pubkey, error))
+	if (!jcat_gnutls_ed25519_pubkey_from_bytes(blob, pubkey, error))
 		return FALSE;
 
 	g_ptr_array_add(self->pubkeys, g_steal_pointer(&pubkey));
@@ -144,7 +144,7 @@ jcat_ed25519_engine_add_public_key_raw(JcatEngine *engine, GBytes *blob, GError 
 }
 
 static gboolean
-jcat_ed25519_engine_add_public_key(JcatEngine *engine, const gchar *filename, GError **error)
+jcat_gnutls_ed25519_engine_add_public_key(JcatEngine *engine, const gchar *filename, GError **error)
 {
 	g_autoptr(GBytes) blob = NULL;
 
@@ -155,17 +155,17 @@ jcat_ed25519_engine_add_public_key(JcatEngine *engine, const gchar *filename, GE
 	blob = jcat_get_contents_bytes(filename, error);
 	if (blob == NULL)
 		return FALSE;
-	return jcat_ed25519_engine_add_public_key_raw(engine, blob, error);
+	return jcat_gnutls_ed25519_engine_add_public_key_raw(engine, blob, error);
 }
 
 static JcatResult *
-jcat_ed25519_engine_pubkey_verify(JcatEngine *engine,
-				  GBytes *blob,
-				  GBytes *blob_signature,
-				  JcatVerifyFlags flags,
-				  GError **error)
+jcat_gnutls_ed25519_engine_pubkey_verify(JcatEngine *engine,
+					 GBytes *blob,
+					 GBytes *blob_signature,
+					 JcatVerifyFlags flags,
+					 GError **error)
 {
-	JcatEd25519Engine *self = JCAT_ED25519_ENGINE(engine);
+	JcatGnutlsEd25519Engine *self = JCAT_GNUTLS_ED25519_ENGINE(engine);
 
 	/* sanity check */
 	if (self->pubkeys->len == 0) {
@@ -195,12 +195,12 @@ jcat_ed25519_engine_pubkey_verify(JcatEngine *engine,
 }
 
 static JcatBlob *
-jcat_ed25519_engine_pubkey_sign(JcatEngine *engine,
-				GBytes *blob,
-				GBytes *blob_cert,
-				GBytes *blob_privkey,
-				JcatSignFlags flags,
-				GError **error)
+jcat_gnutls_ed25519_engine_pubkey_sign(JcatEngine *engine,
+				       GBytes *blob,
+				       GBytes *blob_cert,
+				       GBytes *blob_privkey,
+				       JcatSignFlags flags,
+				       GError **error)
 {
 	gint rc;
 	gnutls_datum_t data = {NULL, 0};
@@ -225,7 +225,7 @@ jcat_ed25519_engine_pubkey_sign(JcatEngine *engine,
 			    gnutls_strerror(rc));
 		return NULL;
 	}
-	if (!jcat_ed25519_privkey_from_bytes(blob_cert, blob_privkey, privkey, error))
+	if (!jcat_gnutls_ed25519_privkey_from_bytes(blob_cert, blob_privkey, privkey, error))
 		return NULL;
 
 	/* sign */
@@ -245,11 +245,11 @@ jcat_ed25519_engine_pubkey_sign(JcatEngine *engine,
 }
 
 static JcatResult *
-jcat_ed25519_engine_self_verify(JcatEngine *engine,
-				GBytes *blob,
-				GBytes *blob_signature,
-				JcatVerifyFlags flags,
-				GError **error)
+jcat_gnutls_ed25519_engine_self_verify(JcatEngine *engine,
+				       GBytes *blob,
+				       GBytes *blob_signature,
+				       JcatVerifyFlags flags,
+				       GError **error)
 {
 	gint rc;
 	gnutls_datum_t data = {NULL, 0};
@@ -272,7 +272,7 @@ jcat_ed25519_engine_self_verify(JcatEngine *engine,
 			    gnutls_strerror(rc));
 		return NULL;
 	}
-	if (!jcat_ed25519_pubkey_from_bytes(blob_pubkey, pubkey, error))
+	if (!jcat_gnutls_ed25519_pubkey_from_bytes(blob_pubkey, pubkey, error))
 		return NULL;
 
 	data.data = (guchar *)g_bytes_get_data(blob, NULL);
@@ -294,7 +294,10 @@ jcat_ed25519_engine_self_verify(JcatEngine *engine,
 }
 
 static JcatBlob *
-jcat_ed25519_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags flags, GError **error)
+jcat_gnutls_ed25519_engine_self_sign(JcatEngine *engine,
+				     GBytes *blob,
+				     JcatSignFlags flags,
+				     GError **error)
 {
 	gint rc;
 	gnutls_datum_t data = {NULL, 0};
@@ -353,12 +356,12 @@ jcat_ed25519_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags fl
 		}
 		if (!jcat_mkdir_parent(fn_privkey, error))
 			return NULL;
-		blob_pubkey = jcat_ed25519_pubkey_to_bytes(pubkey, error);
+		blob_pubkey = jcat_gnutls_ed25519_pubkey_to_bytes(pubkey, error);
 		if (!blob_pubkey)
 			return NULL;
 		if (!jcat_set_contents_bytes(fn_pubkey, blob_pubkey, 0666, error))
 			return NULL;
-		blob_privkey = jcat_ed25519_privkey_to_bytes(privkey, error);
+		blob_privkey = jcat_gnutls_ed25519_privkey_to_bytes(privkey, error);
 		if (!blob_privkey)
 			return NULL;
 		if (!jcat_set_contents_bytes(fn_privkey, blob_privkey, 0600, error))
@@ -367,12 +370,15 @@ jcat_ed25519_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags fl
 		blob_pubkey = jcat_get_contents_bytes(fn_pubkey, error);
 		if (blob_pubkey == NULL)
 			return NULL;
-		if (!jcat_ed25519_pubkey_from_bytes(blob_pubkey, pubkey, error))
+		if (!jcat_gnutls_ed25519_pubkey_from_bytes(blob_pubkey, pubkey, error))
 			return NULL;
 		blob_privkey = jcat_get_contents_bytes(fn_privkey, error);
 		if (blob_privkey == NULL)
 			return NULL;
-		if (!jcat_ed25519_privkey_from_bytes(blob_pubkey, blob_privkey, privkey, error))
+		if (!jcat_gnutls_ed25519_privkey_from_bytes(blob_pubkey,
+							    blob_privkey,
+							    privkey,
+							    error))
 			return NULL;
 	}
 
@@ -392,38 +398,38 @@ jcat_ed25519_engine_self_sign(JcatEngine *engine, GBytes *blob, JcatSignFlags fl
 }
 
 static void
-jcat_ed25519_engine_finalize(GObject *object)
+jcat_gnutls_ed25519_engine_finalize(GObject *object)
 {
-	JcatEd25519Engine *self = JCAT_ED25519_ENGINE(object);
+	JcatGnutlsEd25519Engine *self = JCAT_GNUTLS_ED25519_ENGINE(object);
 	g_ptr_array_unref(self->pubkeys);
-	G_OBJECT_CLASS(jcat_ed25519_engine_parent_class)->finalize(object);
+	G_OBJECT_CLASS(jcat_gnutls_ed25519_engine_parent_class)->finalize(object);
 }
 
 static void
-jcat_ed25519_engine_class_init(JcatEd25519EngineClass *klass)
+jcat_gnutls_ed25519_engine_class_init(JcatGnutlsEd25519EngineClass *klass)
 {
 	GObjectClass *object_class = G_OBJECT_CLASS(klass);
 	JcatEngineClass *klass_app = JCAT_ENGINE_CLASS(klass);
-	klass_app->add_public_key = jcat_ed25519_engine_add_public_key;
-	klass_app->add_public_key_raw = jcat_ed25519_engine_add_public_key_raw;
-	klass_app->pubkey_verify = jcat_ed25519_engine_pubkey_verify;
-	klass_app->pubkey_sign = jcat_ed25519_engine_pubkey_sign;
-	klass_app->self_verify = jcat_ed25519_engine_self_verify;
-	klass_app->self_sign = jcat_ed25519_engine_self_sign;
-	object_class->finalize = jcat_ed25519_engine_finalize;
+	klass_app->add_public_key = jcat_gnutls_ed25519_engine_add_public_key;
+	klass_app->add_public_key_raw = jcat_gnutls_ed25519_engine_add_public_key_raw;
+	klass_app->pubkey_verify = jcat_gnutls_ed25519_engine_pubkey_verify;
+	klass_app->pubkey_sign = jcat_gnutls_ed25519_engine_pubkey_sign;
+	klass_app->self_verify = jcat_gnutls_ed25519_engine_self_verify;
+	klass_app->self_sign = jcat_gnutls_ed25519_engine_self_sign;
+	object_class->finalize = jcat_gnutls_ed25519_engine_finalize;
 }
 
 static void
-jcat_ed25519_engine_init(JcatEd25519Engine *self)
+jcat_gnutls_ed25519_engine_init(JcatGnutlsEd25519Engine *self)
 {
 	self->pubkeys = g_ptr_array_new_with_free_func((GDestroyNotify)gnutls_pubkey_deinit);
 }
 
 JcatEngine *
-jcat_ed25519_engine_new(JcatContext *context)
+jcat_gnutls_ed25519_engine_new(JcatContext *context)
 {
 	g_return_val_if_fail(JCAT_IS_CONTEXT(context), NULL);
-	return JCAT_ENGINE(g_object_new(JCAT_TYPE_ED25519_ENGINE,
+	return JCAT_ENGINE(g_object_new(JCAT_TYPE_GNUTLS_GNUTLS_ED25519_ENGINE,
 					"context",
 					context,
 					"kind",
