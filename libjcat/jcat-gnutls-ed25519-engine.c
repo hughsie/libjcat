@@ -13,6 +13,7 @@
 
 #include "jcat-common-private.h"
 #include "jcat-engine-private.h"
+#include "jcat-gnutls-common.h"
 #include "jcat-gnutls-ed25519-engine.h"
 
 struct _JcatGnutlsEd25519Engine {
@@ -21,16 +22,6 @@ struct _JcatGnutlsEd25519Engine {
 };
 
 G_DEFINE_TYPE(JcatGnutlsEd25519Engine, jcat_gnutls_ed25519_engine, JCAT_TYPE_ENGINE)
-
-static void
-jcat_gnutls_ed25519_datum_clear(gnutls_datum_t *data)
-{
-	gnutls_free(data->data);
-}
-
-G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_pubkey_t, gnutls_pubkey_deinit, NULL)
-G_DEFINE_AUTO_CLEANUP_FREE_FUNC(gnutls_privkey_t, gnutls_privkey_deinit, NULL)
-G_DEFINE_AUTO_CLEANUP_CLEAR_FUNC(gnutls_datum_t, jcat_gnutls_ed25519_datum_clear)
 
 static GBytes *
 jcat_gnutls_ed25519_pubkey_to_bytes(const gnutls_pubkey_t pubkey, GError **error)
