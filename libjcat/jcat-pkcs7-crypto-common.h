@@ -10,24 +10,30 @@
 // Maybe remove this or set OPENSSL_API_COMPAT to a reasonable version
 #define OPENSSL_NO_DEPRECATED
 
-#include <openssl/crypto.h>
+/* PEM_read_bio_CMS is generated in cms.h by macros defined in pem.h */
+// clang-format off
 #include <openssl/pem.h>
-#include <openssl/x509.h>
-#include <openssl/x509v3.h>
-#include <openssl/x509_vfy.h>
-#include <openssl/pkcs7.h>
+
 #include <openssl/cms.h>
-#include <openssl/evp.h>
-#include <openssl/rsa.h>
-#include <openssl/rand.h>
+// clang-format on
+
+#include <openssl/crypto.h>
 #include <openssl/decoder.h>
 #include <openssl/encoder.h>
 #include <openssl/err.h>
+#include <openssl/evp.h>
+#include <openssl/pkcs7.h>
+#include <openssl/rand.h>
+#include <openssl/rsa.h>
+#include <openssl/x509.h>
+#include <openssl/x509_vfy.h>
+#include <openssl/x509v3.h>
 
 #include "jcat-compile.h"
 
 typedef STACK_OF(X509) STACK_OF_X509;
-void STACK_OF_X509_free(STACK_OF_X509 *stack);
+void
+STACK_OF_X509_free(STACK_OF_X509 *stack);
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wunused-function"

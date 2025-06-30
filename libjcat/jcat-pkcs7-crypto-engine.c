@@ -19,16 +19,13 @@ struct _JcatPkcs7Engine {
 
 G_DEFINE_TYPE(JcatPkcs7Engine, jcat_pkcs7_engine, JCAT_TYPE_ENGINE)
 
-
 static gboolean
-jcat_pkcs7_engine_add_pubkey_x509(JcatPkcs7Engine *self,
-				      X509 *crt,
-				      GError **error)
+jcat_pkcs7_engine_add_pubkey_x509(JcatPkcs7Engine *self, X509 *crt, GError **error)
 {
 	guint32 key_usage = X509_get_key_usage(crt);
 
 	if ((key_usage & X509v3_KU_DIGITAL_SIGNATURE) == 0 &&
-		(key_usage & X509v3_KU_KEY_CERT_SIGN) == 0) {
+	    (key_usage & X509v3_KU_KEY_CERT_SIGN) == 0) {
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_DATA,
@@ -185,7 +182,8 @@ jcat_pkcs7_engine_verify(JcatEngine *engine,
 		sk_X509_push(signer_certs, crt);
 
 		// TODO: Make sure that this actually verifys what we want to verify
-		/* setting this based on CMS_NOCERTS in pubkey_sign. Maybe redundant with CMS_NO_SIGNER_CERT_VERIFY */
+		/* setting `CMS_NOINTERN` flag based on `CMS_NOCERTS` in pubkey_sign.
+		 * This may be redundant with CMS_NO_SIGNER_CERT_VERIFY */
 		verify_flags |= CMS_NOINTERN;
 		/* setting this to allow self signed certs */
 		verify_flags |= CMS_NO_SIGNER_CERT_VERIFY;
@@ -206,35 +204,35 @@ jcat_pkcs7_engine_verify(JcatEngine *engine,
 
 	/* save details about the key for the result */
 	infos = CMS_get0_SignerInfos(cms);
-	for (int i = 0; i < sk_CMS_SignerInfo_num(infos); i++)
-	{
+	for (int i = 0; i < sk_CMS_SignerInfo_num(infos); i++) {
 		CMS_SignerInfo *info = sk_CMS_SignerInfo_value(infos, i);
 		g_autoptr(BIO) time_bio = NULL;
 		struct tm time_tm;
 		time_t signing_time;
 		int stime_loc = CMS_signed_get_attr_by_NID(info, NID_pkcs9_signingTime, -1);
-		X509_ATTRIBUTE* stime_attr = CMS_signed_get_attr(info, stime_loc);
-		ASN1_TYPE* stime = X509_ATTRIBUTE_get0_type(stime_attr, 0);
+		X509_ATTRIBUTE *stime_attr = CMS_signed_get_attr(info, stime_loc);
+		ASN1_TYPE *stime = X509_ATTRIBUTE_get0_type(stime_attr, 0);
 		ASN1_TIME *t = NULL;
-		if (stime && (stime->type == V_ASN1_UTCTIME || stime->type == V_ASN1_GENERALIZEDTIME)) {
-			t = (ASN1_TIME*) stime->value.asn1_value;
+		if (stime &&
+		    (stime->type == V_ASN1_UTCTIME || stime->type == V_ASN1_GENERALIZEDTIME)) {
+			t = (ASN1_TIME *)stime->value.asn1_value;
 		} else {
-				g_autofree gchar *error_str = jcat_pkcs7_get_errors();
-				g_set_error(error,
-						G_IO_ERROR,
-						G_IO_ERROR_INVALID_DATA,
-						"failed to extract timestamp: %s",
-						error_str);
+			g_autofree gchar *error_str = jcat_pkcs7_get_errors();
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "failed to extract timestamp: %s",
+				    error_str);
 			return NULL;
 		}
 
 		if (!ASN1_TIME_to_tm(t, &time_tm)) {
-				g_autofree gchar *error_str = jcat_pkcs7_get_errors();
-				g_set_error(error,
-						G_IO_ERROR,
-						G_IO_ERROR_INVALID_DATA,
-						"failed to convert timestamp: %s",
-						error_str);
+			g_autofree gchar *error_str = jcat_pkcs7_get_errors();
+			g_set_error(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "failed to convert timestamp: %s",
+				    error_str);
 			return NULL;
 		}
 
@@ -251,20 +249,20 @@ jcat_pkcs7_engine_verify(JcatEngine *engine,
 			if (!CMS_SignerInfo_get0_signer_id(info, NULL, &issuer_name, NULL)) {
 				g_autofree gchar *error_str = jcat_pkcs7_get_errors();
 				g_set_error(error,
-					G_IO_ERROR,
-					G_IO_ERROR_INVALID_DATA,
-					"failed to get CMS signer id: %s",
-					error_str);
+					    G_IO_ERROR,
+					    G_IO_ERROR_INVALID_DATA,
+					    "failed to get CMS signer id: %s",
+					    error_str);
 				return NULL;
 			}
 
 			if (X509_NAME_print_ex(issuer_bio, issuer_name, 0, XN_FLAG_RFC2253) == -1) {
 				g_autofree gchar *error_str = jcat_pkcs7_get_errors();
 				g_set_error(error,
-					G_IO_ERROR,
-					G_IO_ERROR_INVALID_DATA,
-					"failed to parse certificate issuer a: %s",
-					error_str);
+					    G_IO_ERROR,
+					    G_IO_ERROR_INVALID_DATA,
+					    "failed to parse certificate issuer a: %s",
+					    error_str);
 				return NULL;
 			}
 
@@ -273,7 +271,10 @@ jcat_pkcs7_engine_verify(JcatEngine *engine,
 
 			if (issuer_size > 0 && issuer_string != NULL) {
 				/* issuer name isn't null terminated */
-				g_string_overwrite_len(authority_newest, 0, issuer_string, issuer_size);
+				g_string_overwrite_len(authority_newest,
+						       0,
+						       issuer_string,
+						       issuer_size);
 				g_string_truncate(authority_newest, issuer_size);
 			}
 		}
@@ -337,6 +338,11 @@ jcat_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 {
 	g_autoptr(EVP_PKEY) key = NULL;
 	g_autoptr(X509) crt = NULL;
+	g_autoptr(CMS_ContentInfo) cms_ci = NULL;
+	g_autoptr(BIO) blob_bio = NULL;
+	g_autoptr(BIO) sig_bio = NULL;
+	gchar *bio_buf;
+	gsize bio_len;
 	guint signing_flags = CMS_DETACHED;
 
 	/* nothing to do */
@@ -353,7 +359,6 @@ jcat_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 	if (crt == NULL)
 		return NULL;
 
-
 	/* get the digest algorithm from the public key */
 	// TODO: The gnutls uses the keys "preferred_hash_algorithm". Port that if necissary.
 	// gchar mdname[256] = {0};
@@ -365,30 +370,28 @@ jcat_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 	/* sign data */
 	// TODO: Implement these sign ing flags
 	// TODO: CMS_NO_SIGNING_TIME was added in OpenSSL 3.5
-	//if (!(flags & JCAT_SIGN_FLAG_ADD_TIMESTAMP))
+	// if (!(flags & JCAT_SIGN_FLAG_ADD_TIMESTAMP))
 	//	signing_flags |= CMS_NO_SIGNING_TIME;
 	if (!(flags & JCAT_SIGN_FLAG_ADD_CERT))
 		signing_flags |= CMS_NOCERTS;
-	g_autoptr(BIO) blob_bio = BIO_new_mem_buf(g_bytes_get_data(blob, NULL), g_bytes_get_size(blob));
-	g_autoptr(CMS_ContentInfo) cms_ci = CMS_sign(crt, key, NULL, blob_bio, signing_flags);
+	blob_bio = BIO_new_mem_buf(g_bytes_get_data(blob, NULL), g_bytes_get_size(blob));
+	cms_ci = CMS_sign(crt, key, NULL, blob_bio, signing_flags);
 
-	g_autoptr(BIO) sig_bio = BIO_new(BIO_s_mem());
+	sig_bio = BIO_new(BIO_s_mem());
 
 	if (!PEM_write_bio_CMS(sig_bio, cms_ci)) {
 		g_autofree gchar *error_str = jcat_pkcs7_get_errors();
 		g_set_error(error,
-			G_IO_ERROR,
-			G_IO_ERROR_INVALID_DATA,
-			"failed to encode pkcs7 as pem: %s",
-			error_str);
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "failed to encode pkcs7 as pem: %s",
+			    error_str);
 		return NULL;
 	}
 
-	gchar* bio_buf;
-	gsize bio_len = BIO_get_mem_data(sig_bio, &bio_buf);
-	gchar *str = g_strndup((const gchar *)bio_buf, bio_len);
+	bio_len = BIO_get_mem_data(sig_bio, &bio_buf);
 
-	return jcat_blob_new_utf8(JCAT_BLOB_KIND_PKCS7, str);
+	return jcat_blob_new_utf8(JCAT_BLOB_KIND_PKCS7, g_strndup((const gchar *)bio_buf, bio_len));
 }
 
 /* creates a detached signature just like:

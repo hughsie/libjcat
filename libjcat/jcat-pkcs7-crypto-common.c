@@ -17,7 +17,8 @@
 // TODO: ERR_pop_to_mark at the end of every function?
 
 // This allows us to use autoptr with STACK_OF(X509)
-void STACK_OF_X509_free(STACK_OF_X509 *stack)
+void
+STACK_OF_X509_free(STACK_OF_X509 *stack)
 {
 	return sk_X509_free(stack);
 }
@@ -127,8 +128,13 @@ jcat_pkcs7_load_privkey_from_blob_pem(GBytes *blob, GError **error)
 	gsize blob_size;
 	const guchar *blob_data = g_bytes_get_data(blob, &blob_size);
 
-	dec_ctx = OSSL_DECODER_CTX_new_for_pkey(&key, "PEM", NULL,
-		"RSA", OSSL_KEYMGMT_SELECT_KEYPAIR, NULL, NULL);
+	dec_ctx = OSSL_DECODER_CTX_new_for_pkey(&key,
+						"PEM",
+						NULL,
+						"RSA",
+						OSSL_KEYMGMT_SELECT_KEYPAIR,
+						NULL,
+						NULL);
 
 	if (dec_ctx == NULL) {
 		g_autofree gchar *error_str = jcat_pkcs7_get_errors();
@@ -208,8 +214,7 @@ jcat_pkcs7_create_private_key(GError **error)
 		return NULL;
 	}
 
-	enc_ctx = OSSL_ENCODER_CTX_new_for_pkey(pkey, EVP_PKEY_KEYPAIR,
-		"PEM", NULL, NULL);
+	enc_ctx = OSSL_ENCODER_CTX_new_for_pkey(pkey, EVP_PKEY_KEYPAIR, "PEM", NULL, NULL);
 	if (enc_ctx == NULL) {
 		g_autofree gchar *error_str = jcat_pkcs7_get_errors();
 		g_set_error(error,
@@ -261,7 +266,8 @@ jcat_pkcs7_create_client_certificate(EVP_PKEY *privkey, GError **error)
 	}
 
 	/* set positive random serial number */
-	/* generate random number 1 bit short of 20 bytes so that it becomes positive (OpenSSL does this) */
+	/* generate random number 1 bit short of 20 bytes so that it's MSb is 0 (it's positive)
+	 * This matches the OpenSSL implementation */
 	if (!BN_rand(sha1bn, (20 * 8) - 1, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY)) {
 		g_autofree gchar *error_str = jcat_pkcs7_get_errors();
 		g_set_error(error,
@@ -308,10 +314,10 @@ jcat_pkcs7_create_client_certificate(EVP_PKEY *privkey, GError **error)
 	if (X509_add1_ext_i2d(crt, NID_basic_constraints, bcons, 1, X509V3_ADD_DEFAULT) < 1) {
 		g_autofree gchar *error_str = jcat_pkcs7_get_errors();
 		g_set_error(error,
-				G_IO_ERROR,
-				G_IO_ERROR_INVALID_DATA,
-				"failed to add basic constraints to cert: %s",
-				error_str);
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "failed to add basic constraints to cert: %s",
+			    error_str);
 		return NULL;
 	}
 
@@ -320,10 +326,10 @@ jcat_pkcs7_create_client_certificate(EVP_PKEY *privkey, GError **error)
 	if (X509_add1_ext_i2d(crt, NID_key_usage, usage, 1, X509V3_ADD_DEFAULT) < 1) {
 		g_autofree gchar *error_str = jcat_pkcs7_get_errors();
 		g_set_error(error,
-				G_IO_ERROR,
-				G_IO_ERROR_INVALID_DATA,
-				"failed to add key usage to cert: %s",
-				error_str);
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "failed to add key usage to cert: %s",
+			    error_str);
 		return NULL;
 	}
 
@@ -331,20 +337,20 @@ jcat_pkcs7_create_client_certificate(EVP_PKEY *privkey, GError **error)
 	if (!X509_pubkey_digest(crt, EVP_sha1(), md, &md_size)) {
 		g_autofree gchar *error_str = jcat_pkcs7_get_errors();
 		g_set_error(error,
-				G_IO_ERROR,
-				G_IO_ERROR_INVALID_DATA,
-				"failed to create digest of certs pubkey: %s",
-				error_str);
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "failed to create digest of certs pubkey: %s",
+			    error_str);
 		return NULL;
 	}
 	ASN1_OCTET_STRING_set(skid, md, md_size);
 	if (X509_add1_ext_i2d(crt, NID_subject_key_identifier, skid, 0, X509V3_ADD_DEFAULT) < 1) {
 		g_autofree gchar *error_str = jcat_pkcs7_get_errors();
 		g_set_error(error,
-				G_IO_ERROR,
-				G_IO_ERROR_INVALID_DATA,
-				"failed to add signer key id to cert: %s",
-				error_str);
+			    G_IO_ERROR,
+			    G_IO_ERROR_INVALID_DATA,
+			    "failed to add signer key id to cert: %s",
+			    error_str);
 		return NULL;
 	}
 
