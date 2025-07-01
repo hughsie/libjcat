@@ -343,7 +343,7 @@ jcat_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 	g_autoptr(BIO) sig_bio = NULL;
 	gchar *bio_buf;
 	gsize bio_len;
-	guint signing_flags = CMS_DETACHED;
+	guint signing_flags = CMS_DETACHED | CMS_NOSMIMECAP;
 
 	/* nothing to do */
 	if (g_bytes_get_size(blob) == 0) {
