@@ -360,7 +360,6 @@ jcat_libcrypto_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 					GError **error)
 {
 	gchar *bio_buf;
-	gsize bio_len;
 	guint signing_flags = CMS_BINARY | CMS_DETACHED | CMS_NOSMIMECAP;
 	g_autoptr(BIO) blob_bio = NULL;
 	g_autoptr(BIO) sig_bio = NULL;
@@ -402,7 +401,17 @@ jcat_libcrypto_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 
 	sig_bio = BIO_new(BIO_s_mem());
 
-	if (!PEM_write_bio_CMS(sig_bio, cms)) {
+	/* PEM_write_bio_CMS is a wrapper of PEM_ASN1_write_bio, by setting PEM_STRING_PKCS7 we
+	 * create get a PEM representation with a PKCS7 header */
+	if (!PEM_ASN1_write_bio((i2d_of_void *)i2d_CMS_ContentInfo,
+				PEM_STRING_PKCS7,
+				sig_bio,
+				cms,
+				NULL,
+				NULL,
+				0,
+				NULL,
+				NULL)) {
 		g_autofree gchar *error_str = jcat_libcrypto_get_errors();
 		g_set_error(error,
 			    G_IO_ERROR,
@@ -412,9 +421,11 @@ jcat_libcrypto_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 		return NULL;
 	}
 
-	bio_len = BIO_get_mem_data(sig_bio, &bio_buf);
+	/* NULL terminate the BIO */
+	BIO_write(sig_bio, "", 1);
+	BIO_get_mem_data(sig_bio, &bio_buf);
 
-	return jcat_blob_new_utf8(JCAT_BLOB_KIND_PKCS7, g_strndup((const gchar *)bio_buf, bio_len));
+	return jcat_blob_new_utf8(JCAT_BLOB_KIND_PKCS7, bio_buf);
 }
 
 static JcatBlob *
