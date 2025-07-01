@@ -341,9 +341,10 @@ jcat_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 	g_autoptr(CMS_ContentInfo) cms_ci = NULL;
 	g_autoptr(BIO) blob_bio = NULL;
 	g_autoptr(BIO) sig_bio = NULL;
+	g_autoptr(GString) rewrap = NULL;
 	gchar *bio_buf;
 	gsize bio_len;
-	guint signing_flags = CMS_DETACHED | CMS_NOSMIMECAP;
+	guint signing_flags = CMS_BINARY | CMS_DETACHED | CMS_NOSMIMECAP;
 
 	/* nothing to do */
 	if (g_bytes_get_size(blob) == 0) {
@@ -391,7 +392,10 @@ jcat_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 
 	bio_len = BIO_get_mem_data(sig_bio, &bio_buf);
 
-	return jcat_blob_new_utf8(JCAT_BLOB_KIND_PKCS7, g_strndup((const gchar *)bio_buf, bio_len));
+	rewrap = g_string_new_len(bio_buf, bio_len);
+	g_string_replace(rewrap, " CMS-----", " PKCS7-----", 0);
+
+	return jcat_blob_new_utf8(JCAT_BLOB_KIND_PKCS7, rewrap->str);
 }
 
 /* creates a detached signature just like:
