@@ -38,7 +38,6 @@ jcat_libcrypto_pkcs7_engine_add_pubkey_x509(JcatLibcryptoPkcs7Engine *self,
 
 	if (!X509_STORE_add_cert(self->trust_store, crt)) {
 		g_autofree gchar *error_str = jcat_libcrypto_get_errors();
-
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_DATA,
@@ -54,11 +53,11 @@ static gboolean
 jcat_libcrypto_pkcs7_engine_add_public_key_raw(JcatEngine *engine, GBytes *blob, GError **error)
 {
 	JcatLibcryptoPkcs7Engine *self = JCAT_LIBCRYPTO_PKCS7_ENGINE(engine);
-	g_autoptr(X509) cert = jcat_libcrypto_pkcs7_load_crt_from_blob_pem(blob, error);
-	if (cert == NULL) {
-		return FALSE;
-	}
+	g_autoptr(X509) cert = NULL;
 
+	cert = jcat_libcrypto_pkcs7_load_crt_from_blob_pem(blob, error);
+	if (cert == NULL)
+		return FALSE;
 	return jcat_libcrypto_pkcs7_engine_add_pubkey_x509(self, cert, error);
 }
 
@@ -76,24 +75,20 @@ jcat_libcrypto_pkcs7_engine_add_public_key(JcatEngine *engine,
 		if (blob == NULL)
 			return FALSE;
 		crt = jcat_libcrypto_pkcs7_load_crt_from_blob_pem(blob, error);
-		if (crt == NULL) {
+		if (crt == NULL)
 			return FALSE;
-		}
-		if (!jcat_libcrypto_pkcs7_engine_add_pubkey_x509(self, crt, error)) {
+		if (!jcat_libcrypto_pkcs7_engine_add_pubkey_x509(self, crt, error))
 			return FALSE;
-		}
 	} else if (g_str_has_suffix(filename, ".cer") || g_str_has_suffix(filename, ".crt") ||
 		   g_str_has_suffix(filename, ".der")) {
 		g_autoptr(GBytes) blob = jcat_get_contents_bytes(filename, error);
 		if (blob == NULL)
 			return FALSE;
 		crt = jcat_libcrypto_pkcs7_load_crt_from_blob_der(blob, error);
-		if (crt == NULL) {
+		if (crt == NULL)
 			return FALSE;
-		}
-		if (!jcat_libcrypto_pkcs7_engine_add_pubkey_x509(self, crt, error)) {
+		if (!jcat_libcrypto_pkcs7_engine_add_pubkey_x509(self, crt, error))
 			return FALSE;
-		}
 	} else {
 		g_autofree gchar *basename = g_path_get_basename(filename);
 		g_debug("ignoring %s as not PKCS-7 certificate", basename);
@@ -111,10 +106,8 @@ jcat_libcrypto_pkcs7_engine_setup(JcatEngine *engine, GError **error)
 		return TRUE;
 
 	self->trust_store = X509_STORE_new();
-
 	if (self->trust_store == NULL) {
 		g_autofree gchar *error_str = jcat_libcrypto_get_errors();
-
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_DATA,
@@ -137,17 +130,17 @@ jcat_libcrypto_pkcs7_engine_verify(JcatEngine *engine,
 				   GError **error)
 {
 	JcatLibcryptoPkcs7Engine *self = JCAT_LIBCRYPTO_PKCS7_ENGINE(engine);
-	g_autoptr(CMS_ContentInfo) cms = NULL;
-	STACK_OF(CMS_SignerInfo) *infos = NULL;
 	gsize blob_size = 0;
 	gsize sig_size = 0;
 	int rc;
 	int verify_flags = CMS_BINARY;
+	gint64 timestamp_newest = 0;
 	g_autoptr(BIO) bio = NULL;
 	g_autoptr(BIO) bio_signature = NULL;
-	gint64 timestamp_newest = 0;
+	g_autoptr(CMS_ContentInfo) cms = NULL;
 	g_autoptr(GString) authority_newest = g_string_new(NULL);
 	g_autoptr(OSSL_DECODER_CTX) dctx = OSSL_DECODER_CTX_new();
+	STACK_OF(CMS_SignerInfo) *infos = NULL;
 
 	/* import the signature */
 	sig_size = g_bytes_get_size(blob_signature);
@@ -217,6 +210,7 @@ jcat_libcrypto_pkcs7_engine_verify(JcatEngine *engine,
 		X509_ATTRIBUTE *stime_attr = CMS_signed_get_attr(info, stime_loc);
 		ASN1_TYPE *stime = X509_ATTRIBUTE_get0_type(stime_attr, 0);
 		ASN1_TIME *t = NULL;
+
 		if (stime &&
 		    (stime->type == V_ASN1_UTCTIME || stime->type == V_ASN1_GENERALIZEDTIME)) {
 			t = (ASN1_TIME *)stime->value.asn1_value;
@@ -241,7 +235,6 @@ jcat_libcrypto_pkcs7_engine_verify(JcatEngine *engine,
 		}
 
 		signing_time = mktime(&time_tm);
-
 		if (signing_time > timestamp_newest) {
 			g_autoptr(BIO) issuer_bio = BIO_new(BIO_s_mem());
 			X509_NAME *issuer_name = NULL;
@@ -271,15 +264,11 @@ jcat_libcrypto_pkcs7_engine_verify(JcatEngine *engine,
 			}
 
 			issuer_size = BIO_get_mem_data(issuer_bio, &issuer_string);
-			g_strndup(issuer_string, issuer_size);
-
 			if (issuer_size > 0 && issuer_string != NULL) {
-				/* issuer name isn't null terminated */
 				g_string_overwrite_len(authority_newest,
 						       0,
 						       issuer_string,
 						       issuer_size);
-				g_string_truncate(authority_newest, issuer_size);
 			}
 		}
 	}
@@ -295,8 +284,6 @@ jcat_libcrypto_pkcs7_engine_verify(JcatEngine *engine,
 					NULL));
 }
 
-/* verifies a detached signature just like:
- *  `certtool --p7-verify --load-certificate client.pem --infile=test.p7b` */
 static JcatResult *
 jcat_libcrypto_pkcs7_engine_self_verify(JcatEngine *engine,
 					GBytes *blob,
@@ -305,8 +292,8 @@ jcat_libcrypto_pkcs7_engine_self_verify(JcatEngine *engine,
 					GError **error)
 {
 	g_autofree gchar *filename = NULL;
-	g_autoptr(X509) crt = NULL;
 	g_autoptr(GBytes) cert_blob = NULL;
+	g_autoptr(X509) crt = NULL;
 
 	filename =
 	    g_build_filename(jcat_engine_get_keyring_path(engine), "pki", "client.pem", NULL);
@@ -320,8 +307,6 @@ jcat_libcrypto_pkcs7_engine_self_verify(JcatEngine *engine,
 	return jcat_libcrypto_pkcs7_engine_verify(engine, blob, blob_signature, crt, flags, error);
 }
 
-/* verifies a detached signature just like:
- *  `certtool --p7-verify --load-certificate client.pem --infile=test.p7b` */
 static JcatResult *
 jcat_libcrypto_pkcs7_engine_pubkey_verify(JcatEngine *engine,
 					  GBytes *blob,
@@ -352,7 +337,7 @@ jcat_libcrypto_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 
 	/* nothing to do */
 	if (g_bytes_get_size(blob) == 0) {
-		g_set_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "nothing to do");
+		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "nothing to do");
 		return NULL;
 	}
 
@@ -402,9 +387,6 @@ jcat_libcrypto_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 	return jcat_blob_new_utf8(JCAT_BLOB_KIND_PKCS7, rewrap->str);
 }
 
-/* creates a detached signature just like:
- *  `certtool --p7-detached-sign --load-certificate client.pem \
- *    --load-privkey secret.pem --outfile=test.p7b` */
 static JcatBlob *
 jcat_libcrypto_pkcs7_engine_self_sign(JcatEngine *engine,
 				      GBytes *blob,

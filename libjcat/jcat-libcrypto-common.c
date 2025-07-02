@@ -26,20 +26,17 @@ gchar *
 jcat_libcrypto_get_errors(void)
 {
 	guint32 packed_error = ERR_peek_error();
-	g_autoptr(GString) string = g_string_new(NULL);
-	g_autoptr(BIO) string_bio = BIO_new(BIO_s_mem());
 	size_t bio_len = 0;
 	char *bio_buf = NULL;
+	g_autoptr(BIO) string_bio = BIO_new(BIO_s_mem());
 
+	/* nothing found */
 	if (packed_error == 0)
-		return NULL;
+		return g_strdup("unspecified error");
 
 	ERR_print_errors(string_bio);
-
 	bio_len = BIO_get_mem_data(string_bio, &bio_buf);
-	g_string_append_len(string, bio_buf, bio_len);
-
-	return g_strdup(string->str);
+	return g_strndup(bio_buf, bio_len);
 }
 
 X509 *
@@ -67,7 +64,6 @@ jcat_libcrypto_pkcs7_load_crt_from_blob_pem(GBytes *blob, GError **error)
 	/* decode the certificate */
 	if (!PEM_read_bio_X509(bio_blob, &crt, NULL, NULL)) {
 		g_autofree gchar *error_str = jcat_libcrypto_get_errors();
-
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_DATA,
@@ -137,7 +133,6 @@ jcat_libcrypto_pkcs7_load_privkey_from_blob_pem(GBytes *blob, GError **error)
 
 	if (dec_ctx == NULL) {
 		g_autofree gchar *error_str = jcat_libcrypto_get_errors();
-
 		g_set_error(error,
 			    G_IO_ERROR,
 			    G_IO_ERROR_INVALID_DATA,
