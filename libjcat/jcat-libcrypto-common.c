@@ -118,10 +118,10 @@ jcat_libcrypto_pkcs7_load_crt_from_blob_der(GBytes *blob, GError **error)
 EVP_PKEY *
 jcat_libcrypto_pkcs7_load_privkey_from_blob_pem(GBytes *blob, GError **error)
 {
-	g_autoptr(EVP_PKEY) key = NULL;
-	g_autoptr(OSSL_DECODER_CTX) dec_ctx = NULL;
 	gsize blob_size;
 	const guchar *blob_data = g_bytes_get_data(blob, &blob_size);
+	g_autoptr(EVP_PKEY) key = NULL;
+	g_autoptr(OSSL_DECODER_CTX) dec_ctx = NULL;
 
 	dec_ctx = OSSL_DECODER_CTX_new_for_pkey(&key,
 						"PEM",
@@ -130,7 +130,6 @@ jcat_libcrypto_pkcs7_load_privkey_from_blob_pem(GBytes *blob, GError **error)
 						OSSL_KEYMGMT_SELECT_KEYPAIR,
 						NULL,
 						NULL);
-
 	if (dec_ctx == NULL) {
 		g_autofree gchar *error_str = jcat_libcrypto_get_errors();
 		g_set_error(error,
@@ -154,20 +153,18 @@ jcat_libcrypto_pkcs7_load_privkey_from_blob_pem(GBytes *blob, GError **error)
 	return g_steal_pointer(&key);
 }
 
-/* generates a private key just like `certtool --generate-privkey` */
 GBytes *
 jcat_libcrypto_pkcs7_create_private_key(GError **error)
 {
-	g_autoptr(EVP_PKEY) pkey = NULL;
-	g_autoptr(EVP_PKEY_CTX) ctx = NULL;
-	g_autoptr(OSSL_ENCODER_CTX) enc_ctx = NULL;
-	g_autoptr(BIO) pkey_bio = BIO_new(BIO_s_mem());
-	g_autofree guchar *pem_data = NULL;
 	gsize pem_data_size = 0;
+	g_autofree guchar *pem_data = NULL;
+	g_autoptr(BIO) pkey_bio = BIO_new(BIO_s_mem());
+	g_autoptr(EVP_PKEY_CTX) ctx = NULL;
+	g_autoptr(EVP_PKEY) pkey = NULL;
+	g_autoptr(OSSL_ENCODER_CTX) enc_ctx = NULL;
 
 	ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_RSA, NULL);
-
-	if (!ctx) {
+	if (ctx == NULL) {
 		g_autofree gchar *error_str = jcat_libcrypto_get_errors();
 		g_set_error(error,
 			    G_IO_ERROR,
@@ -232,21 +229,19 @@ jcat_libcrypto_pkcs7_create_private_key(GError **error)
 	return g_bytes_new_take(g_steal_pointer(&pem_data), pem_data_size);
 }
 
-/* generates a self signed certificate just like:
- *  `certtool --generate-self-signed --load-privkey priv.pem` */
 GBytes *
 jcat_libcrypto_pkcs7_create_client_certificate(EVP_PKEY *privkey, GError **error)
 {
-	g_autoptr(BIGNUM) sha1bn = BN_new();
-	g_autoptr(X509) crt = X509_new();
-	g_autoptr(BIO) crt_bio = BIO_new(BIO_s_mem());
-	g_autoptr(BASIC_CONSTRAINTS) bcons = BASIC_CONSTRAINTS_new();
+	const guchar *crt_buf;
+	gsize crt_size;
+	guchar md[EVP_MAX_MD_SIZE] = {0};
+	guint md_size = 0;
 	g_autoptr(ASN1_INTEGER) usage = ASN1_INTEGER_new();
 	g_autoptr(ASN1_OCTET_STRING) skid = ASN1_OCTET_STRING_new();
-	const guchar *crt_buf;
-	guchar md[EVP_MAX_MD_SIZE];
-	gsize crt_size;
-	guint md_size = 0;
+	g_autoptr(BASIC_CONSTRAINTS) bcons = BASIC_CONSTRAINTS_new();
+	g_autoptr(BIGNUM) sha1bn = BN_new();
+	g_autoptr(BIO) crt_bio = BIO_new(BIO_s_mem());
+	g_autoptr(X509) crt = X509_new();
 
 	/* set public key */
 	if (!X509_set_pubkey(crt, privkey)) {
@@ -259,7 +254,6 @@ jcat_libcrypto_pkcs7_create_client_certificate(EVP_PKEY *privkey, GError **error
 		return NULL;
 	}
 
-	/* set positive random serial number */
 	/* generate random number 1 bit short of 20 bytes so that it's MSb is 0 (it's positive)
 	 * This matches the OpenSSL implementation */
 	if (!BN_rand(sha1bn, (20 * 8) - 1, BN_RAND_TOP_ANY, BN_RAND_BOTTOM_ANY)) {

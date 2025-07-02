@@ -13,7 +13,6 @@
 /* PEM_read_bio_CMS is generated in cms.h by macros defined in pem.h */
 // clang-format off
 #include <openssl/pem.h>
-
 #include <openssl/cms.h>
 // clang-format on
 

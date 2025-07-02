@@ -236,10 +236,10 @@ jcat_libcrypto_pkcs7_engine_verify(JcatEngine *engine,
 
 		signing_time = mktime(&time_tm);
 		if (signing_time > timestamp_newest) {
-			g_autoptr(BIO) issuer_bio = BIO_new(BIO_s_mem());
 			X509_NAME *issuer_name = NULL;
 			gchar *issuer_string = NULL;
 			gsize issuer_size;
+			g_autoptr(BIO) issuer_bio = BIO_new(BIO_s_mem());
 
 			timestamp_newest = signing_time;
 
@@ -325,19 +325,22 @@ jcat_libcrypto_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 					JcatSignFlags flags,
 					GError **error)
 {
-	g_autoptr(EVP_PKEY) key = NULL;
-	g_autoptr(X509) crt = NULL;
-	g_autoptr(CMS_ContentInfo) cms_ci = NULL;
-	g_autoptr(BIO) blob_bio = NULL;
-	g_autoptr(BIO) sig_bio = NULL;
-	g_autoptr(GString) rewrap = NULL;
 	gchar *bio_buf;
 	gsize bio_len;
 	guint signing_flags = CMS_BINARY | CMS_DETACHED | CMS_NOSMIMECAP;
+	g_autoptr(BIO) blob_bio = NULL;
+	g_autoptr(BIO) sig_bio = NULL;
+	g_autoptr(CMS_ContentInfo) cms_ci = NULL;
+	g_autoptr(EVP_PKEY) key = NULL;
+	g_autoptr(GString) rewrap = NULL;
+	g_autoptr(X509) crt = NULL;
 
 	/* nothing to do */
 	if (g_bytes_get_size(blob) == 0) {
-		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_ARGUMENT, "nothing to do");
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_ARGUMENT,
+				    "nothing to do");
 		return NULL;
 	}
 
