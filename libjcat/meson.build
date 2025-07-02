@@ -37,6 +37,7 @@ if get_option('gnutls_pkcs7')
   jcat_src += 'jcat-gnutls-pkcs7-engine.c'
 endif
 if get_option('gnutls_ed25519')
+  jcat_src += 'jcat-gnutls-common.c'
   jcat_src += 'jcat-gnutls-ed25519-engine.c'
 endif
 
