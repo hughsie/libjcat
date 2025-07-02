@@ -531,7 +531,7 @@ static void
 jcat_pkcs7_engine_self_signed_func(void)
 {
 #ifdef HAVE_PKCS7
-	static const char payload_str[] = "Hello, world!";
+	static const char payload_str[] = "{\n  \"hello\": \"world\"\n}";
 	g_autofree gchar *str = NULL;
 	g_autoptr(JcatBlob) signature = NULL;
 	g_autoptr(JcatContext) context = jcat_context_new();
@@ -643,7 +643,7 @@ static void
 jcat_ed25519_engine_self_signed_func(void)
 {
 #ifdef HAVE_ED25519
-	static const char payload_str[] = "Hello, world!";
+	static const char payload_str[] = "{\n  \"hello\": \"world\"\n}";
 	g_autofree gchar *tmp_dir = NULL;
 	g_autoptr(JcatContext) context = jcat_context_new();
 	g_autoptr(JcatEngine) engine = NULL;
