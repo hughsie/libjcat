@@ -351,19 +351,16 @@ jcat_libcrypto_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 	if (crt == NULL)
 		return NULL;
 
-	/* get the digest algorithm from the public key */
-	// TODO: The gnutls uses the keys "preferred_hash_algorithm". Port that if necissary.
-	// gchar mdname[256] = {0};
-	// gint default_digest_nid = 0;
-	// EVP_PKEY_get_default_digest_name(key, mdname, sizeof(mdname));
-	// EVP_PKEY_get_default_digest_nid(key, &default_digest_nid);
-	// g_debug("pubkey_sign pref digest %s %d", mdname, default_digest_nid);
+	/* signing is done using the default for the supplied key (SHA256 for RSA)
+	 * if a different digest algorithm is needed CMS_add1_signer can be used */
 
 	/* sign data */
-	// TODO: Implement these sign ing flags
-	// TODO: CMS_NO_SIGNING_TIME was added in OpenSSL 3.5
-	// if (!(flags & JCAT_SIGN_FLAG_ADD_TIMESTAMP))
-	//	signing_flags |= CMS_NO_SIGNING_TIME;
+	if (!(flags & JCAT_SIGN_FLAG_ADD_TIMESTAMP))
+#if OPENSSL_VERSION_PREREQ(3, 5)
+		signing_flags |= CMS_NO_SIGNING_TIME;
+#else
+		g_debug("WARNING: signing without a timestamp requires OpenSSL 3.5 or later");
+#endif
 	if (!(flags & JCAT_SIGN_FLAG_ADD_CERT))
 		signing_flags |= CMS_NOCERTS;
 	blob_bio = BIO_new_mem_buf(g_bytes_get_data(blob, NULL), g_bytes_get_size(blob));
