@@ -210,6 +210,9 @@ jcat_libcrypto_pkcs7_engine_verify(JcatEngine *engine,
 		X509_ATTRIBUTE *stime_attr = CMS_signed_get_attr(info, stime_loc);
 		ASN1_TYPE *stime = X509_ATTRIBUTE_get0_type(stime_attr, 0);
 		ASN1_TIME *t = NULL;
+		g_autoptr(BIO) issuer_bio = BIO_new(BIO_s_mem());
+
+		BIO_set_flags(issuer_bio, BIO_FLAGS_NONCLEAR_RST);
 
 		if (stime &&
 		    (stime->type == V_ASN1_UTCTIME || stime->type == V_ASN1_GENERALIZEDTIME)) {
@@ -238,8 +241,6 @@ jcat_libcrypto_pkcs7_engine_verify(JcatEngine *engine,
 		if (signing_time > timestamp_newest) {
 			X509_NAME *issuer_name = NULL;
 			gchar *issuer_string = NULL;
-			gsize issuer_size;
-			g_autoptr(BIO) issuer_bio = BIO_new(BIO_s_mem());
 
 			timestamp_newest = signing_time;
 
@@ -253,6 +254,7 @@ jcat_libcrypto_pkcs7_engine_verify(JcatEngine *engine,
 				return NULL;
 			}
 
+			BIO_reset(issuer_bio);
 			if (X509_NAME_print_ex(issuer_bio, issuer_name, 0, XN_FLAG_RFC2253) == -1) {
 				g_autofree gchar *error_str = jcat_libcrypto_get_errors();
 				g_set_error(error,
@@ -263,13 +265,10 @@ jcat_libcrypto_pkcs7_engine_verify(JcatEngine *engine,
 				return NULL;
 			}
 
-			issuer_size = BIO_get_mem_data(issuer_bio, &issuer_string);
-			if (issuer_size > 0 && issuer_string != NULL) {
-				g_string_overwrite_len(authority_newest,
-						       0,
-						       issuer_string,
-						       issuer_size);
-			}
+			/* NULL terminate the BIO */
+			BIO_write(issuer_bio, "", 1);
+			BIO_get_mem_data(issuer_bio, &issuer_string);
+			g_string_assign(authority_newest, issuer_string);
 		}
 	}
 
