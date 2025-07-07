@@ -532,13 +532,18 @@ jcat_pkcs7_engine_self_signed_func(void)
 {
 #ifdef HAVE_PKCS7
 	static const char payload_str[] = "{\n  \"hello\": \"world\"\n}";
+	static const char payload_other_str[] = "{\n  \"hello\": \"xorld\"\n}";
+	g_autofree gchar *tmp_dir = NULL;
 	g_autofree gchar *str = NULL;
 	g_autoptr(JcatBlob) signature = NULL;
+	g_autoptr(JcatBlob) signature_fresh = NULL;
 	g_autoptr(JcatContext) context = jcat_context_new();
 	g_autoptr(JcatEngine) engine = NULL;
 	g_autoptr(JcatEngine) engine2 = NULL;
 	g_autoptr(JcatResult) result = NULL;
+	g_autoptr(JcatResult) result_fail = NULL;
 	g_autoptr(GBytes) payload = NULL;
+	g_autoptr(GBytes) payload_other = NULL;
 	g_autoptr(GError) error = NULL;
 	const gchar *str_perfect = "JcatResult:\n"
 				   "  Timestamp:             1970-01-01T03:25:45Z\n"
@@ -576,6 +581,36 @@ jcat_pkcs7_engine_self_signed_func(void)
 	str = jcat_result_to_string(result);
 	g_print("%s", str);
 	g_assert_true(g_pattern_match_simple(str_perfect, str));
+
+	/* verify a payload with the wrong signature */
+	payload_other = g_bytes_new_static(payload_other_str, sizeof(payload_other_str));
+	result_fail = jcat_engine_self_verify(engine,
+					      payload_other,
+					      jcat_blob_get_data(signature),
+					      JCAT_VERIFY_FLAG_NONE,
+					      &error);
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+	g_assert_null(result_fail);
+	g_clear_error(&error);
+
+	/* change keyring path */
+	tmp_dir = g_dir_make_tmp(NULL, &error);
+	g_assert_no_error(error);
+	jcat_context_set_keyring_path(context, tmp_dir);
+
+	/* generate fresh self signing keys */
+	signature_fresh =
+	    jcat_engine_self_sign(engine, payload, JCAT_SIGN_FLAG_ADD_TIMESTAMP, &error);
+
+	/* verify original signature with original payload but new signature */
+	result_fail = jcat_engine_self_verify(engine,
+					      payload,
+					      jcat_blob_get_data(signature),
+					      JCAT_VERIFY_FLAG_NONE,
+					      &error);
+	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA);
+	g_assert_null(result_fail);
+	g_clear_error(&error);
 #else
 	g_test_skip("no PKCS7 support enabled");
 #endif
