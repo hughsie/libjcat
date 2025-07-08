@@ -1,6 +1,7 @@
 /*
  * Copyright (C) 2020 Richard Hughes <richard@hughsie.com>
  * Copyright (C) 2022 Joe Qian <joeqian@google.com>
+ * Copyright (C) 2025 Colin Kinloch <colin.kinloch@collabora.com>
  *
  * SPDX-License-Identifier: LGPL-2.1+
  */
@@ -18,6 +19,19 @@
 #include "jcat-file.h"
 #include "jcat-item-private.h"
 #include "jcat-result-private.h"
+
+#ifdef HAVE_LIBCRYPTO_PKCS7
+#include "jcat-libcrypto-pkcs7-engine.h"
+#endif
+#ifdef HAVE_GNUTLS_PKCS7
+#include "jcat-gnutls-pkcs7-engine.h"
+#endif
+
+#ifdef HAVE_GNUTLS_ED25519
+#include "jcat-gnutls-ed25519-engine.h"
+#endif
+
+typedef JcatEngine *(*EngineNewFunc)(JcatContext *context);
 
 static void
 jcat_blob_func(void)
@@ -448,7 +462,7 @@ jcat_gpg_engine_msg_func(void)
 }
 
 static void
-jcat_pkcs7_engine_func(void)
+jcat_pkcs7_engine_func(gconstpointer test_data)
 {
 #ifdef HAVE_PKCS7
 	g_autofree gchar *fn_fail = NULL;
@@ -471,7 +485,11 @@ jcat_pkcs7_engine_func(void)
 	jcat_context_add_public_key(context, pki_f);
 
 	/* get engine */
-	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_PKCS7, &error);
+	if (test_data == NULL) {
+		engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_PKCS7, &error);
+	} else {
+		engine = ((EngineNewFunc)test_data)(context);
+	}
 	g_assert_no_error(error);
 	g_assert_nonnull(engine);
 	g_assert_cmpint(jcat_engine_get_kind(engine), ==, JCAT_BLOB_KIND_PKCS7);
@@ -525,7 +543,7 @@ jcat_pkcs7_engine_func(void)
 }
 
 static void
-jcat_pkcs7_engine_self_signed_func(void)
+jcat_pkcs7_engine_self_signed_func(gconstpointer test_data)
 {
 #ifdef HAVE_PKCS7
 	static const char payload_str[] = "{\n  \"hello\": \"world\"\n}";
@@ -549,7 +567,11 @@ jcat_pkcs7_engine_self_signed_func(void)
 				   "    VerifyKind:          signature\n";
 
 	/* get engine */
-	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_PKCS7, &error);
+	if (test_data == NULL) {
+		engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_PKCS7, &error);
+	} else {
+		engine = ((EngineNewFunc)test_data)(context);
+	}
 	g_assert_no_error(error);
 	g_assert_nonnull(engine);
 
@@ -611,7 +633,7 @@ jcat_pkcs7_engine_self_signed_func(void)
 }
 
 static void
-jcat_ed25519_engine_func(void)
+jcat_ed25519_engine_func(gconstpointer test_data)
 {
 #ifdef HAVE_ED25519
 	g_autofree gchar *fn_fail = NULL;
@@ -632,7 +654,11 @@ jcat_ed25519_engine_func(void)
 	jcat_context_add_public_keys(context, pki_dir);
 
 	/* get engine */
-	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_ED25519, &error);
+	if (test_data == NULL) {
+		engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_ED25519, &error);
+	} else {
+		engine = ((EngineNewFunc)test_data)(context);
+	}
 	g_assert_no_error(error);
 	g_assert_nonnull(engine);
 	g_assert_cmpint(jcat_engine_get_kind(engine), ==, JCAT_BLOB_KIND_ED25519);
@@ -668,7 +694,7 @@ jcat_ed25519_engine_func(void)
 }
 
 static void
-jcat_ed25519_engine_self_signed_func(void)
+jcat_ed25519_engine_self_signed_func(gconstpointer test_data)
 {
 #ifdef HAVE_ED25519
 	static const char payload_str[] = "{\n  \"hello\": \"world\"\n}";
@@ -683,7 +709,11 @@ jcat_ed25519_engine_self_signed_func(void)
 				   "    VerifyKind:          signature\n";
 
 	/* get engine */
-	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_ED25519, &error);
+	if (test_data == NULL) {
+		engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_ED25519, &error);
+	} else {
+		engine = ((EngineNewFunc)test_data)(context);
+	}
 	g_assert_no_error(error);
 	g_assert_nonnull(engine);
 
@@ -1210,10 +1240,38 @@ main(int argc, char **argv)
 	g_test_add_func("/jcat/engine{sha256}", jcat_sha256_engine_func);
 	g_test_add_func("/jcat/engine{gpg}", jcat_gpg_engine_func);
 	g_test_add_func("/jcat/engine{gpg-msg}", jcat_gpg_engine_msg_func);
-	g_test_add_func("/jcat/engine{pkcs7}", jcat_pkcs7_engine_func);
-	g_test_add_func("/jcat/engine{pkcs7-self-signed}", jcat_pkcs7_engine_self_signed_func);
-	g_test_add_func("/jcat/engine{ed25519}", jcat_ed25519_engine_func);
-	g_test_add_func("/jcat/engine{ed25519-self-signed}", jcat_ed25519_engine_self_signed_func);
+	g_test_add_data_func("/jcat/engine{pkcs7}", NULL, jcat_pkcs7_engine_func);
+	g_test_add_data_func("/jcat/engine{pkcs7-self-signed}",
+			     NULL,
+			     jcat_pkcs7_engine_self_signed_func);
+#ifdef HAVE_LIBCRYPTO_PKCS7
+	g_test_add_data_func("/jcat/engine{pkcs7-openssl}",
+			     &jcat_libcrypto_pkcs7_engine_new,
+			     jcat_pkcs7_engine_func);
+	g_test_add_data_func("/jcat/engine{pkcs7-self-signed-openssl}",
+			     &jcat_libcrypto_pkcs7_engine_new,
+			     jcat_pkcs7_engine_self_signed_func);
+#endif
+#ifdef HAVE_GNUTLS_PKCS7
+	g_test_add_data_func("/jcat/engine{pkcs7-gnutls}",
+			     &jcat_gnutls_pkcs7_engine_new,
+			     jcat_pkcs7_engine_func);
+	g_test_add_data_func("/jcat/engine{pkcs7-self-signed-gnutls}",
+			     &jcat_gnutls_pkcs7_engine_new,
+			     jcat_pkcs7_engine_self_signed_func);
+#endif
+	g_test_add_data_func("/jcat/engine{ed25519}", NULL, jcat_ed25519_engine_func);
+	g_test_add_data_func("/jcat/engine{ed25519-self-signed}",
+			     NULL,
+			     jcat_ed25519_engine_self_signed_func);
+#ifdef HAVE_GNUTLS_ED25519
+	g_test_add_data_func("/jcat/engine{ed25519-gnutls}",
+			     &jcat_gnutls_ed25519_engine_new,
+			     jcat_ed25519_engine_func);
+	g_test_add_data_func("/jcat/engine{ed25519-self-signed-gnutls}",
+			     &jcat_gnutls_ed25519_engine_new,
+			     jcat_ed25519_engine_self_signed_func);
+#endif
 	g_test_add_func("/jcat/context{verify-blob}", jcat_context_verify_blob_func);
 	g_test_add_func("/jcat/context{verify-item-sign}", jcat_context_verify_item_sign_func);
 	g_test_add_func("/jcat/context{verify-item-csum}", jcat_context_verify_item_csum_func);
