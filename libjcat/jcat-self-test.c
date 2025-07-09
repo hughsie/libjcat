@@ -351,7 +351,6 @@ jcat_gpg_engine_func(void)
 				  "-----END PGP SIGNATURE-----\n";
 
 	/* set up context */
-	jcat_context_set_keyring_path(context, "/tmp/libjcat-self-test/var");
 	pki_dir = g_test_build_filename(G_TEST_DIST, "pki", NULL);
 	jcat_context_add_public_keys(context, pki_dir);
 
@@ -422,7 +421,6 @@ jcat_gpg_engine_msg_func(void)
 			   "-----END PGP MESSAGE-----\n";
 
 	/* set up context */
-	jcat_context_set_keyring_path(context, "/tmp/libjcat-self-test/var");
 	pki_dir = g_test_build_filename(G_TEST_DIST, "pki", NULL);
 	jcat_context_add_public_keys(context, pki_dir);
 
@@ -469,7 +467,6 @@ jcat_pkcs7_engine_func(void)
 	g_autoptr(JcatResult) result_pass = NULL;
 
 	/* set up context */
-	jcat_context_set_keyring_path(context, "/tmp/libjcat-self-test/var");
 	pki_f = g_test_build_filename(G_TEST_DIST, "pki", "LVFS-CA.pem", NULL);
 	jcat_context_add_public_key(context, pki_f);
 
@@ -533,7 +530,7 @@ jcat_pkcs7_engine_self_signed_func(void)
 #ifdef HAVE_PKCS7
 	static const char payload_str[] = "{\n  \"hello\": \"world\"\n}";
 	static const char payload_other_str[] = "{\n  \"hello\": \"xorld\"\n}";
-	g_autofree gchar *tmp_dir = NULL;
+	g_autofree gchar *other_keyring_path = NULL;
 	g_autofree gchar *str = NULL;
 	g_autoptr(JcatBlob) signature = NULL;
 	g_autoptr(JcatBlob) signature_fresh = NULL;
@@ -550,9 +547,6 @@ jcat_pkcs7_engine_self_signed_func(void)
 				   "  Jcat*Pkcs7Engine:\n"
 				   "    Kind:                pkcs7\n"
 				   "    VerifyKind:          signature\n";
-
-	/* set up context */
-	jcat_context_set_keyring_path(context, "/tmp");
 
 	/* get engine */
 	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_PKCS7, &error);
@@ -594,9 +588,9 @@ jcat_pkcs7_engine_self_signed_func(void)
 	g_clear_error(&error);
 
 	/* change keyring path */
-	tmp_dir = g_dir_make_tmp(NULL, &error);
+	other_keyring_path = g_dir_make_tmp("keyring_2_XXXXXX", &error);
 	g_assert_no_error(error);
-	jcat_context_set_keyring_path(context, tmp_dir);
+	jcat_context_set_keyring_path(context, other_keyring_path);
 
 	/* generate fresh self signing keys */
 	signature_fresh =
@@ -634,7 +628,6 @@ jcat_ed25519_engine_func(void)
 	g_autoptr(JcatResult) result_pass = NULL;
 
 	/* set up context */
-	jcat_context_set_keyring_path(context, "/tmp/libjcat-self-test/var");
 	pki_dir = g_test_build_filename(G_TEST_DIST, "pki", NULL);
 	jcat_context_add_public_keys(context, pki_dir);
 
@@ -679,7 +672,6 @@ jcat_ed25519_engine_self_signed_func(void)
 {
 #ifdef HAVE_ED25519
 	static const char payload_str[] = "{\n  \"hello\": \"world\"\n}";
-	g_autofree gchar *tmp_dir = NULL;
 	g_autoptr(JcatContext) context = jcat_context_new();
 	g_autoptr(JcatEngine) engine = NULL;
 	g_autoptr(GBytes) payload = NULL;
@@ -689,11 +681,6 @@ jcat_ed25519_engine_self_signed_func(void)
 				   "  Jcat*Ed25519Engine:\n"
 				   "    Kind:                ed25519\n"
 				   "    VerifyKind:          signature\n";
-
-	/* set up context */
-	tmp_dir = g_dir_make_tmp(NULL, &error);
-	g_assert_no_error(error);
-	jcat_context_set_keyring_path(context, tmp_dir);
 
 	/* get engine */
 	engine = jcat_context_get_engine(context, JCAT_BLOB_KIND_ED25519, &error);
@@ -762,7 +749,6 @@ jcat_context_verify_blob_func(void)
 	g_autoptr(JcatResult) result_disallow = NULL;
 
 	/* set up context */
-	jcat_context_set_keyring_path(context, "/tmp");
 	pki_dir = g_test_build_filename(G_TEST_DIST, "pki", NULL);
 	jcat_context_add_public_keys(context, pki_dir);
 
@@ -843,7 +829,6 @@ jcat_context_verify_item_sign_func(void)
 	g_autoptr(GPtrArray) results_pass = NULL;
 
 	/* set up context */
-	jcat_context_set_keyring_path(context, "/tmp");
 	pki_dir = g_test_build_filename(G_TEST_DIST, "pki", NULL);
 	jcat_context_add_public_keys(context, pki_dir);
 
@@ -926,7 +911,6 @@ jcat_context_verify_item_target_func(void)
 	g_autoptr(GPtrArray) results_pass = NULL;
 
 	/* set up context */
-	jcat_context_set_keyring_path(context, "/tmp");
 	pki_f = g_test_build_filename(G_TEST_BUILT, "pki", "test.pem", NULL);
 	jcat_context_add_public_key(context, pki_f);
 
@@ -999,7 +983,6 @@ jcat_context_verify_item_csum_func(void)
 	    "a196504d09871da4f7d83b874b500f8ee6e0619ab799f074814b316d88f96f7f";
 
 	/* set up context */
-	jcat_context_set_keyring_path(context, "/tmp");
 	pki_dir = g_test_build_filename(G_TEST_DIST, "pki", NULL);
 	jcat_context_add_public_keys(context, pki_dir);
 
@@ -1208,7 +1191,9 @@ main(int argc, char **argv)
 {
 	g_setenv("G_TEST_SRCDIR", SRCDIR, FALSE);
 	g_setenv("G_TEST_BUILDDIR", BUILDDIR, FALSE);
-	g_test_init(&argc, &argv, NULL);
+
+	/* ISOLATE_DIRS allows us to avoid creating keyring paths for each test */
+	g_test_init(&argc, &argv, G_TEST_OPTION_ISOLATE_DIRS, NULL);
 
 	/* only critical and error are fatal */
 	g_log_set_fatal_mask(NULL, G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL);
