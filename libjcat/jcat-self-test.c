@@ -116,6 +116,7 @@ jcat_file_func(void)
 	g_autoptr(JcatItem) item1 = NULL;
 	g_autoptr(JcatItem) item2 = NULL;
 	g_autoptr(JcatItem) item3 = NULL;
+	g_autoptr(JcatItem) item4 = NULL;
 	g_autoptr(JcatItem) item = jcat_item_new("firmware.bin");
 	const gchar *json_perfect = "{\n"
 				    "  \"JcatVersionMajor\" : 0,\n"
@@ -153,9 +154,9 @@ jcat_file_func(void)
 	g_assert_cmpint(jcat_blob_get_timestamp(blob2), ==, 0);
 
 	/* get default item */
-	item1 = jcat_file_get_item_default(file, &error);
+	item4 = jcat_file_get_item_default(file, &error);
 	g_assert_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND);
-	g_assert_null(item1);
+	g_assert_null(item4);
 	g_clear_error(&error);
 
 	/* check item */
