@@ -15,7 +15,7 @@ Bugfixes:
 Commit changes to git:
 
 # MAKE SURE THESE ARE CORRECT
-export release_ver="0.2.3"
+export release_ver="0.2.4"
 
 git commit -a -m "Release libjcat ${release_ver}"
 git tag -s -f -m "Release libjcat ${release_ver}" "${release_ver}"
