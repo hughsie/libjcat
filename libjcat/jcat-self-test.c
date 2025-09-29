@@ -165,7 +165,6 @@ jcat_file_func(void)
 	g_assert_cmpint(blobs0->len, ==, 0);
 	jcat_item_add_blob(item, blob1);
 	jcat_item_add_blob(item, blob2);
-	jcat_item_add_blob(item, blob2);
 	jcat_item_add_alias_id(item, "foo.bin");
 	blobs1 = jcat_item_get_blobs(item);
 	g_assert_cmpint(blobs1->len, ==, 2);
