@@ -27,6 +27,7 @@ typedef struct {
 	JcatContext *context;
 	gboolean basename;
 	gboolean disable_time_checks;
+	gboolean only_pq;
 	gchar *prefix;
 	gchar *appstream_id;
 	JcatBlobKind kind;
@@ -601,6 +602,8 @@ jcat_tool_verify_item(JcatToolPrivate *priv, JcatItem *item, GError **error)
 		}
 		if (priv->disable_time_checks)
 			flags |= JCAT_VERIFY_FLAG_DISABLE_TIME_CHECKS;
+		if (priv->only_pq)
+			flags |= JCAT_VERIFY_FLAG_ONLY_PQ;
 		result = jcat_context_verify_blob(priv->context,
 						  blob_source,
 						  blob,
@@ -788,6 +791,13 @@ main(int argc, char *argv[])
 	     G_OPTION_ARG_NONE,
 	     &priv->disable_time_checks,
 	     _("Disable time checks when verifying"),
+	     NULL},
+	    {"only-pq",
+	     'v',
+	     0,
+	     G_OPTION_ARG_NONE,
+	     &priv->only_pq,
+	     _("Only consider post-quantum signatures"),
 	     NULL},
 	    {"public-key",
 	     '\0',
