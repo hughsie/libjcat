@@ -289,18 +289,6 @@ jcat_item_add_blob(JcatItem *self, JcatBlob *blob)
 	g_return_if_fail(JCAT_IS_ITEM(self));
 	g_return_if_fail(JCAT_IS_BLOB(blob));
 
-	/* remove existing blob with this AppStream ID and kind */
-	for (guint i = 0; i < priv->blobs->len; i++) {
-		JcatBlob *blob_tmp = g_ptr_array_index(priv->blobs, i);
-		if (jcat_blob_get_kind(blob_tmp) == jcat_blob_get_kind(blob) &&
-		    jcat_blob_get_target(blob_tmp) == jcat_blob_get_target(blob) &&
-		    g_strcmp0(jcat_blob_get_appstream_id(blob_tmp),
-			      jcat_blob_get_appstream_id(blob)) == 0) {
-			g_ptr_array_remove(priv->blobs, blob_tmp);
-			break;
-		}
-	}
-
 	/* add */
 	g_ptr_array_add(priv->blobs, g_object_ref(blob));
 }
