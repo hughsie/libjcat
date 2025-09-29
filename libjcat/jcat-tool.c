@@ -761,8 +761,8 @@ main(int argc, char *argv[])
 	g_autofree gchar *kind = NULL;
 	g_autofree gchar *target = NULL;
 	g_autofree gchar *prefix = NULL;
-	g_autofree gchar *public_key = NULL;
-	g_autofree gchar *public_keys = NULL;
+	g_auto(GStrv) public_key = NULL;
+	g_auto(GStrv) public_keys = NULL;
 	g_autoptr(JcatToolPrivate) priv = g_new0(JcatToolPrivate, 1);
 	g_autoptr(GError) error = NULL;
 	g_autoptr(GOptionContext) context = NULL;
@@ -792,14 +792,14 @@ main(int argc, char *argv[])
 	    {"public-key",
 	     '\0',
 	     0,
-	     G_OPTION_ARG_STRING,
+	     G_OPTION_ARG_STRING_ARRAY,
 	     &public_key,
 	     _("Location of public key used for verification"),
 	     NULL},
 	    {"public-keys",
 	     '\0',
 	     0,
-	     G_OPTION_ARG_STRING,
+	     G_OPTION_ARG_STRING_ARRAY,
 	     &public_keys,
 	     _("Location of public key directories used for verification"),
 	     NULL},
@@ -925,10 +925,14 @@ main(int argc, char *argv[])
 	priv->appstream_id = g_strdup(appstream_id);
 	priv->prefix = g_strdup(prefix != NULL ? prefix : ".");
 	priv->context = jcat_context_new();
-	if (public_key != NULL)
-		jcat_context_add_public_key(priv->context, public_key);
-	if (public_keys != NULL)
-		jcat_context_add_public_keys(priv->context, public_keys);
+	if (public_key != NULL) {
+		for (guint i = 0; public_key[i] != NULL; i++)
+			jcat_context_add_public_key(priv->context, public_key[i]);
+	}
+	if (public_keys != NULL) {
+		for (guint i = 0; public_keys[i] != NULL; i++)
+			jcat_context_add_public_keys(priv->context, public_keys[i]);
+	}
 	if (keyring_path != NULL)
 		jcat_context_set_keyring_path(priv->context, keyring_path);
 	if (kind != NULL) {
