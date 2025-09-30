@@ -371,6 +371,7 @@ jcat_tool_import(JcatToolPrivate *priv, gchar **values, GError **error)
 static gboolean
 jcat_tool_self_sign(JcatToolPrivate *priv, gchar **values, GError **error)
 {
+	JcatSignFlags flags = JCAT_SIGN_FLAG_NONE;
 	g_autoptr(GBytes) source = NULL;
 	g_autoptr(GFile) gfile = NULL;
 	g_autoptr(JcatBlob) blob = NULL;
@@ -423,10 +424,12 @@ jcat_tool_self_sign(JcatToolPrivate *priv, gchar **values, GError **error)
 	/* sign with this kind */
 	if (priv->kind == JCAT_BLOB_KIND_UNKNOWN)
 		priv->kind = JCAT_BLOB_KIND_PKCS7;
+	if (priv->only_pq)
+		flags |= JCAT_SIGN_FLAG_USE_PQ;
 	engine = jcat_context_get_engine(priv->context, priv->kind, error);
 	if (engine == NULL)
 		return FALSE;
-	blob = jcat_engine_self_sign(engine, source, JCAT_SIGN_FLAG_NONE, error);
+	blob = jcat_engine_self_sign(engine, source, flags, error);
 	if (blob == NULL)
 		return FALSE;
 	if (priv->appstream_id != NULL)
