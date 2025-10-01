@@ -2,9 +2,9 @@ libjcat Release Notes
 
 1. Write NEWS entries for libjcat in the same format as usual.
 
-git shortlog 0.2.3.. | grep -i -v trivial | grep -v Merge > NEWS.new
+git shortlog 0.2.4.. | grep -i -v trivial | grep -v Merge > NEWS.new
 
-Version 0.2.4
+Version 0.2.5
 ~~~~~~~~~~~~~
 Released: 2025-xx-xx
 
