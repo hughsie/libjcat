@@ -263,7 +263,6 @@ jcat_gnutls_pkcs7_engine_verify(JcatEngine *engine,
 			rc = gnutls_pkcs7_verify_direct(pkcs7, crt, i, &datum, 0);
 		} else {
 			g_auto(gnutls_x509_trust_list_t) tl = NULL;
-			tl = jcat_gnutls_pkcs7_engine_build_trust_list(self, error);
 			if (flags & JCAT_VERIFY_FLAG_ONLY_PQ) {
 #ifdef HAVE_GNUTLS_PQC
 				tl = jcat_gnutls_pkcs7_engine_build_trust_list_only_pq(self, error);
