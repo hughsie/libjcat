@@ -667,6 +667,10 @@ jcat_pkcs7_engine_self_signed_pq_func(gconstpointer test_data)
 					  payload,
 					  JCAT_SIGN_FLAG_ADD_TIMESTAMP | JCAT_SIGN_FLAG_USE_PQ,
 					  &error);
+	if (signature == NULL && g_error_matches(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED)) {
+		g_test_skip("ML-MDA cannot be enabled at runtime, skipping");
+		return;
+	}
 	g_assert_no_error(error);
 	g_assert_nonnull(signature);
 	result = jcat_engine_self_verify(engine,
@@ -674,6 +678,10 @@ jcat_pkcs7_engine_self_signed_pq_func(gconstpointer test_data)
 					 jcat_blob_get_data(signature),
 					 JCAT_VERIFY_FLAG_ONLY_PQ,
 					 &error);
+	if (result == NULL && g_error_matches(error, G_IO_ERROR, G_IO_ERROR_NOT_SUPPORTED)) {
+		g_test_skip("ML-MDA cannot be enabled at runtime, skipping");
+		return;
+	}
 	g_assert_no_error(error);
 	g_assert_nonnull(result);
 
