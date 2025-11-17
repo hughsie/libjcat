@@ -460,9 +460,6 @@ jcat_gnutls_global_log_cb(int level, const char *msg)
 void
 jcat_gnutls_global_init(void)
 {
-#ifdef HAVE_GNUTLS_PQC
-	gnutls_sign_set_secure(GNUTLS_SIGN_MLDSA87, GNUTLS_SIGN_FLAG_SECURE_FOR_CERTS);
-#endif
 	gnutls_global_set_log_level(3);
 	gnutls_global_set_log_function(jcat_gnutls_global_log_cb);
 }
