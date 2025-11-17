@@ -38,13 +38,8 @@ jcat_gnutls_pkcs7_engine_add_pubkey_blob_fmt(JcatGnutlsPkcs7Engine *self,
 	if (crt == NULL)
 		return FALSE;
 	rc = gnutls_x509_crt_get_key_usage(crt, &key_usage, NULL);
-	if (rc < 0) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "failed to get key usage: %s [%i]",
-			    gnutls_strerror(rc),
-			    rc);
+	if (!jcat_gnutls_rc_to_error(rc, error)) {
+		g_prefix_error_literal(error, "failed to get key usage: ");
 		return FALSE;
 	}
 	if ((key_usage & GNUTLS_KEY_DIGITAL_SIGNATURE) == 0 &&
@@ -119,14 +114,9 @@ jcat_gnutls_pkcs7_engine_build_trust_list(JcatGnutlsPkcs7Engine *self, GError **
 					    (const gnutls_x509_crt_t *)self->pubkeys_crts->pdata,
 					    self->pubkeys_crts->len,
 					    0);
-	if (rc < 0) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "failed to add to trust list: %s [%i]",
-			    gnutls_strerror(rc),
-			    rc);
-		return FALSE;
+	if (!jcat_gnutls_rc_to_error(rc, error)) {
+		g_prefix_error_literal(error, "failed to add to trust list: ");
+		return NULL;
 	}
 	g_debug("loaded %i certificates", rc);
 
@@ -142,14 +132,9 @@ jcat_gnutls_pkcs7_engine_build_trust_list_only_pq(JcatGnutlsPkcs7Engine *self, G
 	g_auto(gnutls_x509_trust_list_t) tl = NULL;
 
 	rc = gnutls_x509_trust_list_init(&tl, 0);
-	if (rc != GNUTLS_E_SUCCESS) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "failed to create trust list: %s [%i]",
-			    gnutls_strerror(rc),
-			    rc);
-		return FALSE;
+	if (!jcat_gnutls_rc_to_error(rc, error)) {
+		g_prefix_error_literal(error, "failed to create trust list: ");
+		return NULL;
 	}
 	for (guint i = 0; i < self->pubkeys_crts->len; i++) {
 		gnutls_x509_crt_t crt = g_ptr_array_index(self->pubkeys_crts, i);
@@ -159,14 +144,9 @@ jcat_gnutls_pkcs7_engine_build_trust_list_only_pq(JcatGnutlsPkcs7Engine *self, G
 		    algo != GNUTLS_SIGN_MLDSA87)
 			continue;
 		rc = gnutls_x509_trust_list_add_cas(tl, &crt, 1, 0);
-		if (rc < 0) {
-			g_set_error(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_DATA,
-				    "failed to add to trust list: %s [%i]",
-				    gnutls_strerror(rc),
-				    rc);
-			return FALSE;
+		if (!jcat_gnutls_rc_to_error(rc, error)) {
+			g_prefix_error_literal(error, "failed to add to trust list: ");
+			return NULL;
 		}
 		g_debug("loaded %i certificates", rc);
 	}
@@ -197,13 +177,8 @@ jcat_gnutls_pkcs7_engine_verify(JcatEngine *engine,
 
 	/* startup */
 	rc = gnutls_pkcs7_init(&pkcs7);
-	if (rc != GNUTLS_E_SUCCESS) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "failed to init pkcs7: %s [%i]",
-			    gnutls_strerror(rc),
-			    rc);
+	if (!jcat_gnutls_rc_to_error(rc, error)) {
+		g_prefix_error_literal(error, "failed to init pkcs7: ");
 		return NULL;
 	}
 
@@ -211,13 +186,8 @@ jcat_gnutls_pkcs7_engine_verify(JcatEngine *engine,
 	datum.data = (guchar *)g_bytes_get_data(blob_signature, NULL);
 	datum.size = g_bytes_get_size(blob_signature);
 	rc = gnutls_pkcs7_import(pkcs7, &datum, GNUTLS_X509_FMT_PEM);
-	if (rc != GNUTLS_E_SUCCESS) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "failed to import the PKCS7 signature: %s [%i]",
-			    gnutls_strerror(rc),
-			    rc);
+	if (!jcat_gnutls_rc_to_error(rc, error)) {
+		g_prefix_error_literal(error, "failed to import the PKCS7 signature: ");
 		return NULL;
 	}
 
@@ -248,13 +218,8 @@ jcat_gnutls_pkcs7_engine_verify(JcatEngine *engine,
 
 		/* always get issuer */
 		rc = gnutls_pkcs7_get_signature_info(pkcs7, i, &info_tmp);
-		if (rc < 0) {
-			g_set_error(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_DATA,
-				    "failed to get signature info: %s [%i]",
-				    gnutls_strerror(rc),
-				    rc);
+		if (!jcat_gnutls_rc_to_error(rc, error)) {
+			g_prefix_error_literal(error, "failed to get signature info: ");
 			return NULL;
 		}
 
@@ -290,24 +255,13 @@ jcat_gnutls_pkcs7_engine_verify(JcatEngine *engine,
 						 &datum, /* data */
 						 verify_flags);
 		}
-		if (rc < 0) {
+		if (!jcat_gnutls_rc_to_error(rc, error)) {
 			dn = jcat_gnutls_pkcs7_datum_to_dn_str(&info->issuer_dn);
 			if (dn != NULL) {
-				g_set_error(error,
-					    G_IO_ERROR,
-					    G_IO_ERROR_INVALID_DATA,
-					    "failed to verify data for %s: %s [%i]",
-					    dn,
-					    gnutls_strerror(rc),
-					    rc);
-				return NULL;
+				g_prefix_error(error, "failed to verify data for %s: ", dn);
+			} else {
+				g_prefix_error_literal(error, "failed to verify data: ");
 			}
-			g_set_error(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_DATA,
-				    "failed to verify data: %s [%i]",
-				    gnutls_strerror(rc),
-				    rc);
 			return NULL;
 		}
 
@@ -421,26 +375,16 @@ jcat_gnutls_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 	if (pubkey == NULL)
 		return NULL;
 	rc = gnutls_pubkey_get_preferred_hash_algorithm(pubkey, &dig, NULL);
-	if (rc < 0) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "preferred_hash_algorithm: %s [%i]",
-			    gnutls_strerror(rc),
-			    rc);
+	if (!jcat_gnutls_rc_to_error(rc, error)) {
+		g_prefix_error_literal(error, "failed to get preferred hash algorithm: ");
 		return NULL;
 	}
 	g_debug("preferred_hash_algorithm=%s", gnutls_digest_get_name(dig));
 
 	/* create container */
 	rc = gnutls_pkcs7_init(&pkcs7);
-	if (rc < 0) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "pkcs7_init: %s [%i]",
-			    gnutls_strerror(rc),
-			    rc);
+	if (!jcat_gnutls_rc_to_error(rc, error)) {
+		g_prefix_error_literal(error, "failed to pkcs7_init: ");
 		return NULL;
 	}
 
@@ -452,37 +396,24 @@ jcat_gnutls_pkcs7_engine_pubkey_sign(JcatEngine *engine,
 	if (flags & JCAT_SIGN_FLAG_ADD_CERT)
 		gnutls_flags |= GNUTLS_PKCS7_INCLUDE_CERT;
 	rc = gnutls_pkcs7_sign(pkcs7, crt, key, &d, NULL, NULL, dig, gnutls_flags);
-	if (rc < 0) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "pkcs7_sign: %s [%i]",
-			    gnutls_strerror(rc),
-			    rc);
+	if (!jcat_gnutls_rc_to_error(rc, error)) {
+		g_prefix_error_literal(error, "failed to pkcs7_sign: ");
 		return NULL;
 	}
 
 	/* set certificate */
 	if (flags & JCAT_SIGN_FLAG_ADD_CERT) {
 		rc = gnutls_pkcs7_set_crt(pkcs7, crt);
-		if (rc < 0) {
-			g_set_error(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_DATA,
-				    "pkcs7_set_cr: %s",
-				    gnutls_strerror(rc));
+		if (!jcat_gnutls_rc_to_error(rc, error)) {
+			g_prefix_error_literal(error, "failed to pkcs7_set_cr: ");
 			return NULL;
 		}
 	}
 
 	/* export */
 	rc = gnutls_pkcs7_export2(pkcs7, GNUTLS_X509_FMT_PEM, &d);
-	if (rc < 0) {
-		g_set_error(error,
-			    G_IO_ERROR,
-			    G_IO_ERROR_INVALID_DATA,
-			    "pkcs7_export: %s",
-			    gnutls_strerror(rc));
+	if (!jcat_gnutls_rc_to_error(rc, error)) {
+		g_prefix_error_literal(error, "failed to pkcs7_export: ");
 		return NULL;
 	}
 	d_payload = d.data;
