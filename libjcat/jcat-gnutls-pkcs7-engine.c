@@ -225,7 +225,7 @@ jcat_gnutls_pkcs7_engine_verify(JcatEngine *engine,
 
 		/* verify the data against the detached signature */
 		if (crt != NULL) {
-			rc = gnutls_pkcs7_verify_direct(pkcs7, crt, i, &datum, 0);
+			rc = gnutls_pkcs7_verify_direct(pkcs7, crt, i, &datum, verify_flags);
 		} else {
 			g_auto(gnutls_x509_trust_list_t) tl = NULL;
 			if (flags & JCAT_VERIFY_FLAG_ONLY_PQ) {
