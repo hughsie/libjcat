@@ -104,7 +104,7 @@ jcat_item_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 
 	/* get ID */
 	priv->id = g_strdup(json_object_get_string_member(obj, "Id"));
-	if (priv->id == NULL) {
+	if (priv->id == NULL || priv->id[0] == '\0') {
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "no ID set");
 		return NULL;
 	}
