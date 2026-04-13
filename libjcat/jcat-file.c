@@ -84,6 +84,7 @@ static gboolean
 jcat_file_import_parser(JcatFile *self, JsonParser *parser, JcatImportFlags flags, GError **error)
 {
 	JcatFilePrivate *priv = GET_PRIVATE(self);
+	JsonArray *array;
 	JsonObject *obj;
 	const gchar *required[] = {"JcatVersionMajor", "JcatVersionMinor", "Items", NULL};
 	g_autoptr(GList) elements = NULL;
@@ -106,7 +107,15 @@ jcat_file_import_parser(JcatFile *self, JsonParser *parser, JcatImportFlags flag
 	priv->version_minor = json_object_get_int_member(obj, "JcatVersionMinor");
 
 	/* get items */
-	elements = json_array_get_elements(json_object_get_array_member(obj, "Items"));
+	array = json_object_get_array_member(obj, "Items");
+	if (array == NULL) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "Items must be an array");
+		return FALSE;
+	}
+	elements = json_array_get_elements(array);
 	for (GList *l = elements; l != NULL; l = l->next) {
 		g_autoptr(JcatItem) item = NULL;
 		JsonNode *node = l->data;
