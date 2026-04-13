@@ -84,6 +84,7 @@ jcat_item_to_string(JcatItem *self)
 JcatItem *
 jcat_item_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 {
+	JsonArray *array_blobs;
 	const gchar *required[] = {"Id", "Blobs", NULL};
 	g_autoptr(GList) elements = NULL;
 	g_autoptr(JcatItem) self = g_object_new(JCAT_TYPE_ITEM, NULL);
@@ -109,7 +110,15 @@ jcat_item_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 	}
 
 	/* get blobs */
-	elements = json_array_get_elements(json_object_get_array_member(obj, "Blobs"));
+	array_blobs = json_object_get_array_member(obj, "Blobs");
+	if (array_blobs == NULL) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "failed to read Blobs array");
+		return NULL;
+	}
+	elements = json_array_get_elements(array_blobs);
 	for (GList *l = elements; l != NULL; l = l->next) {
 		g_autoptr(JcatBlob) blob = NULL;
 		JsonNode *node = l->data;
