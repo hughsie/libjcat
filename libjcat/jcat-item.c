@@ -103,6 +103,10 @@ jcat_item_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 
 	/* get ID */
 	priv->id = g_strdup(json_object_get_string_member(obj, "Id"));
+	if (priv->id == NULL) {
+		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "no ID set");
+		return NULL;
+	}
 
 	/* get blobs */
 	elements = json_array_get_elements(json_object_get_array_member(obj, "Blobs"));
