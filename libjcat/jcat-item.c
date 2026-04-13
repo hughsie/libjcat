@@ -348,6 +348,7 @@ jcat_item_add_alias_id(JcatItem *self, const gchar *id)
 {
 	JcatItemPrivate *priv = GET_PRIVATE(self);
 	g_return_if_fail(JCAT_IS_ITEM(self));
+	g_return_if_fail(id != NULL);
 	for (guint i = 0; i < priv->alias_ids->len; i++) {
 		const gchar *id_tmp = g_ptr_array_index(priv->alias_ids, i);
 		if (g_strcmp0(id, id_tmp) == 0)
