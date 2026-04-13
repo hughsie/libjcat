@@ -266,8 +266,17 @@ jcat_blob_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 	/* all optional */
 	if (json_object_has_member(obj, "Timestamp"))
 		priv->timestamp = json_object_get_int_member(obj, "Timestamp");
-	if (json_object_has_member(obj, "AppstreamId"))
-		priv->appstream_id = g_strdup(json_object_get_string_member(obj, "AppstreamId"));
+	if (json_object_has_member(obj, "AppstreamId")) {
+		const gchar *appstream_id = json_object_get_string_member(obj, "AppstreamId");
+		if (appstream_id == NULL) {
+			g_set_error_literal(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_INVALID_DATA,
+					    "AppstreamId must be a string");
+			return NULL;
+		}
+		priv->appstream_id = g_strdup(appstream_id);
+	}
 	if (json_object_has_member(obj, "Target")) {
 		priv->target = json_object_get_int_member(obj, "Target");
 		if (priv->target < 0) {
