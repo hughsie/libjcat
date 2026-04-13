@@ -390,6 +390,7 @@ JcatItem *
 jcat_file_get_item_by_id(JcatFile *self, const gchar *id, GError **error)
 {
 	JcatFilePrivate *priv = GET_PRIVATE(self);
+	g_autoptr(JcatItem) item_found = NULL;
 
 	g_return_val_if_fail(JCAT_IS_FILE(self), NULL);
 	g_return_val_if_fail(id != NULL, NULL);
@@ -398,9 +399,20 @@ jcat_file_get_item_by_id(JcatFile *self, const gchar *id, GError **error)
 	/* exact ID match */
 	for (guint i = 0; i < priv->items->len; i++) {
 		JcatItem *item = g_ptr_array_index(priv->items, i);
-		if (g_strcmp0(jcat_item_get_id(item), id) == 0)
-			return g_object_ref(item);
+		if (g_strcmp0(jcat_item_get_id(item), id) == 0) {
+			if (item_found != NULL) {
+				g_set_error(error,
+					    G_IO_ERROR,
+					    G_IO_ERROR_NOT_FOUND,
+					    "multiple matches for %s",
+					    id);
+				return NULL;
+			}
+			item_found = g_object_ref(item);
+		}
 	}
+	if (item_found != NULL)
+		return g_steal_pointer(&item_found);
 
 	/* try aliases this time */
 	for (guint i = 0; i < priv->items->len; i++) {
@@ -408,10 +420,21 @@ jcat_file_get_item_by_id(JcatFile *self, const gchar *id, GError **error)
 		g_autoptr(GPtrArray) alias_ids = jcat_item_get_alias_ids(item);
 		for (guint j = 0; j < alias_ids->len; j++) {
 			const gchar *id_tmp = g_ptr_array_index(alias_ids, j);
-			if (g_strcmp0(id_tmp, id) == 0)
-				return g_object_ref(item);
+			if (g_strcmp0(id_tmp, id) == 0) {
+				if (item_found != NULL) {
+					g_set_error(error,
+						    G_IO_ERROR,
+						    G_IO_ERROR_NOT_FOUND,
+						    "multiple aliases for %s",
+						    id);
+					return NULL;
+				}
+				item_found = g_object_ref(item);
+			}
 		}
 	}
+	if (item_found != NULL)
+		return g_steal_pointer(&item_found);
 
 	/* failed */
 	g_set_error(error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND, "failed to find %s", id);
