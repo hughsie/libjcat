@@ -259,13 +259,19 @@ jcat_blob_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 
 	/* get compressed data */
 	data_str = json_object_get_string_member(obj, "Data");
+	if (data_str == NULL) {
+		g_set_error_literal(error,
+					G_IO_ERROR,
+					G_IO_ERROR_INVALID_DATA,
+					"no Data set");
+		return NULL;
+	}
 	if ((priv->flags & JCAT_BLOB_FLAG_IS_UTF8) == 0) {
 		gsize bufsz = 0;
 		g_autofree guchar *buf = g_base64_decode(data_str, &bufsz);
 		priv->data = g_bytes_new_take(g_steal_pointer(&buf), bufsz);
 	} else {
-		const gchar *tmp = json_object_get_string_member(obj, "Data");
-		priv->data = g_bytes_new(tmp, strlen(tmp));
+		priv->data = g_bytes_new(data_str, strlen(data_str));
 	}
 
 	/* success */
