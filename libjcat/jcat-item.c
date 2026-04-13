@@ -149,6 +149,7 @@ jcat_item_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 		}
 		alias_ids = json_array_get_elements(array);
 		for (GList *l = alias_ids; l != NULL; l = l->next) {
+			const gchar *alias_id;
 			JsonNode *node = l->data;
 			if (!JSON_NODE_HOLDS_VALUE(node)) {
 				g_set_error_literal(error,
@@ -157,7 +158,15 @@ jcat_item_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 						    "failed to read AliasIds value");
 				return NULL;
 			}
-			jcat_item_add_alias_id(self, json_node_get_string(node));
+			alias_id = json_node_get_string(node);
+			if (alias_id == NULL) {
+				g_set_error_literal(error,
+						    G_IO_ERROR,
+						    G_IO_ERROR_INVALID_DATA,
+						    "AliasIds invalid");
+				return NULL;
+			}
+			jcat_item_add_alias_id(self, alias_id);
 		}
 	}
 
