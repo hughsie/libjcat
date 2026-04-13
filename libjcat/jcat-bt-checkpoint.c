@@ -214,6 +214,7 @@ jcat_bt_checkpoint_new(GBytes *blob, GError **error)
 	g_autoptr(JcatBtCheckpoint) self = g_object_new(JCAT_TYPE_BT_CHECKPOINT, NULL);
 	gsize pubkeysz = 0;
 	gsize sigsz = 0;
+	guint64 log_size_tmp;
 
 	g_return_val_if_fail(blob != NULL, NULL);
 
@@ -240,7 +241,12 @@ jcat_bt_checkpoint_new(GBytes *blob, GError **error)
 
 	/* first two lines are trivial strings */
 	self->origin = g_strdup(lines[0]);
-	self->log_size = g_ascii_strtoull(lines[1], NULL, 10);
+	log_size_tmp = g_ascii_strtoull(lines[1], NULL, 10);
+	if (log_size_tmp > G_MAXUINT) {
+		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "invalid log size");
+		return NULL;
+	}
+	self->log_size = (guint) log_size_tmp;
 
 	/* ED25519 public key */
 	pubkey = g_base64_decode(lines[2], &pubkeysz);
