@@ -182,12 +182,14 @@ jcat_blob_add_string(JcatBlob *self, guint idt, GString *str)
 		jcat_string_append_kv(str, idt + 1, "AppstreamId", priv->appstream_id);
 	if (priv->timestamp != 0) {
 		g_autoptr(GDateTime) dt = g_date_time_new_from_unix_utc(priv->timestamp);
+		if (dt != NULL) {
 #if GLIB_CHECK_VERSION(2, 62, 0)
-		g_autofree gchar *tmp = g_date_time_format_iso8601(dt);
+			g_autofree gchar *tmp = g_date_time_format_iso8601(dt);
 #else
-		g_autofree gchar *tmp = g_date_time_format(dt, "%FT%TZ");
+			g_autofree gchar *tmp = g_date_time_format(dt, "%FT%TZ");
 #endif
-		jcat_string_append_kv(str, idt + 1, "Timestamp", tmp);
+			jcat_string_append_kv(str, idt + 1, "Timestamp", tmp);
+		}
 	}
 	if (priv->data != NULL) {
 		g_autofree gchar *tmp = jcat_blob_get_data_as_string(self);
