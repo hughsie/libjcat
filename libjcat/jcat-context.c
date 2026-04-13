@@ -420,6 +420,15 @@ jcat_context_verify_item(JcatContext *self,
 		return NULL;
 	}
 
+	/* at least one blob must have verified */
+	if (results->len == 0) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "no valid checksums or signatures found");
+		return NULL;
+	}
+
 	/* success */
 	return g_steal_pointer(&results);
 }
@@ -561,6 +570,15 @@ jcat_context_verify_target(JcatContext *self,
 				    G_IO_ERROR,
 				    G_IO_ERROR_NOT_SUPPORTED,
 				    "signatures were required, but none supplied");
+		return NULL;
+	}
+
+	/* at least one blob must have verified */
+	if (results->len == 0) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_NOT_SUPPORTED,
+				    "no valid checksums or signatures found");
 		return NULL;
 	}
 
