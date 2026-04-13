@@ -316,7 +316,7 @@ jcat_gnutls_pkcs7_engine_self_verify(JcatEngine *engine,
 	crt = jcat_gnutls_pkcs7_load_crt_from_blob(cert_blob, GNUTLS_X509_FMT_PEM, error);
 	if (crt == NULL)
 		return NULL;
-	if (flags & JCAT_SIGN_FLAG_USE_PQ) {
+	if (flags & JCAT_VERIFY_FLAG_ONLY_PQ) {
 		if (!jcat_gnutls_pkcs7_ensure_sign_algo_pq_safe(
 			gnutls_x509_crt_get_signature_algorithm(crt),
 			error))
