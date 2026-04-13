@@ -224,6 +224,8 @@ jcat_blob_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 {
 	const gchar *data_str;
 	const gchar *required[] = {"Kind", "Data", "Flags", NULL};
+	gint64 flags_tmp;
+	gint64 kind_tmp;
 	g_autoptr(JcatBlob) self = g_object_new(JCAT_TYPE_BLOB, NULL);
 	JcatBlobPrivate *priv = GET_PRIVATE(self);
 
@@ -240,8 +242,26 @@ jcat_blob_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 	}
 
 	/* get kind, which can be unknown to us for forward compat */
-	priv->kind = json_object_get_int_member(obj, "Kind");
-	priv->flags = json_object_get_int_member(obj, "Flags");
+	kind_tmp = json_object_get_int_member(obj, "Kind");
+	if (kind_tmp < 0) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "invalid kind");
+		return NULL;
+	}
+	priv->kind = (JcatBlobKind)kind_tmp;
+
+	/* get flags, which can also be unknown to us */
+	flags_tmp = json_object_get_int_member(obj, "Flags");
+	if (flags_tmp < 0) {
+		g_set_error_literal(error,
+				    G_IO_ERROR,
+				    G_IO_ERROR_INVALID_DATA,
+				    "invalid flags");
+		return NULL;
+	}
+	priv->flags = (JcatBlobFlags)flags_tmp;
 
 	/* all optional */
 	if (json_object_has_member(obj, "Timestamp"))
