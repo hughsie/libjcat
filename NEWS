@@ -1,3 +1,18 @@
+Version 0.2.6
+~~~~~~~~~~~~~
+Released: 2026-04-14
+
+New Features:
+ - Allow disabling time checks when not using a trust list (Richard Hughes)
+
+Bugfixes:
+ - Do not allow multiple items with the same ID (Richard Hughes)
+ - Do not try to change the GnuTLS system-wide config (Richard Hughes)
+ - Require at least one successful verification regardless of flags (Richard Hughes)
+ - Return the correct error code using the gnutls rc (Richard Hughes)
+ - Skip the PQ tests if the GnuTLS config is not malleable (Richard Hughes)
+ - Use the correct flag when self-verifying PQC certs (Richard Hughes)
+
 Version 0.2.5
 ~~~~~~~~~~~~~
 Released: 2025-10-04
