@@ -286,14 +286,15 @@ jcat_blob_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 		priv->appstream_id = g_strdup(appstream_id);
 	}
 	if (json_object_has_member(obj, "Target")) {
-		priv->target = json_object_get_int_member(obj, "Target");
-		if (priv->target < 0) {
+		gint64 target_tmp = json_object_get_int_member(obj, "Target");
+		if (target_tmp < 0) {
 			g_set_error_literal(error,
 					    G_IO_ERROR,
 					    G_IO_ERROR_INVALID_DATA,
 					    "invalid target");
 			return NULL;
 		}
+		priv->target = (JcatBlobKind)target_tmp;
 	}
 
 	/* get compressed data */
