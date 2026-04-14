@@ -244,10 +244,7 @@ jcat_blob_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 	/* get kind, which can be unknown to us for forward compat */
 	kind_tmp = json_object_get_int_member(obj, "Kind");
 	if (kind_tmp < 0) {
-		g_set_error_literal(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_DATA,
-				    "invalid kind");
+		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "invalid kind");
 		return NULL;
 	}
 	priv->kind = (JcatBlobKind)kind_tmp;
@@ -255,10 +252,7 @@ jcat_blob_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 	/* get flags, which can also be unknown to us */
 	flags_tmp = json_object_get_int_member(obj, "Flags");
 	if (flags_tmp < 0) {
-		g_set_error_literal(error,
-				    G_IO_ERROR,
-				    G_IO_ERROR_INVALID_DATA,
-				    "invalid flags");
+		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "invalid flags");
 		return NULL;
 	}
 	priv->flags = (JcatBlobFlags)flags_tmp;
@@ -300,10 +294,7 @@ jcat_blob_import(JsonObject *obj, JcatImportFlags flags, GError **error)
 	/* get compressed data */
 	data_str = json_object_get_string_member(obj, "Data");
 	if (data_str == NULL) {
-		g_set_error_literal(error,
-					G_IO_ERROR,
-					G_IO_ERROR_INVALID_DATA,
-					"no Data set");
+		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "no Data set");
 		return NULL;
 	}
 	if ((priv->flags & JCAT_BLOB_FLAG_IS_UTF8) == 0) {

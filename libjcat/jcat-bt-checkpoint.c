@@ -246,7 +246,7 @@ jcat_bt_checkpoint_new(GBytes *blob, GError **error)
 		g_set_error_literal(error, G_IO_ERROR, G_IO_ERROR_INVALID_DATA, "invalid log size");
 		return NULL;
 	}
-	self->log_size = (guint) log_size_tmp;
+	self->log_size = (guint)log_size_tmp;
 
 	/* ED25519 public key */
 	pubkey = g_base64_decode(lines[2], &pubkeysz);
