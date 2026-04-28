@@ -1,0 +1,434 @@
+/*
+ * Copyright (C) 2021 Richard Hughes <richard@hughsie.com>
+ *
+ * SPDX-License-Identifier: LGPL-2.1+
+ */
+
+#include "config.h"
+
+#include <gnutls/abstract.h>
+#include <gnutls/crypto.h>
+#include <gnutls/gnutls.h>
+
+#include "fu-jcat-common.h"
+#include "fu-jcat-engine.h"
+#include "fu-jcat-gnutls-common.h"
+#include "fu-jcat-gnutls-ed25519-engine.h"
+
+struct _FuJcatGnutlsEd25519Engine {
+	FuJcatEngine parent_instance;
+	GPtrArray *pubkeys; /* of gnutls_pubkey_t */
+};
+
+G_DEFINE_TYPE(FuJcatGnutlsEd25519Engine, fu_jcat_gnutls_ed25519_engine, FU_TYPE_JCAT_ENGINE)
+
+static GBytes *
+fu_jcat_gnutls_ed25519_pubkey_to_bytes(const gnutls_pubkey_t pubkey, GError **error)
+{
+	gint rc;
+	g_auto(gnutls_datum_t) x = {NULL, 0};
+
+	rc = gnutls_pubkey_export_ecc_raw(pubkey, NULL, &x, NULL);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_FAILED,
+			    "unable to export pubkey: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+	return g_bytes_new(x.data, x.size);
+}
+
+static gboolean
+fu_jcat_gnutls_ed25519_pubkey_from_bytes(GBytes *blob, gnutls_pubkey_t pubkey, GError **error)
+{
+	gint rc;
+	gnutls_datum_t x = {NULL, 0};
+
+	x.data = (guchar *)g_bytes_get_data(blob, NULL);
+	x.size = g_bytes_get_size(blob);
+
+	rc = gnutls_pubkey_import_ecc_raw(pubkey, GNUTLS_ECC_CURVE_ED25519, &x, NULL);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_FAILED,
+			    "unable to import pubkey: %s",
+			    gnutls_strerror(rc));
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static GBytes *
+fu_jcat_gnutls_ed25519_privkey_to_bytes(const gnutls_privkey_t privkey, GError **error)
+{
+	gint rc;
+	g_auto(gnutls_datum_t) k = {NULL, 0};
+
+	rc = gnutls_privkey_export_ecc_raw2(privkey, NULL, NULL, NULL, &k, 0);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_FAILED,
+			    "unable to export pubkey: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+	return g_bytes_new(k.data, k.size);
+}
+
+static gboolean
+fu_jcat_gnutls_ed25519_privkey_from_bytes(GBytes *blob_public,
+					  GBytes *blob_privkey,
+					  gnutls_privkey_t privkey,
+					  GError **error)
+{
+	gint rc;
+	gnutls_datum_t x = {NULL, 0};
+	gnutls_datum_t k = {NULL, 0};
+
+	x.data = (guchar *)g_bytes_get_data(blob_public, NULL);
+	x.size = g_bytes_get_size(blob_public);
+
+	k.data = (guchar *)g_bytes_get_data(blob_privkey, NULL);
+	k.size = g_bytes_get_size(blob_privkey);
+
+	rc = gnutls_privkey_import_ecc_raw(privkey, GNUTLS_ECC_CURVE_ED25519, &x, NULL, &k);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_FAILED,
+			    "unable to import privkey: %s",
+			    gnutls_strerror(rc));
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
+static gboolean
+fu_jcat_gnutls_ed25519_engine_add_public_key_raw(FuJcatEngine *engine, GBytes *blob, GError **error)
+{
+	FuJcatGnutlsEd25519Engine *self = FWUPD_JCAT_GNUTLS_ED25519_ENGINE(engine);
+	gint rc;
+	g_auto(gnutls_pubkey_t) pubkey = NULL;
+
+	rc = gnutls_pubkey_init(&pubkey);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_FAILED,
+			    "unable to allocate pubkey: %s",
+			    gnutls_strerror(rc));
+		return FALSE;
+	}
+
+	if (!fu_jcat_gnutls_ed25519_pubkey_from_bytes(blob, pubkey, error))
+		return FALSE;
+
+	g_ptr_array_add(self->pubkeys, g_steal_pointer(&pubkey));
+	return TRUE;
+}
+
+static gboolean
+fu_jcat_gnutls_ed25519_engine_add_public_key(FuJcatEngine *engine,
+					     const gchar *filename,
+					     GError **error)
+{
+	g_autoptr(GBytes) blob = NULL;
+
+	/* ignore */
+	if (!g_str_has_suffix(filename, ".ed25519"))
+		return TRUE;
+
+	blob = fu_bytes_get_contents(filename, error);
+	if (blob == NULL)
+		return FALSE;
+	return fu_jcat_gnutls_ed25519_engine_add_public_key_raw(engine, blob, error);
+}
+
+static FuJcatResult *
+fu_jcat_gnutls_ed25519_engine_pubkey_verify(FuJcatEngine *engine,
+					    GBytes *blob,
+					    GBytes *blob_signature,
+					    FuJcatVerifyFlags flags,
+					    GError **error)
+{
+	FuJcatGnutlsEd25519Engine *self = FWUPD_JCAT_GNUTLS_ED25519_ENGINE(engine);
+
+	/* sanity check */
+	if (self->pubkeys->len == 0) {
+		g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INVALID_ARGUMENT, "no keys in keyring");
+		return NULL;
+	}
+
+	/* verifies against any of the public keys */
+	for (guint i = 0; i < self->pubkeys->len; i++) {
+		gint rc;
+		gnutls_pubkey_t pubkey = g_ptr_array_index(self->pubkeys, i);
+		gnutls_datum_t data = {NULL, 0};
+		gnutls_datum_t sig = {NULL, 0};
+
+		data.data = (guchar *)g_bytes_get_data(blob, NULL);
+		data.size = g_bytes_get_size(blob);
+		sig.data = (guchar *)g_bytes_get_data(blob_signature, NULL);
+		sig.size = g_bytes_get_size(blob_signature);
+		rc = gnutls_pubkey_verify_data2(pubkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
+		if (rc == GNUTLS_E_SUCCESS)
+			return FWUPD_JCAT_RESULT(
+			    g_object_new(FU_TYPE_JCAT_RESULT, "engine", engine, NULL));
+	}
+
+	/* nothing found */
+	g_set_error_literal(error, FWUPD_ERROR, FWUPD_ERROR_INVALID_DATA, "failed to verify data");
+	return NULL;
+}
+
+static FwupdJcatBlob *
+fu_jcat_gnutls_ed25519_engine_pubkey_sign(FuJcatEngine *engine,
+					  GBytes *blob,
+					  GBytes *blob_cert,
+					  GBytes *blob_privkey,
+					  FuJcatSignFlags flags,
+					  GError **error)
+{
+	gint rc;
+	gnutls_datum_t data = {NULL, 0};
+	g_autoptr(GBytes) blob_sig = NULL;
+	g_auto(gnutls_pubkey_t) pubkey = NULL;
+	g_auto(gnutls_privkey_t) privkey = NULL;
+	g_auto(gnutls_datum_t) sig = {NULL, 0};
+
+	/* nothing to do */
+	if (g_bytes_get_size(blob) == 0) {
+		g_set_error(error, FWUPD_ERROR, FWUPD_ERROR_INVALID_ARGUMENT, "nothing to do");
+		return NULL;
+	}
+
+	/* load */
+	rc = gnutls_privkey_init(&privkey);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_FAILED,
+			    "unable to allocate privkey: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+	if (!fu_jcat_gnutls_ed25519_privkey_from_bytes(blob_cert, blob_privkey, privkey, error))
+		return NULL;
+
+	/* sign */
+	data.data = (guchar *)g_bytes_get_data(blob, NULL);
+	data.size = g_bytes_get_size(blob);
+	rc = gnutls_privkey_sign_data2(privkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_FAILED,
+			    "unable to sign data: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+	blob_sig = g_bytes_new(sig.data, sig.size);
+	return fwupd_jcat_blob_new(FWUPD_JCAT_BLOB_KIND_ED25519, blob_sig);
+}
+
+static FuJcatResult *
+fu_jcat_gnutls_ed25519_engine_self_verify(FuJcatEngine *engine,
+					  GBytes *blob,
+					  GBytes *blob_signature,
+					  FuJcatVerifyFlags flags,
+					  GError **error)
+{
+	gint rc;
+	gnutls_datum_t data = {NULL, 0};
+	gnutls_datum_t sig = {NULL, 0};
+	const gchar *keyring_path = fu_jcat_engine_get_keyring_path(engine);
+	g_autofree gchar *fn_pubkey = NULL;
+	g_autoptr(GBytes) blob_pubkey = NULL;
+	g_auto(gnutls_pubkey_t) pubkey = NULL;
+
+	fn_pubkey = g_build_filename(keyring_path, "pki", "public.ed25519", NULL);
+	blob_pubkey = fu_bytes_get_contents(fn_pubkey, error);
+	if (blob_pubkey == NULL)
+		return NULL;
+	rc = gnutls_pubkey_init(&pubkey);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_FAILED,
+			    "unable to allocate pubkey: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+	if (!fu_jcat_gnutls_ed25519_pubkey_from_bytes(blob_pubkey, pubkey, error))
+		return NULL;
+
+	data.data = (guchar *)g_bytes_get_data(blob, NULL);
+	data.size = g_bytes_get_size(blob);
+	sig.data = (guchar *)g_bytes_get_data(blob_signature, NULL);
+	sig.size = g_bytes_get_size(blob_signature);
+	rc = gnutls_pubkey_verify_data2(pubkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_INVALID_DATA,
+			    "failed to verify data: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+
+	/* success */
+	return FWUPD_JCAT_RESULT(g_object_new(FU_TYPE_JCAT_RESULT, "engine", engine, NULL));
+}
+
+static FwupdJcatBlob *
+fu_jcat_gnutls_ed25519_engine_self_sign(FuJcatEngine *engine,
+					GBytes *blob,
+					FuJcatSignFlags flags,
+					GError **error)
+{
+	gint rc;
+	gnutls_datum_t data = {NULL, 0};
+	const gchar *keyring_path = fu_jcat_engine_get_keyring_path(engine);
+	g_autofree gchar *fn_privkey = NULL;
+	g_autofree gchar *fn_pubkey = NULL;
+	g_autoptr(GBytes) blob_privkey = NULL;
+	g_autoptr(GBytes) blob_pubkey = NULL;
+	g_auto(gnutls_pubkey_t) pubkey = NULL;
+	g_auto(gnutls_privkey_t) privkey = NULL;
+	g_autoptr(GBytes) blob_sig = NULL;
+	g_auto(gnutls_datum_t) sig = {NULL, 0};
+
+	rc = gnutls_privkey_init(&privkey);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_FAILED,
+			    "unable to allocate privkey: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+
+	rc = gnutls_pubkey_init(&pubkey);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_FAILED,
+			    "unable to allocate pubkey: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+
+	/* check keypair exists, otherwise generate and save */
+	fn_privkey = g_build_filename(keyring_path, "pki", "secret.ed25519", NULL);
+	fn_pubkey = g_build_filename(keyring_path, "pki", "public.ed25519", NULL);
+	if (!g_file_test(fn_privkey, G_FILE_TEST_EXISTS)) {
+		rc = gnutls_privkey_generate2(privkey, GNUTLS_PK_EDDSA_ED25519, 0, 0, NULL, 0);
+		if (rc < 0) {
+			g_set_error(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_INVALID_DATA,
+				    "failed to generate private key: %s [%i]",
+				    gnutls_strerror(rc),
+				    rc);
+			return NULL;
+		}
+		rc = gnutls_pubkey_import_privkey(pubkey, privkey, 0, 0);
+		if (rc < 0) {
+			g_set_error(error,
+				    FWUPD_ERROR,
+				    FWUPD_ERROR_FAILED,
+				    "unable to import pubkey from privkey: %s",
+				    gnutls_strerror(rc));
+			return NULL;
+		}
+		if (!fu_path_mkdir_parent(fn_privkey, error))
+			return NULL;
+		blob_pubkey = fu_jcat_gnutls_ed25519_pubkey_to_bytes(pubkey, error);
+		if (!blob_pubkey)
+			return NULL;
+		if (!fu_bytes_set_contents_full(fn_pubkey, blob_pubkey, 0666, error))
+			return NULL;
+		blob_privkey = fu_jcat_gnutls_ed25519_privkey_to_bytes(privkey, error);
+		if (!blob_privkey)
+			return NULL;
+		if (!fu_bytes_set_contents_full(fn_privkey, blob_privkey, 0600, error))
+			return NULL;
+	} else {
+		blob_pubkey = fu_bytes_get_contents(fn_pubkey, error);
+		if (blob_pubkey == NULL)
+			return NULL;
+		if (!fu_jcat_gnutls_ed25519_pubkey_from_bytes(blob_pubkey, pubkey, error))
+			return NULL;
+		blob_privkey = fu_bytes_get_contents(fn_privkey, error);
+		if (blob_privkey == NULL)
+			return NULL;
+		if (!fu_jcat_gnutls_ed25519_privkey_from_bytes(blob_pubkey,
+							       blob_privkey,
+							       privkey,
+							       error))
+			return NULL;
+	}
+
+	data.data = (guchar *)g_bytes_get_data(blob, NULL);
+	data.size = g_bytes_get_size(blob);
+	rc = gnutls_privkey_sign_data2(privkey, GNUTLS_SIGN_EDDSA_ED25519, 0, &data, &sig);
+	if (rc < 0) {
+		g_set_error(error,
+			    FWUPD_ERROR,
+			    FWUPD_ERROR_FAILED,
+			    "unable to sign data: %s",
+			    gnutls_strerror(rc));
+		return NULL;
+	}
+	blob_sig = g_bytes_new(sig.data, sig.size);
+	return fwupd_jcat_blob_new(FWUPD_JCAT_BLOB_KIND_ED25519, blob_sig);
+}
+
+static void
+fu_jcat_gnutls_ed25519_engine_finalize(GObject *object)
+{
+	FuJcatGnutlsEd25519Engine *self = FWUPD_JCAT_GNUTLS_ED25519_ENGINE(object);
+	g_ptr_array_unref(self->pubkeys);
+	G_OBJECT_CLASS(fu_jcat_gnutls_ed25519_engine_parent_class)->finalize(object);
+}
+
+static void
+fu_jcat_gnutls_ed25519_engine_class_init(FuJcatGnutlsEd25519EngineClass *klass)
+{
+	GObjectClass *object_class = G_OBJECT_CLASS(klass);
+	FuJcatEngineClass *engine_class = FWUPD_JCAT_ENGINE_CLASS(klass);
+	engine_class->add_public_key = fu_jcat_gnutls_ed25519_engine_add_public_key;
+	engine_class->add_public_key_raw = fu_jcat_gnutls_ed25519_engine_add_public_key_raw;
+	engine_class->pubkey_verify = fu_jcat_gnutls_ed25519_engine_pubkey_verify;
+	engine_class->pubkey_sign = fu_jcat_gnutls_ed25519_engine_pubkey_sign;
+	engine_class->self_verify = fu_jcat_gnutls_ed25519_engine_self_verify;
+	engine_class->self_sign = fu_jcat_gnutls_ed25519_engine_self_sign;
+	object_class->finalize = fu_jcat_gnutls_ed25519_engine_finalize;
+}
+
+static void
+fu_jcat_gnutls_ed25519_engine_init(FuJcatGnutlsEd25519Engine *self)
+{
+	fu_jcat_gnutls_global_init();
+	self->pubkeys = g_ptr_array_new_with_free_func((GDestroyNotify)gnutls_pubkey_deinit);
+}
+
+FuJcatEngine *
+fu_jcat_gnutls_ed25519_engine_new(FuJcatContext *context)
+{
+	g_return_val_if_fail(FWUPD_JCAT_IS_CONTEXT(context), NULL);
+	return FWUPD_JCAT_ENGINE(g_object_new(FU_TYPE_JCAT_GNUTLS_GNUTLS_ED25519_ENGINE,
+					      "context",
+					      context,
+					      "kind",
+					      FWUPD_JCAT_BLOB_KIND_ED25519,
+					      "method",
+					      FWUPD_JCAT_BLOB_METHOD_SIGNATURE,
+					      NULL));
+}
