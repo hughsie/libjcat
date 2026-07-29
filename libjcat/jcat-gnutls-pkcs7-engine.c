@@ -195,6 +195,10 @@ jcat_gnutls_pkcs7_engine_verify(JcatEngine *engine,
 	datum.data = (guchar *)g_bytes_get_data(blob, NULL);
 	datum.size = g_bytes_get_size(blob);
 	count = gnutls_pkcs7_get_signature_count(pkcs7);
+	if (!jcat_gnutls_rc_to_error(count, error)) {
+		g_prefix_error_literal(error, "failed to get PKCS7 signature count: ");
+		return NULL;
+	}
 	g_debug("got %i PKCS7 signatures", count);
 	if (count == 0) {
 		g_set_error_literal(error,
